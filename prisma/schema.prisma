@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String @id @default(uuid())
+  username String
+  password String
+  email    String
+  role     ROLES  @default(ACCOUNTING)
+}
+
+model Employee {
+  id            String @id @default(uuid())
+  firstName     String
+  middleInitial String
+  lastName      String
+  role          ROLES  @default(ACCOUNTING)
+  idNumber      String
+  SI            SI[]
+}
+
+model ClientInfo {
+  id          String   @id @default(uuid())
+  companyName String
+  address     String
+  TIN         String
+  Client      Client[]
+}
+
+model Client {
+  id           String        @id @default(uuid())
+  clientInfo   ClientInfo    @relation(fields: [clientInfoId], references: [id])
+  clientInfoId String
+  SI           SI[]
+  DR           DR[]
+  WeeklySales  WeeklySales[]
+}
+
+model ItemInfo {
+  id                String   @id @default(uuid())
+  itemName          String
+  batchNumber       String
+  manufacturingDate DateTime
+  ExpirationDate    DateTime
+  unitPrice         Decimal
+  items             Item[]
+}
+
+model Item {
+  id         String    @id @default(uuid())
+  quantity   Int?
+  unit       UNITS?
+  term       Int
+  SI         SI?       @relation(fields: [sIId], references: [id])
+  sIId       String?
+  DR         DR?       @relation(fields: [dRId], references: [id])
+  dRId       String?
+  ItemInfo   ItemInfo? @relation(fields: [itemInfoId], references: [id])
+  itemInfoId String?
+}
+
+model SI {
+  id          String   @id @default(uuid())
+  client      Client   @relation(fields: [clientId], references: [id])
+  currentDate String
+  items       Item[]
+  totalAmount Decimal
+  Term        Int
+  discount    Int
+  VAT         Decimal
+  preparedBy  Employee @relation(fields: [employeeId], references: [id])
+  employeeId  String
+  clientId    String
+}
+
+model DR {
+  id          String  @id @default(uuid())
+  client      Client  @relation(fields: [clientId], references: [id])
+  clientId    String
+  items       Item[]
+  totalAmount Decimal
+  Term        Int
+  discount    Int
+  VAT         Decimal
+}
+
+model WeeklySales {
+  id          String   @id @default(uuid())
+  dateIssued  DateTime
+  client      Client   @relation(fields: [clientId], references: [id])
+  clientId    String
+  totalOrders Int
+  discount    Decimal
+  VAT         Decimal
+  total       Decimal
+}
+
+model SOA {
+  id     String   @id @default(uuid())
+  name   String
+  date   DateTime
+  orders Int
+  amount Decimal
+}
+
+enum UNITS {
+  BOX
+  VIALS
+  BOTTLES
+}
+
+enum ROLES {
+  ADMIN
+  SALES
+  INVENTORY
+  ACCOUNTING
+  IT
+}
