@@ -10,15 +10,19 @@
     "test": "jest"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.2.1",
+    "@fortawesome/free-solid-svg-icons": "^6.2.1",
     "@next/font": "13.1.5",
     "@prisma/client": "^4.9.0",
     "@types/node": "18.11.18",
     "@types/react": "18.0.27",
     "@types/react-dom": "18.0.10",
     "@types/semantic-ui": "^2.2.7",
+    "bcrypt": "^5.1.0",
     "eslint": "8.32.0",
     "eslint-config-next": "13.1.5",
     "next": "13.1.5",
+    "next-auth": "^4.19.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "semantic-ui-css": "^2.5.0",
@@ -28,6 +32,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
+    "@types/bcrypt": "^5.0.0",
     "@types/lodash": "^4.14.191",
     "autoprefixer": "^10.4.13",
     "axios": "^1.2.5",

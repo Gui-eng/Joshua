@@ -11,26 +11,35 @@ datasource db {
 }
 
 model User {
-  id       String @id @default(uuid())
-  username String
-  password String
-  email    String
-  role     ROLES  @default(ACCOUNTING)
+  id           String        @id @default(uuid())
+  username     String        @unique
+  password     String
+  email        String        @unique
+  role         ROLES         @default(ACCOUNTING)
+  EmployeeInfo EmployeeInfo?
 }
 
-model Employee {
-  id            String @id @default(uuid())
+model EmployeeInfo {
+  id            String     @id @default(uuid())
   firstName     String
   middleInitial String
   lastName      String
-  role          ROLES  @default(ACCOUNTING)
   idNumber      String
-  SI            SI[]
+  user          User       @relation(fields: [userId], references: [id])
+  userId        String     @unique
+  Employee      Employee[]
+}
+
+model Employee {
+  id             String       @id @default(uuid())
+  employee       EmployeeInfo @relation(fields: [employeeInfoId], references: [id])
+  employeeInfoId String
+  SI             SI[]
 }
 
 model ClientInfo {
   id          String   @id @default(uuid())
-  companyName String
+  companyName String   @unique
   address     String
   TIN         String
   Client      Client[]
@@ -47,7 +56,7 @@ model Client {
 
 model ItemInfo {
   id                String   @id @default(uuid())
-  itemName          String
+  itemName          String   @unique
   batchNumber       String
   manufacturingDate DateTime
   ExpirationDate    DateTime
@@ -70,7 +79,6 @@ model Item {
 
 model SI {
   id          String   @id @default(uuid())
-  client      Client   @relation(fields: [clientId], references: [id])
   currentDate String
   items       Item[]
   totalAmount Decimal
@@ -79,6 +87,7 @@ model SI {
   VAT         Decimal
   preparedBy  Employee @relation(fields: [employeeId], references: [id])
   employeeId  String
+  client      Client   @relation(fields: [clientId], references: [id])
   clientId    String
 }
 

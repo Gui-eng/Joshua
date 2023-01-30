@@ -4,6 +4,7 @@ import { Table, TableCell } from 'semantic-ui-react'
 import axios from 'axios'
 import { GetServerSideProps } from "next"
 import Itable from "components/Itable"
+import { signIn } from "next-auth/react"
 
 interface Data {
   id : string
@@ -30,9 +31,7 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
 
 export default function Home({ data } : Employees) {
-
-  const headerTitle = ['ID','First Name', 'Middle Intial', 'Last Name', 'Role', 'ID Number']
-
+  signIn()
   return (
     null
     

@@ -56,12 +56,14 @@ export default function Itable({ data, headerTitles} : Props) {
   const [state, dispatch] = useReducer(exampleReducer, initalState) 
   const { column, datas, direction } = state
 
+
+
   return (
     <div>
-        <Table sortable celled compact>
+      <Table sortable celled compact>
       <Table.Header>
         <Table.Row >
-          {Object.keys(datas[0]).map((item, index) => {
+          {datas[0] !== undefined ? Object.keys(datas[0]).map((item, index) => {
             if(index > 0){
               return (
                 <Table.HeaderCell
@@ -74,7 +76,16 @@ export default function Itable({ data, headerTitles} : Props) {
             }else{
               return null
             }
-          })}
+          }) : 
+          headerTitles.map((item, index) => {
+            return(
+              index > 0 ? 
+                <Table.HeaderCell>
+                  {item}
+                </Table.HeaderCell> : null
+            )
+          })
+          }
         </Table.Row>
       </Table.Header>
       <Table.Body>
