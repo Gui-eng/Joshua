@@ -1,6 +1,8 @@
 import axios from 'axios'
 import Itable from 'components/Itable'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import { Button, Form, Input, Message } from 'semantic-ui-react'
 
@@ -16,8 +18,18 @@ export const getServerSideProps : GetServerSideProps = async () => {
 }
 
 export default function item({ info } : InferGetServerSidePropsType<typeof getServerSideProps>) {
+
+  const router = useRouter()
+  const session = useSession();
+
+  // useEffect(() => {
+  //   if(!session.data){
+  //     alert("Invalid Access")
+  //     router.push('/')
+  //   }
+  // }, [])
   
-  console.log(info)
+
   const [emptyFieldsError, setEmptyFieldsError] = useState(true)
 
   const [data, setData] = useState({
@@ -51,7 +63,9 @@ export default function item({ info } : InferGetServerSidePropsType<typeof getSe
 
 
   return (
-    <div className='tw-w-full tw-h-screen tw-flex tw-bg-teal-700 tw-bg-opacity-20'>
+    session.data && 
+    <>
+      <div className='tw-w-full tw-h-screen tw-flex tw-bg-teal-700 tw-bg-opacity-20'>
       <div className='tw-h-full tw-w-[50%] tw-flex tw-items-center tw-justify-center '>
         <div className='tw-w-[50%]'>
             <Form>
@@ -92,5 +106,6 @@ export default function item({ info } : InferGetServerSidePropsType<typeof getSe
             </div>
         </div>
     </div>
+    </>
   )
 }

@@ -29,15 +29,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         },
                     });
 
-                    const info = await prisma.employeeInfo.findUnique({
-                        where: {
-                            userId: items?.id,
-                        },
-                    });
-
-                    res.status(200).json({ success: true, data: info });
+                    res.status(200).json({ success: true, data: items });
                 } catch (error) {
-                    console.log(error);
                     res.status(403).json({ success: false, data: [] });
                 }
             }

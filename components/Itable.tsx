@@ -9,7 +9,7 @@ import { GetServerSideProps } from "next"
 interface State {
   column : string | undefined | null
   datas : Object[]
-  direction : string | undefined | null
+  direction : "ascending" | "descending" | undefined
 }
 
 interface Action {
@@ -50,7 +50,7 @@ export default function Itable({ data, headerTitles} : Props) {
   const initalState : State = {
     column: null,
     datas: data,
-    direction: null,
+    direction: undefined,
   }
 
   const [state, dispatch] = useReducer(exampleReducer, initalState) 
@@ -66,8 +66,8 @@ export default function Itable({ data, headerTitles} : Props) {
           {datas[0] !== undefined ? Object.keys(datas[0]).map((item, index) => {
             if(index > 0){
               return (
-                <Table.HeaderCell
-              sorted={column === item ? direction : null}
+                <Table.HeaderCell key={item}
+              sorted={column === item ? direction : undefined}
               onClick={() => {dispatch({ type: 'CHANGE_SORT', column: item })}}
             >
               {headerTitles[index]}
@@ -80,7 +80,7 @@ export default function Itable({ data, headerTitles} : Props) {
           headerTitles.map((item, index) => {
             return(
               index > 0 ? 
-                <Table.HeaderCell>
+                <Table.HeaderCell key={item}>
                   {item}
                 </Table.HeaderCell> : null
             )
@@ -94,7 +94,7 @@ export default function Itable({ data, headerTitles} : Props) {
             {Object.values(item).map((item : any, index) => {
               if(index > 0){
                 return (
-                  <TableCell>{item}</TableCell>
+                  <TableCell key={item}>{item}</TableCell>
                 )
               }else{
                 return null

@@ -6,17 +6,17 @@ import { useRouter } from 'next/router'
 
 const login : React.FC = () => {
     const router = useRouter()
-    const [data, setData] = useState({
+    const [Data, setData] = useState({
         username : '',
         password : ''
     })
-    const [type, setType] = useState('password')
-    const [icon, setIcon] = useState('eye')
-    const [wrongUserOrPassError, setWrongUserOrPassError] = useState(true)
-    const [emptyFieldsError, setEmptyFieldsError] = useState(true)
+    const [Type, setType] = useState('password')
+    const [Icon, setIcon] = useState('eye')
+    const [WrongUserOrPassError, setWrongUserOrPassError] = useState(true)
+    const [EmptyFieldsError, setEmptyFieldsError] = useState(true)
 
     function handleChange( e : React.ChangeEvent<HTMLInputElement>) {
-      setData({...data, [e.target.id] : e.target.value})
+      setData({...Data, [e.target.id] : e.target.value})
     }
 
     function handleShowPassword(){
@@ -25,18 +25,18 @@ const login : React.FC = () => {
 
     useEffect(() => {
       (setEmptyFieldsError(true), setWrongUserOrPassError(true))
-    }, [data])
+    }, [Data])
 
     async function handleLogin(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
         e.preventDefault()
-        if(data.username === '' || data.password === ''){
+        if(Data.username === '' || Data.password === ''){
           setEmptyFieldsError(false)
           return;
         }
   
         const res = await signIn('credentials',{
-          username : data.username,
-          password : data.password,
+          username : Data.username,
+          password : Data.password,
           redirect : false
         })
 
@@ -63,21 +63,21 @@ const login : React.FC = () => {
                 </Form.Field>
                 <Form.Field>
                     <label htmlFor='password'>Password</label>
-                    <Input type={type} id='password' onChange={handleChange} iconPosition={'left'} icon={{name : 'user secret'}} placeholder='Password'
+                    <Input type={Type} id='password' onChange={handleChange} iconPosition={'left'} icon={{name : 'user secret'}} placeholder='Password'
                     action={{
-                        icon : icon,
+                        icon : Icon,
                         color: 'teal',
                         onClick : () => {handleShowPassword()}
                     }}/>
                 </Form.Field>
                 <Message
-            error = {wrongUserOrPassError}
+            error = {WrongUserOrPassError}
             color='red'
             header='Login Failed!'
             content='Username or password is incorrect!'
         />
             <Message
-            error = {emptyFieldsError}
+            error = {EmptyFieldsError}
             color='red'
             header='Login Failed!'
             content='There are empty Fields'

@@ -11,73 +11,88 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  username     String        @unique
-  password     String
-  email        String        @unique
-  role         ROLES         @default(ACCOUNTING)
-  EmployeeInfo EmployeeInfo?
+  id             String        @id @default(uuid())
+  username       String        @unique
+  password       String
+  email          String        @unique
+  role           ROLES         @default(ACCOUNTING)
+  isAdmin        Boolean       @default(false)
+  employeeInfo   EmployeeInfo? @relation(fields: [employeeInfoId], references: [id])
+  employeeInfoId String?       @unique
 }
 
 model EmployeeInfo {
-  id            String     @id @default(uuid())
-  firstName     String
-  middleInitial String
-  lastName      String
-  idNumber      String
-  user          User       @relation(fields: [userId], references: [id])
-  userId        String     @unique
-  Employee      Employee[]
+  id         String     @id @default(uuid())
+  firstName  String
+  middleName String
+  lastName   String
+  code       String?
+  address    String
+  dateHired  DateTime
+  department DEPARTMENT
+  contactNo  String
+
+  Employee Employee[]
+  User     User?
 }
 
 model Employee {
   id             String       @id @default(uuid())
   employee       EmployeeInfo @relation(fields: [employeeInfoId], references: [id])
   employeeInfoId String
-  SI             SI[]
+
+  SI SalesInvoice[]
 }
 
 model ClientInfo {
-  id          String   @id @default(uuid())
-  companyName String   @unique
+  id          String @id @default(uuid())
+  companyName String @unique
   address     String
-  TIN         String
-  Client      Client[]
+  TIN         String @unique
+
+  Client Client[]
 }
 
 model Client {
-  id           String        @id @default(uuid())
-  clientInfo   ClientInfo    @relation(fields: [clientInfoId], references: [id])
-  clientInfoId String
-  SI           SI[]
-  DR           DR[]
-  WeeklySales  WeeklySales[]
+  id              String         @id @default(uuid())
+  clientInfo      ClientInfo     @relation(fields: [clientInfoId], references: [id])
+  clientInfoId    String
+  salesInvoice    SalesInvoice?  @relation(fields: [salesInvoiceId], references: [id])
+  salesInvoiceId  String?        @unique
+  deliveryRecipt  DelveryRecipt? @relation(fields: [delveryReciptId], references: [id])
+  delveryReciptId String         @unique
+
+  WeeklySales WeeklySales[]
 }
 
 model ItemInfo {
   id                String   @id @default(uuid())
-  itemName          String   @unique
-  batchNumber       String
+  itemName          String
+  batchNumber       String   @unique
   manufacturingDate DateTime
   ExpirationDate    DateTime
-  unitPrice         Decimal
-  items             Item[]
+  priceBottle       Decimal
+  priceVial         Decimal
+  pricePiece        Decimal
+  VAT               Boolean
+
+  items Item[]
 }
 
 model Item {
-  id         String    @id @default(uuid())
+  id         String         @id @default(uuid())
   quantity   Int?
   unit       UNITS?
   term       Int
-  SI         SI?       @relation(fields: [sIId], references: [id])
+  SI         SalesInvoice?  @relation(fields: [sIId], references: [id])
   sIId       String?
-  DR         DR?       @relation(fields: [dRId], references: [id])
+  DR         DelveryRecipt? @relation(fields: [dRId], references: [id])
   dRId       String?
-  ItemInfo   ItemInfo? @relation(fields: [itemInfoId], references: [id])
-  itemInfoId String?
+  ItemInfo   ItemInfo       @relation(fields: [itemInfoId], references: [id])
+  itemInfoId String
 }
 
-model SI {
+model SalesInvoice {
   id          String   @id @default(uuid())
   currentDate String
   items       Item[]
@@ -87,14 +102,12 @@ model SI {
   VAT         Decimal
   preparedBy  Employee @relation(fields: [employeeId], references: [id])
   employeeId  String
-  client      Client   @relation(fields: [clientId], references: [id])
-  clientId    String
+  client      Client?
 }
 
-model DR {
+model DelveryRecipt {
   id          String  @id @default(uuid())
-  client      Client  @relation(fields: [clientId], references: [id])
-  clientId    String
+  client      Client?
   items       Item[]
   totalAmount Decimal
   Term        Int
@@ -133,4 +146,19 @@ enum ROLES {
   INVENTORY
   ACCOUNTING
   IT
+}
+
+enum DEPARTMENT {
+  SALES
+  PMR
+  INVENTORY
+  ACCOUNTING
+  IT
+}
+
+enum STATUS {
+  DELIVERED
+  UN_DELIVERED    @map("UN DELIVRED")
+  CANCELLED
+  FOR_REPLACEMENT @map("FOR REPLACEMENT")
 }
