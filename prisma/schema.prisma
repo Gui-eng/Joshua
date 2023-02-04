@@ -138,6 +138,7 @@ enum UNITS {
   BOX
   VIALS
   BOTTLES
+  PER_PIECE @map("PER PIECE")
 }
 
 enum ROLES {

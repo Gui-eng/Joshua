@@ -1,11 +1,19 @@
 import axios from 'axios'
-import _ from 'lodash'
+import _, { floor } from 'lodash'
 import Itable from 'components/Itable'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import { Button, Dropdown, Form, FormField, Input, Message } from 'semantic-ui-react'
+
+const quantityOptions = [
+  { key:'vial' , value : 'VIALS', text : 'Vial/s'},
+  { key:'box' , value : 'BOX', text : 'Box/s'},
+  { key:'bottle' , value : 'BOTTLES', text : 'Bottle/s'},
+  { key:'piece' , value : 'PER PIECE', text : 'Piece/s'}
+
+]
 
 interface Client{
   id          :String
@@ -14,6 +22,17 @@ interface Client{
   TIN         :String 
 }
 
+interface Items {
+  id                :String  
+  itemName          :String
+  batchNumber       :String 
+  manufacturingDate :String
+  ExpirationDate    :String
+  priceBottle       :Number
+  priceVial         :Number
+  pricePiece        :Number
+  VAT               :Boolean
+}
 interface Employee {
   id         :String     
   firstName  :String
@@ -77,7 +96,15 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
   })
 
   const [client, setClient] = useState<Client>()
-  const [item, setItem] = useState(_.uniq(items.itemName))
+  const [item, setItem] = useState(_.uniqBy(items, 'itemName').map((items : any) => {
+    return {
+      text : items.itemName,
+      value : items.itemName,
+      key : items.id
+    }
+  }))
+  const [batch, setBatch] = useState<Array<any>>()
+  const [itemInfo, setItemInfo] = useState<Items>()
   
   function clientFind(name : any){
     setClient(info.find((item : Client) => {
@@ -85,6 +112,22 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
     }))
   }
 
+  function batchFind(name : any){
+    setBatch(_.filter(items, (item) => {
+      return item.itemName === name
+    }).map((item) => {
+      return{
+        text : item.batchNumber,
+        value : item.id,
+        key : item.id
+    }}))
+  }
+
+  function itemFind(id : any){
+    setItemInfo(items.find((item : Items) => {
+      return item.id === id
+    }))
+  }
 
   useEffect(() => {
     setEmptyFieldsError(true)
@@ -106,7 +149,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
       
     }
   
-    console.log(items)
+
 
   return (
     // session.data && 
@@ -162,25 +205,43 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
           <h3>Add Item</h3>
         </Form.Field>
         <Form.Group>
-          <Form.Field width={2}>
+          <Form.Field>
               <label htmlFor="discount">Discount</label>
               <Input id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
           </Form.Field>
           <Form.Field>
               <label htmlFor="manufacturingDate">Manufacturing Date</label>
-              <Input id="manufacturingDate" type='date' value="2023-01-23" readOnly/>
+              <Input id="manufacturingDate" type='date' value={itemInfo !== undefined ? itemInfo.manufacturingDate.substring(0, 10) : ''} readOnly/>
           </Form.Field>
           <Form.Field>
               <label htmlFor="ExpirationDate">Expiration Date</label>
-              <Input id="ExpirationDate" type='date' value="2023-01-23" readOnly/>
+              <Input id="ExpirationDate" type='date' value={itemInfo !== undefined ? itemInfo.ExpirationDate.substring(0, 10) : ''} readOnly/>
           </Form.Field>
           <Form.Field>
-            {/* <Dropdown
+              <label htmlFor="itemName">Item Name</label>
+              <Dropdown
+              id="itemName"
               search
               selection
-              options={}
-            /> */}
+              options={item}
+              onChange={(e, item) => {batchFind(item.value)}}
+              />
           </Form.Field>
+          <Form.Field>
+              <label htmlFor="itemName">Batch Number</label>
+              <Dropdown
+              id="itemName"
+              search
+              selection
+              options={batch}
+              onChange={(e, item) => {itemFind(item.value)}}
+              />
+          </Form.Field>
+          <Form.Field>
+              <label htmlFor="quantity">Quantity</label>
+              <Input min="0" type="number" label={{content : <Dropdown color='blue' defaultValue="VIALS" options={quantityOptions}/>, color : "blue"}} labelPosition='right'/>
+          </Form.Field>
+          
         </Form.Group>
       </Form>
     </>
