@@ -1,6 +1,7 @@
 import axios from 'axios'
-import _, { floor } from 'lodash'
-import Itable from 'components/Itable'
+import _, { floor, uniqueId } from 'lodash'
+import { v4 as uuidv4 } from 'uuid';
+import IFlexTable from '../../../../components/IFlexTable'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
@@ -14,6 +15,8 @@ const quantityOptions = [
   { key:'piece' , value : 'PER PIECE', text : 'Piece/s'}
 
 ]
+
+const tableHeaders = ["id","QTY", "UNIT", "ARTICLES", "VATABLE", "U-PRICE", "DISCOUNT", "AMOUNT"]
 
 interface Client{
   id          :String
@@ -45,7 +48,7 @@ interface Employee {
   contactNo  :String
 }
 
-const headerTitles = ["id", "Company Name", "Company Address", "TIN"]
+const headerTitles = ["id", "itemId", "Company Name", "Company Address", "TIN"]
 
 export const getServerSideProps : GetServerSideProps = async () => {
     const res = await axios.get("http://localhost:3000/api/getInfo/client")
@@ -88,13 +91,11 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
   
 
   const [emptyFieldsError, setEmptyFieldsError] = useState(true)
-
   const [data, setData] = useState({
     companyName :'',
     address     :'',
     TIN         :'',
   })
-
   const [client, setClient] = useState<Client>()
   const [item, setItem] = useState(_.uniqBy(items, 'itemName').map((items : any) => {
     return {
@@ -105,8 +106,31 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
   }))
   const [batch, setBatch] = useState<Array<any>>()
   const [itemInfo, setItemInfo] = useState<Items>()
+  const [tableDatum, setTableDatum] = useState({
+    id : '',
+    itemId : '',
+    quantity : 0,
+    unit : "",
+    article : "",
+    VAT : "Yes",
+    uPrice : 0,
+    discount : 0,
+    amount : 0
+  })
+  const [tableData, setTableData] = useState<Array<any>>([])
+  const [unit, setUnit] = useState('VIALS')
+  const [price, setPrice] = useState(0)
+  const [quantity, setQuantity] = useState(0)
+  const [Vatable, setVatable] = useState(true)
   
-  function clientFind(name : any){
+ 
+ 
+
+  function handleDataFromChild(data : any){
+    setTableData(data)
+  }
+  
+  function clientFind(name : any){ 
     setClient(info.find((item : Client) => {
       return item.companyName === name
     }))
@@ -129,9 +153,56 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
     }))
   }
 
+  
+  
+
   useEffect(() => {
     setEmptyFieldsError(true)
   }, [data])
+
+  useEffect(() => {
+    if(tableDatum.itemId !== ''){
+      const item = items.find((item : Items) => {
+        return item.id === tableDatum.itemId
+      })
+      switch(unit){
+        case 'VIALS':
+          (setTableDatum({...tableDatum, uPrice : parseFloat(item.priceVial), unit : 'VIAL/S'}), setPrice(parseFloat(item.priceVial)))
+          break;
+        case 'PER PIECE':
+          (setTableDatum({...tableDatum, uPrice : parseFloat(item.pricePiece), unit : 'PIECE/S'}), setPrice(parseFloat(item.pricePiece)))
+          break;
+        case 'BOTTLES' :
+          (setTableDatum({...tableDatum, uPrice : parseFloat(item.priceBottle), unit : 'BOTTLE/S'}), setPrice(parseFloat(item.priceBottle)))
+          break;
+        default:
+          return;
+      }
+    }
+    return;
+  }, [unit])
+
+  useEffect(() => {
+    if(tableDatum.itemId !== ''){
+      const item = items.find((item : Items) => {
+        return item.id === tableDatum.itemId
+      })
+      setVatable(item.VAT ? true : false)
+      setTableDatum({...tableDatum, article : item.itemName})
+    }
+    return;
+  },[tableDatum.itemId])
+
+  useEffect(() => {
+    setTableDatum({...tableDatum, VAT : Vatable ? "Yes" : "No"})
+  },[Vatable])
+
+  useEffect(() => {
+    const amount = price * quantity
+    setTableDatum({...tableDatum, amount : amount})
+  },[price, quantity])
+
+ 
 
   async function handleOnClick(e : React.MouseEvent<HTMLButtonElement, MouseEvent>){
     e.preventDefault();
@@ -139,7 +210,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
       setEmptyFieldsError(false)
       return;
     }
-    console.log(data)
+
     try {
       const res = await axios.post('http://localhost:3000/api/getInfo/client', data)
       console.log(res)
@@ -148,7 +219,15 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
     }
       
     }
-  
+
+    function handleAddItem(){
+      if(tableDatum.quantity < 1 || tableDatum.article === '' || tableDatum.itemId === '' || tableDatum.uPrice === 0){
+        return;
+      }
+     ((setTableDatum({...tableDatum, id: uuidv4()}), setTableData([...tableData, tableDatum])))
+      
+
+    }
 
 
   return (
@@ -207,7 +286,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
         <Form.Group>
           <Form.Field>
               <label htmlFor="discount">Discount</label>
-              <Input id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
+              <Input onChange={(e) => {setTableDatum({...tableDatum, discount : parseFloat(e.target.value) > 100 ? -1 : parseFloat(e.target.value) })}} max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
           </Form.Field>
           <Form.Field>
               <label htmlFor="manufacturingDate">Manufacturing Date</label>
@@ -228,21 +307,27 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
               />
           </Form.Field>
           <Form.Field>
-              <label htmlFor="itemName">Batch Number</label>
+              <label htmlFor="BatchNumner">Batch Number</label>
               <Dropdown
-              id="itemName"
+              id="batchNumber"
+              disabled={batch ? false : true}
               search
               selection
               options={batch}
-              onChange={(e, item) => {itemFind(item.value)}}
+              onChange={(e, item) => {(itemFind(item.value), setTableDatum({...tableDatum, itemId : item.value !== undefined ? item.value.toString() : '' }))}}
               />
           </Form.Field>
           <Form.Field>
-              <label htmlFor="quantity">Quantity</label>
-              <Input min="0" type="number" label={{content : <Dropdown color='blue' defaultValue="VIALS" options={quantityOptions}/>, color : "blue"}} labelPosition='right'/>
+              <label htmlFor="quantity">VAT?</label>
+              <Input value={tableDatum.itemId != '' ? (Vatable ? "Yes" : "No") : ""} readOnly/>
           </Form.Field>
-          
+          <Form.Field>
+              <label htmlFor="quantity">Quantity</label>
+              <Input onChange={(e) => {(setTableDatum({...tableDatum, quantity : parseInt(e.target.value)}), setQuantity(parseInt(e.target.value)))}} min="0" type="number" label={{content : <Dropdown color='blue' defaultValue="VIALS" options={quantityOptions} onChange={(e, item) => {setUnit(item.value !== undefined ? item.value?.toString() : '')}}/>, color : "blue"}} labelPosition='right'/>
+          </Form.Field>
+          <Button color='blue' onClick={handleAddItem}>Add Item</Button>
         </Form.Group>
+        <IFlexTable color='blue' data={tableData} setData={handleDataFromChild} headerTitles={tableHeaders}/>
       </Form>
     </>
   )

@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState } from "react"
 import _ from 'lodash'
-import { Table, TableCell } from 'semantic-ui-react'
+import { SemanticCOLORS, Table, TableCell } from 'semantic-ui-react'
 import axios from 'axios'
 import { GetServerSideProps } from "next"
 
@@ -20,6 +20,7 @@ interface Action {
 interface Props{
   data: Array<any>
   headerTitles : Array<string>
+  color? : SemanticCOLORS
 }
 
 function exampleReducer(state : State, action : Action) : State {
@@ -45,7 +46,7 @@ function exampleReducer(state : State, action : Action) : State {
 }
 
 
-export default function Itable({ data, headerTitles} : Props) {
+export default function Itable({ data, headerTitles, color} : Props) {
 
   const initalState : State = {
     column: null,
@@ -60,7 +61,7 @@ export default function Itable({ data, headerTitles} : Props) {
 
   return (
     <div>
-      <Table sortable celled compact>
+      <Table sortable celled compact color={color}>
       <Table.Header>
         <Table.Row >
           {datas[0] !== undefined ? Object.keys(datas[0]).map((item, index) => {
