@@ -11,12 +11,13 @@ datasource db {
 }
 
 model User {
-  id             String        @id @default(uuid())
-  username       String        @unique
-  password       String
-  email          String        @unique
-  role           ROLES         @default(ACCOUNTING)
-  isAdmin        Boolean       @default(false)
+  id       String  @id @default(uuid())
+  username String  @unique
+  password String
+  email    String  @unique
+  role     ROLES   @default(ACCOUNTING)
+  isAdmin  Boolean @default(false)
+
   employeeInfo   EmployeeInfo? @relation(fields: [employeeInfoId], references: [id])
   employeeInfoId String?       @unique
 }
@@ -41,7 +42,7 @@ model Employee {
   employee       EmployeeInfo @relation(fields: [employeeInfoId], references: [id])
   employeeInfoId String
 
-  SI SalesInvoice[]
+  SIPreparedBy SalesInvoice[]
 }
 
 model ClientInfo {
@@ -54,13 +55,13 @@ model ClientInfo {
 }
 
 model Client {
-  id              String         @id @default(uuid())
-  clientInfo      ClientInfo     @relation(fields: [clientInfoId], references: [id])
+  id              String          @id @default(uuid())
+  clientInfo      ClientInfo      @relation(fields: [clientInfoId], references: [id])
   clientInfoId    String
-  salesInvoice    SalesInvoice?  @relation(fields: [salesInvoiceId], references: [id])
-  salesInvoiceId  String?        @unique
-  deliveryRecipt  DelveryRecipt? @relation(fields: [delveryReciptId], references: [id])
-  delveryReciptId String         @unique
+  salesInvoice    SalesInvoice?   @relation(fields: [salesInvoiceId], references: [id])
+  salesInvoiceId  String?         @unique
+  deliveryRecipt  DeliveryRecipt? @relation(fields: [delveryReciptId], references: [id])
+  delveryReciptId String          @unique
 
   WeeklySales WeeklySales[]
 }
@@ -71,41 +72,50 @@ model ItemInfo {
   batchNumber       String   @unique
   manufacturingDate DateTime
   ExpirationDate    DateTime
-  priceBottle       Decimal
-  priceVial         Decimal
-  pricePiece        Decimal
+  priceBottle       Decimal  @default(0)
+  priceVial         Decimal  @default(0)
+  pricePiece        Decimal  @default(0)
+  priceBox          Decimal  @default(0)
   VAT               Boolean
 
   items Item[]
 }
 
 model Item {
-  id         String         @id @default(uuid())
-  quantity   Int?
-  unit       UNITS?
-  term       Int
-  SI         SalesInvoice?  @relation(fields: [sIId], references: [id])
+  // This is used for SI mostly
+  id          String  @id @default(uuid())
+  quantity    Int
+  unit        UNITS
+  discount    Float
+  vatable     Boolean
+  totalAmount Decimal
+
+  //Handles Relationships 
+  SI         SalesInvoice?   @relation(fields: [sIId], references: [id])
   sIId       String?
-  DR         DelveryRecipt? @relation(fields: [dRId], references: [id])
+  DR         DeliveryRecipt? @relation(fields: [dRId], references: [id])
   dRId       String?
-  ItemInfo   ItemInfo       @relation(fields: [itemInfoId], references: [id])
+  ItemInfo   ItemInfo        @relation(fields: [itemInfoId], references: [id])
   itemInfoId String
 }
 
 model SalesInvoice {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   currentDate String
   items       Item[]
   totalAmount Decimal
-  Term        Int
+  term        Int
   discount    Int
   VAT         Decimal
-  preparedBy  Employee @relation(fields: [employeeId], references: [id])
-  employeeId  String
-  client      Client?
+
+  preparedBy Employee @relation(fields: [employeeId], references: [id])
+
+  employeeId String
+
+  client Client?
 }
 
-model DelveryRecipt {
+model DeliveryRecipt {
   id          String  @id @default(uuid())
   client      Client?
   items       Item[]

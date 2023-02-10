@@ -121,6 +121,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
   const [unit, setUnit] = useState('VIALS')
   const [price, setPrice] = useState(0)
   const [quantity, setQuantity] = useState(0)
+  const [discount, setDiscount] = useState(0)
   const [Vatable, setVatable] = useState(true)
   
  
@@ -201,6 +202,12 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
     const amount = price * quantity
     setTableDatum({...tableDatum, amount : amount})
   },[price, quantity])
+
+  useEffect(() => {
+    const amount = price * quantity
+    const percent = discount / 100
+    setTableDatum({...tableDatum, discount : discount, amount : amount - (amount * percent)})
+  }, [discount, quantity])
 
  
 
@@ -284,19 +291,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
           <h3>Add Item</h3>
         </Form.Field>
         <Form.Group>
-          <Form.Field>
-              <label htmlFor="discount">Discount</label>
-              <Input onChange={(e) => {setTableDatum({...tableDatum, discount : parseFloat(e.target.value) > 100 ? -1 : parseFloat(e.target.value) })}} max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
-          </Form.Field>
-          <Form.Field>
-              <label htmlFor="manufacturingDate">Manufacturing Date</label>
-              <Input id="manufacturingDate" type='date' value={itemInfo !== undefined ? itemInfo.manufacturingDate.substring(0, 10) : ''} readOnly/>
-          </Form.Field>
-          <Form.Field>
-              <label htmlFor="ExpirationDate">Expiration Date</label>
-              <Input id="ExpirationDate" type='date' value={itemInfo !== undefined ? itemInfo.ExpirationDate.substring(0, 10) : ''} readOnly/>
-          </Form.Field>
-          <Form.Field>
+        <Form.Field>
               <label htmlFor="itemName">Item Name</label>
               <Dropdown
               id="itemName"
@@ -318,6 +313,16 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
               />
           </Form.Field>
           <Form.Field>
+              <label htmlFor="manufacturingDate">Manufacturing Date</label>
+              <Input id="manufacturingDate" type='date' value={itemInfo !== undefined ? itemInfo.manufacturingDate.substring(0, 10) : ''} readOnly/>
+          </Form.Field>
+          <Form.Field>
+              <label htmlFor="ExpirationDate">Expiration Date</label>
+              <Input id="ExpirationDate" type='date' value={itemInfo !== undefined ? itemInfo.ExpirationDate.substring(0, 10) : ''} readOnly/>
+          </Form.Field>  
+        </Form.Group>
+        <Form.Group>
+          <Form.Field>
               <label htmlFor="quantity">VAT?</label>
               <Input value={tableDatum.itemId != '' ? (Vatable ? "Yes" : "No") : ""} readOnly/>
           </Form.Field>
@@ -325,10 +330,15 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
               <label htmlFor="quantity">Quantity</label>
               <Input onChange={(e) => {(setTableDatum({...tableDatum, quantity : parseInt(e.target.value)}), setQuantity(parseInt(e.target.value)))}} min="0" type="number" label={{content : <Dropdown color='blue' defaultValue="VIALS" options={quantityOptions} onChange={(e, item) => {setUnit(item.value !== undefined ? item.value?.toString() : '')}}/>, color : "blue"}} labelPosition='right'/>
           </Form.Field>
+          <Form.Field>
+              <label htmlFor="discount">Discount</label>
+              <Input onChange={(e) => {setDiscount(parseFloat(e.target.value) > 100 ? -1 : parseFloat(e.target.value))}} max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
+          </Form.Field>
           <Button color='blue' onClick={handleAddItem}>Add Item</Button>
         </Form.Group>
         <IFlexTable color='blue' data={tableData} setData={handleDataFromChild} headerTitles={tableHeaders}/>
       </Form>
+      {tableData.length > 0 ? <Button color='blue'>Create Sales Invoice</Button> : null}
     </>
   )
 }
