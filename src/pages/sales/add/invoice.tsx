@@ -25,6 +25,13 @@ interface Client{
   TIN         :String 
 }
 
+enum UNITS {
+  BOX = 'BOXES',
+  VIALS = 'VIALS',
+  BOTTLES = 'BOTTLES',
+  PER_PIECE = 'PER_PIECE',
+}
+
 interface Items {
   id                :String  
   itemName          :String
@@ -88,14 +95,45 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
   //     router.push('/')
   //   }
   // }, [])
+
+  const testItems = [
+    {
+      VAT: "Yes",
+      amount : 60,
+      article: "Biogesic",
+      discount: 12,
+      id: "20bd3839-3104-4199-8668-b646a27404cf",
+      itemId: "cf5655fe-be78-41c1-8f7e-1c4728d46410",
+      quantity: 12,
+      uPrice: 5,
+      unit: UNITS.PER_PIECE
+    },
+    {
+      VAT: "No",
+      amount : 60,
+      article: "Biogesic",
+      discount: 12,
+      id: "9b6778a0-d2a2-4c88-995a-29eccfeefb20",
+      itemId: "39d1da6d-266a-4547-84cf-10db91ee53a1",
+      quantity: 12,
+      uPrice: 5,
+      unit: UNITS.PER_PIECE
+    }
+  ]
+
+  const [data, setData] = useState({
+    currentDate : '2013-03-10T02:00:00Z',
+    totalAmount : 2300,
+    term        : 90,
+    discount    : 12,
+    VAT         : 230.00,
+    preparedBy  : "2cf9e0a2-1a64-4fe9-9726-333bd208424d",
+    pmrId : "96246ffe-a9a1-49e3-9e34-65098b251604",
+    items : [testItems]
+  })
   
 
   const [emptyFieldsError, setEmptyFieldsError] = useState(true)
-  const [data, setData] = useState({
-    companyName :'',
-    address     :'',
-    TIN         :'',
-  })
   const [client, setClient] = useState<Client>()
   const [item, setItem] = useState(_.uniqBy(items, 'itemName').map((items : any) => {
     return {
@@ -154,7 +192,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
     }))
   }
 
-  
+  console.log(tableData)
   
 
   useEffect(() => {
@@ -168,13 +206,13 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
       })
       switch(unit){
         case 'VIALS':
-          (setTableDatum({...tableDatum, uPrice : parseFloat(item.priceVial), unit : 'VIAL/S'}), setPrice(parseFloat(item.priceVial)))
+          (setTableDatum({...tableDatum, uPrice : parseFloat(item.priceVial), unit : 'VIALs'}), setPrice(parseFloat(item.priceVial)))
           break;
         case 'PER PIECE':
-          (setTableDatum({...tableDatum, uPrice : parseFloat(item.pricePiece), unit : 'PIECE/S'}), setPrice(parseFloat(item.pricePiece)))
+          (setTableDatum({...tableDatum, uPrice : parseFloat(item.pricePiece), unit : 'PER_PIECE'}), setPrice(parseFloat(item.pricePiece)))
           break;
         case 'BOTTLES' :
-          (setTableDatum({...tableDatum, uPrice : parseFloat(item.priceBottle), unit : 'BOTTLE/S'}), setPrice(parseFloat(item.priceBottle)))
+          (setTableDatum({...tableDatum, uPrice : parseFloat(item.priceBottle), unit : 'BOTTLES'}), setPrice(parseFloat(item.priceBottle)))
           break;
         default:
           return;
@@ -213,13 +251,10 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
 
   async function handleOnClick(e : React.MouseEvent<HTMLButtonElement, MouseEvent>){
     e.preventDefault();
-    if(data.companyName === '' || data.address === '' || data.TIN === ''){
-      setEmptyFieldsError(false)
-      return;
-    }
+    
 
     try {
-      const res = await axios.post('http://localhost:3000/api/getInfo/client', data)
+      const res = await axios.post('http://localhost:3000/api/sales/addInvoice', data)
       console.log(res)
     } catch (error) {
       console.log(error)
@@ -338,7 +373,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
         </Form.Group>
         <IFlexTable color='blue' data={tableData} setData={handleDataFromChild} headerTitles={tableHeaders}/>
       </Form>
-      {tableData.length > 0 ? <Button color='blue'>Create Sales Invoice</Button> : null}
+      {tableData.length > 0 ? <Button color='blue'>Create Sales Invoice</Button> : <Button onClick={handleOnClick} color='blue'>Create Sales Invoice</Button>}
     </>
   )
 }

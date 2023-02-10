@@ -38,11 +38,14 @@ model EmployeeInfo {
 }
 
 model Employee {
-  id             String       @id @default(uuid())
-  employee       EmployeeInfo @relation(fields: [employeeInfoId], references: [id])
+  id             String        @id @default(uuid())
+  employee       EmployeeInfo  @relation(fields: [employeeInfoId], references: [id])
   employeeInfoId String
+  SalesInvoice   SalesInvoice? @relation(fields: [SalesInvoiceId], references: [id])
+  SalesInvoiceId String?
 
-  SIPreparedBy SalesInvoice[]
+  SIPmr        SalesInvoice[] @relation(name: "pmrEmployee")
+  SIPreparedBy SalesInvoice[] @relation(name: "preparedByEmployee")
 }
 
 model ClientInfo {
@@ -55,7 +58,8 @@ model ClientInfo {
 }
 
 model Client {
-  id              String          @id @default(uuid())
+  id String @id @default(uuid())
+
   clientInfo      ClientInfo      @relation(fields: [clientInfoId], references: [id])
   clientInfoId    String
   salesInvoice    SalesInvoice?   @relation(fields: [salesInvoiceId], references: [id])
@@ -86,7 +90,7 @@ model Item {
   id          String  @id @default(uuid())
   quantity    Int
   unit        UNITS
-  discount    Float
+  discount    Float?
   vatable     Boolean
   totalAmount Decimal
 
@@ -102,17 +106,19 @@ model Item {
 model SalesInvoice {
   id          String  @id @default(uuid())
   currentDate String
-  items       Item[]
   totalAmount Decimal
   term        Int
-  discount    Int
+  discount    Float
   VAT         Decimal
 
-  preparedBy Employee @relation(fields: [employeeId], references: [id])
+  pmr           Employee? @relation(name: "pmrEmployee", fields: [pmrEmployeeId], references: [id])
+  pmrEmployeeId String?
+  preparedBy    Employee? @relation(name: "preparedByEmployee", fields: [employeeId], references: [id])
+  employeeId    String?
 
-  employeeId String
-
-  client Client?
+  client   Client?
+  Employee Employee[]
+  items    Item[]
 }
 
 model DeliveryRecipt {

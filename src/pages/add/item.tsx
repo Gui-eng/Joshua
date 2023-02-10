@@ -46,6 +46,7 @@ export default function item({ info } : InferGetServerSidePropsType<typeof getSe
     priceBottle     :  '',
     priceVial       :  '',
     pricePiece       : '',
+    priceBox          : '',
     VAT             :  true,
   })
 
@@ -113,11 +114,17 @@ export default function item({ info } : InferGetServerSidePropsType<typeof getSe
                       <label htmlFor="priceVial">Price per vials</label>
                       <Input min='0' step=".01" id='priceVial' label={{content : "₱"}} labelPosition='right' type={'number'} onChange={(e) => {setData({...data, [e.target.id] : parseFloat(e.target.value)})}} placeholder="00.00"/>
                   </Form.Field>
-                  <Form.Field required width={8}>
-                      <label htmlFor="pricePiece">Price per box</label>
-                      <Input min='0' step=".01" id='pricePiece' label={{content : "₱"}} labelPosition='right' type={'number'} onChange={(e) => {setData({...data, [e.target.id] : parseFloat(e.target.value)})}}  placeholder="00.00"/>
-                  </Form.Field>
               </Form.Group>
+              <Form.Group>
+                    <Form.Field required width={8}>
+                        <label htmlFor="pricePiece">Price per Pice</label>
+                        <Input min='0' step=".01" id='pricePiece' label={{content : "₱"}} labelPosition='right' type={'number'} onChange={(e) => {setData({...data, [e.target.id] : parseFloat(e.target.value)})}}  placeholder="00.00"/>
+                    </Form.Field>
+                    <Form.Field required width={8}>
+                        <label htmlFor="priceBox">Price per Box</label>
+                        <Input min='0' step=".01" id='priceBox' label={{content : "₱"}} labelPosition='right' type={'number'} onChange={(e) => {setData({...data, [e.target.id] : parseFloat(e.target.value)})}}  placeholder="00.00"/>
+                    </Form.Field>
+                </Form.Group>
               <Form.Field width={6}>
                   <label htmlFor="VAT">VAT</label>
                   <Select id='VAT' onChange={(e, item) => {setData({...data, VAT : item.value === 'VATABLE' ? true : false})}} defaultValue={'VATABLE'} placeholder={'Vatable'} options={VAT}/>

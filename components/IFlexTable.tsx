@@ -84,12 +84,10 @@ export default function Itable({ data, headerTitles, color, setData} : Props) {
 
     if(propsData.length > 0){
       if(propsData.find((item : any) => {return item.VAT === "No"}) !== undefined){
-        console.log("True")
         const nonVat = _.filter(propsData, (item : any) => {return item.VAT === "No"});
         const withVat = _.filter(propsData, (item : any) => {return item.VAT === "Yes"});
         const sumNonVat = _.sumBy(nonVat, (o) => { return o.amount});
         const sumWithVat = _.sumBy(withVat, (o) => {return o.amount});
-        console.log(sumNonVat);
         ( setAmount({...amount, totalAmount : 0, netVAT : 0, VAT: 0}), setNonVATAmount({...nonVATAmount,
         vatExemptSales : sumNonVat, vatableSales : _.sumBy(withVat, (o) => {return o.amount}), vatAmount : parseFloat(((sumWithVat * 1.12) - sumWithVat).toFixed(2))
         }))
@@ -104,8 +102,6 @@ export default function Itable({ data, headerTitles, color, setData} : Props) {
   }, [propsData])
 
 
-
-  console.log(nonVATAmount)
   useEffect(() => {
     setPropsData(data)
   }, [data])
