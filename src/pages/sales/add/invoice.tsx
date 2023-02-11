@@ -121,16 +121,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
     }
   ]
 
-  const [data, setData] = useState({
-    currentDate : '2013-03-10T02:00:00Z',
-    totalAmount : 2300,
-    term        : 90,
-    discount    : 12,
-    VAT         : 230.00,
-    preparedBy  : "2cf9e0a2-1a64-4fe9-9726-333bd208424d",
-    pmrId : "96246ffe-a9a1-49e3-9e34-65098b251604",
-    items : [testItems]
-  })
+  
   
 
   const [emptyFieldsError, setEmptyFieldsError] = useState(true)
@@ -148,7 +139,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
     id : '',
     itemId : '',
     quantity : 0,
-    unit : "",
+    unit : UNITS.VIALS,
     article : "",
     VAT : "Yes",
     uPrice : 0,
@@ -162,7 +153,16 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
   const [discount, setDiscount] = useState(0)
   const [Vatable, setVatable] = useState(true)
   
- 
+ const [data, setData] = useState({
+    currentDate : '2013-03-10T02:00:00Z',
+    totalAmount : 2300,
+    term        : 90,
+    discount    : 12,
+    VAT         : 230.00,
+    preparedBy  : "2cf9e0a2-1a64-4fe9-9726-333bd208424d",
+    pmrId : "96246ffe-a9a1-49e3-9e34-65098b251604",
+    items : [tableData]
+  })
  
 
   function handleDataFromChild(data : any){
@@ -190,36 +190,38 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
     setItemInfo(items.find((item : Items) => {
       return item.id === id
     }))
-  }
-
-  console.log(tableData)
-  
+  } 
 
   useEffect(() => {
     setEmptyFieldsError(true)
   }, [data])
+  
 
   useEffect(() => {
     if(tableDatum.itemId !== ''){
       const item = items.find((item : Items) => {
         return item.id === tableDatum.itemId
       })
+
       switch(unit){
-        case 'VIALS':
-          (setTableDatum({...tableDatum, uPrice : parseFloat(item.priceVial), unit : 'VIALs'}), setPrice(parseFloat(item.priceVial)))
+        case UNITS.VIALS:
+          (setPrice(parseFloat(item.priceVial)), setTableDatum({...tableDatum, uPrice : parseFloat(parseFloat(item.pricePiece).toFixed(2)), unit : UNITS.VIALS}));
           break;
-        case 'PER PIECE':
-          (setTableDatum({...tableDatum, uPrice : parseFloat(item.pricePiece), unit : 'PER_PIECE'}), setPrice(parseFloat(item.pricePiece)))
+        case UNITS.PER_PIECE:
+          (setTableDatum({...tableDatum, uPrice : parseFloat(parseFloat(item.pricePiece).toFixed(2)), unit : UNITS.PER_PIECE}), setPrice(parseFloat(item.pricePiece)))
           break;
-        case 'BOTTLES' :
-          (setTableDatum({...tableDatum, uPrice : parseFloat(item.priceBottle), unit : 'BOTTLES'}), setPrice(parseFloat(item.priceBottle)))
+        case UNITS.BOTTLES :
+          (setTableDatum({...tableDatum, uPrice : parseFloat(parseFloat(item.priceBottle).toFixed(2)), unit : UNITS.BOTTLES}), setPrice(parseFloat(item.priceBottle)))
+          break;
+        case UNITS.BOX :
+          (setTableDatum({...tableDatum, uPrice : parseFloat(parseFloat(item.priceBox).toFixed(2)), unit : UNITS.BOX}), setPrice(parseFloat(item.priceBox)))
           break;
         default:
           return;
       }
     }
     return;
-  }, [unit])
+  }, [unit, quantity])
 
   useEffect(() => {
     if(tableDatum.itemId !== ''){
@@ -227,7 +229,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
         return item.id === tableDatum.itemId
       })
       setVatable(item.VAT ? true : false)
-      setTableDatum({...tableDatum, article : item.itemName})
+      setTableDatum({...tableDatum, id : uuidv4(), article : item.itemName})
     }
     return;
   },[tableDatum.itemId])
@@ -250,20 +252,22 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
  
 
   async function handleOnClick(e : React.MouseEvent<HTMLButtonElement, MouseEvent>){
-    e.preventDefault();
-    
+    // e.preventDefault();
+    console.log(data)
+    console.log("It went Through")
 
-    try {
-      const res = await axios.post('http://localhost:3000/api/sales/addInvoice', data)
-      console.log(res)
-    } catch (error) {
-      console.log(error)
-    }
+    // try {
+    //   const res = await axios.post('http://localhost:3000/api/sales/addInvoice', data)
+    //   console.log(res)
+    // } catch (error) {
+    //   console.log(error)
+    // }
       
     }
 
     function handleAddItem(){
       if(tableDatum.quantity < 1 || tableDatum.article === '' || tableDatum.itemId === '' || tableDatum.uPrice === 0){
+        console.log(tableDatum)
         return;
       }
      ((setTableDatum({...tableDatum, id: uuidv4()}), setTableData([...tableData, tableDatum])))
@@ -277,7 +281,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
     <>
       <Form>
         <Form.Group>
-            <Form.Field>
+            <Form.Field required>
                 <label htmlFor="companyName">Company Name</label>
                 <Dropdown
                     id = 'companyName'
@@ -306,7 +310,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
                 <label htmlFor="dateIssued">Date Issued</label>
                 <Input type='date' id="dateIssued"/>
             </Form.Field>
-            <Form.Field>
+            <Form.Field required>
                 <label htmlFor="PMR">PMR</label>
                 <Dropdown
                   id = "PMR"
@@ -317,16 +321,16 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
                   options={pmrCodes}
                 />
             </Form.Field>
-            <Form.Field>
+            <Form.Field required>
               <label htmlFor="terms">Terms</label>
               <Input type='number' min="0" label={{content : "Days", color : "blue"}} labelPosition='right'/>
             </Form.Field>
         </Form.Group>
         <Form.Field>
-          <h3>Add Item</h3>
+          <h3 className='tw-font-bold tw-text-2xl'>Add Item</h3>
         </Form.Field>
         <Form.Group>
-        <Form.Field>
+        <Form.Field required>
               <label htmlFor="itemName">Item Name</label>
               <Dropdown
               id="itemName"
@@ -336,7 +340,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
               onChange={(e, item) => {batchFind(item.value)}}
               />
           </Form.Field>
-          <Form.Field>
+          <Form.Field required>
               <label htmlFor="BatchNumner">Batch Number</label>
               <Dropdown
               id="batchNumber"
@@ -373,7 +377,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
         </Form.Group>
         <IFlexTable color='blue' data={tableData} setData={handleDataFromChild} headerTitles={tableHeaders}/>
       </Form>
-      {tableData.length > 0 ? <Button color='blue'>Create Sales Invoice</Button> : <Button onClick={handleOnClick} color='blue'>Create Sales Invoice</Button>}
+      {tableData.length > 0 ? <Button onClick={handleOnClick} color='blue'>Create Sales Invoice</Button> : <Button onClick={handleOnClick} color='blue'>Create Sales Invoice</Button>}
     </>
   )
 }
