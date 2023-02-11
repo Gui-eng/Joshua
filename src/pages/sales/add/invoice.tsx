@@ -8,13 +8,7 @@ import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import { Button, Dropdown, Form, FormField, Input, Message } from 'semantic-ui-react'
 
-const quantityOptions = [
-  { key:'vial' , value : 'VIALS', text : 'Vial/s'},
-  { key:'box' , value : 'BOX', text : 'Box/s'},
-  { key:'bottle' , value : 'BOTTLES', text : 'Bottle/s'},
-  { key:'piece' , value : 'PER PIECE', text : 'Piece/s'}
 
-]
 
 const tableHeaders = ["id","QTY", "UNIT", "ARTICLES", "VATABLE", "U-PRICE", "DISCOUNT", "AMOUNT"]
 
@@ -32,6 +26,13 @@ enum UNITS {
   PER_PIECE = 'PER_PIECE',
 }
 
+const quantityOptions = [
+  { key:'vial' , value : UNITS.VIALS, text : 'Vial/s'},
+  { key:'box' , value : UNITS.BOX, text : 'Box/s'},
+  { key:'bottle' , value : UNITS.BOTTLES, text : 'Bottle/s'},
+  { key:'piece' , value : UNITS.PER_PIECE, text : 'Piece/s'}
+
+]
 interface Items {
   id                :String  
   itemName          :String
@@ -152,6 +153,7 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
   const [quantity, setQuantity] = useState(0)
   const [discount, setDiscount] = useState(0)
   const [Vatable, setVatable] = useState(true)
+  const [disabled, setDisabled] = useState(true)
   
  const [data, setData] = useState({
     currentDate : '2013-03-10T02:00:00Z',
@@ -195,7 +197,6 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
   useEffect(() => {
     setEmptyFieldsError(true)
   }, [data])
-  
 
   useEffect(() => {
     if(tableDatum.itemId !== ''){
@@ -203,9 +204,10 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
         return item.id === tableDatum.itemId
       })
 
+
       switch(unit){
         case UNITS.VIALS:
-          (setPrice(parseFloat(item.priceVial)), setTableDatum({...tableDatum, uPrice : parseFloat(parseFloat(item.pricePiece).toFixed(2)), unit : UNITS.VIALS}));
+          (setPrice(parseFloat(item.priceVial)), setTableDatum({...tableDatum, uPrice : parseFloat(parseFloat(item.priceVial).toFixed(2)), unit : UNITS.VIALS}));
           break;
         case UNITS.PER_PIECE:
           (setTableDatum({...tableDatum, uPrice : parseFloat(parseFloat(item.pricePiece).toFixed(2)), unit : UNITS.PER_PIECE}), setPrice(parseFloat(item.pricePiece)))
@@ -221,7 +223,9 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
       }
     }
     return;
-  }, [unit, quantity])
+  }, [unit, quantity, tableDatum.itemId])
+
+ 
 
   useEffect(() => {
     if(tableDatum.itemId !== ''){
@@ -229,7 +233,8 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
         return item.id === tableDatum.itemId
       })
       setVatable(item.VAT ? true : false)
-      setTableDatum({...tableDatum, id : uuidv4(), article : item.itemName})
+      setDisabled(false)
+      setTableDatum({...tableDatum,uPrice : item.priceVial, id : uuidv4(), article : item.itemName})
     }
     return;
   },[tableDatum.itemId])
@@ -351,25 +356,25 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
               onChange={(e, item) => {(itemFind(item.value), setTableDatum({...tableDatum, itemId : item.value !== undefined ? item.value.toString() : '' }))}}
               />
           </Form.Field>
-          <Form.Field>
+          <Form.Field disabled={disabled}>
               <label htmlFor="manufacturingDate">Manufacturing Date</label>
               <Input id="manufacturingDate" type='date' value={itemInfo !== undefined ? itemInfo.manufacturingDate.substring(0, 10) : ''} readOnly/>
           </Form.Field>
-          <Form.Field>
+          <Form.Field disabled={disabled}>
               <label htmlFor="ExpirationDate">Expiration Date</label>
               <Input id="ExpirationDate" type='date' value={itemInfo !== undefined ? itemInfo.ExpirationDate.substring(0, 10) : ''} readOnly/>
           </Form.Field>  
         </Form.Group>
         <Form.Group>
-          <Form.Field>
+          <Form.Field disabled={disabled}>
               <label htmlFor="quantity">VAT?</label>
               <Input value={tableDatum.itemId != '' ? (Vatable ? "Yes" : "No") : ""} readOnly/>
           </Form.Field>
-          <Form.Field>
+          <Form.Field disabled={disabled}>
               <label htmlFor="quantity">Quantity</label>
               <Input onChange={(e) => {(setTableDatum({...tableDatum, quantity : parseInt(e.target.value)}), setQuantity(parseInt(e.target.value)))}} min="0" type="number" label={{content : <Dropdown color='blue' defaultValue="VIALS" options={quantityOptions} onChange={(e, item) => {setUnit(item.value !== undefined ? item.value?.toString() : '')}}/>, color : "blue"}} labelPosition='right'/>
           </Form.Field>
-          <Form.Field>
+          <Form.Field disabled={disabled}>
               <label htmlFor="discount">Discount</label>
               <Input onChange={(e) => {setDiscount(parseFloat(e.target.value) > 100 ? -1 : parseFloat(e.target.value))}} max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
           </Form.Field>
