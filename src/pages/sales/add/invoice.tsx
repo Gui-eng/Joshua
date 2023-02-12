@@ -81,11 +81,11 @@ export const getServerSideProps : GetServerSideProps = async () => {
     const item = await axios.get('http://localhost:3000/api/getInfo/item')
     
     return {
-      props : { info : res.data.data, options : opt , pmrCodes : pmrCodes, items : item.data.data}
+      props : { info : res.data.data, options : opt , pmrCodes : pmrCodes, items : item.data.data, pmr : pmr.data.data}
     }
 }
 
-export default function item({ info, options, pmrCodes, items} : InferGetServerSidePropsType<typeof getServerSideProps>) {
+export default function item({ info, options, pmr, pmrCodes, items} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
   const router = useRouter()
   const session = useSession();
@@ -97,30 +97,18 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
   //   }
   // }, [])
 
-  const testItems = [
-    {
-      VAT: "Yes",
-      amount : 60,
-      article: "Biogesic",
-      discount: 12,
-      id: "20bd3839-3104-4199-8668-b646a27404cf",
-      itemId: "cf5655fe-be78-41c1-8f7e-1c4728d46410",
-      quantity: 12,
-      uPrice: 5,
-      unit: UNITS.PER_PIECE
-    },
-    {
-      VAT: "No",
-      amount : 60,
-      article: "Biogesic",
-      discount: 12,
-      id: "9b6778a0-d2a2-4c88-995a-29eccfeefb20",
-      itemId: "39d1da6d-266a-4547-84cf-10db91ee53a1",
-      quantity: 12,
-      uPrice: 5,
-      unit: UNITS.PER_PIECE
-    }
-  ]
+  const testItems = {
+    clientId : "5980c2b6-0413-4a3f-9529-f8c8f3594840",
+    currentDate : '2013-03-10T02:00:00Z',
+    totalAmount : 2300,
+    term        : 90,
+    discount    : 12,
+    VAT         : 230.00,
+    preparedBy  : "2cf9e0a2-1a64-4fe9-9726-333bd208424d",
+    pmrId : "96246ffe-a9a1-49e3-9e34-65098b251604",
+    items : [],
+    remarks : "PO#1234"
+  }
 
   
   
@@ -154,16 +142,23 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
   const [discount, setDiscount] = useState(0)
   const [Vatable, setVatable] = useState(true)
   const [disabled, setDisabled] = useState(true)
+  const [remarks, setRemarks] = useState("")
+  const [dateIssued, setDateIssued] = useState("")
+  const [pmrId, setPmrId] = useState("")
+  const [total, setTotal] = useState(0)
+  const [terms, setTerms] = useState(0)
   
  const [data, setData] = useState({
-    currentDate : '2013-03-10T02:00:00Z',
-    totalAmount : 2300,
-    term        : 90,
-    discount    : 12,
-    VAT         : 230.00,
-    preparedBy  : "2cf9e0a2-1a64-4fe9-9726-333bd208424d",
-    pmrId : "96246ffe-a9a1-49e3-9e34-65098b251604",
-    items : [tableData]
+    clientId : "",
+    currentDate : '',
+    totalAmount : 0,
+    term        : 0,
+    discount    : 0,
+    VAT         : 0,
+    preparedBy  : "",
+    pmrId : "",
+    items : [tableData],
+    remarks : ""
   })
  
 
@@ -175,6 +170,9 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
     setClient(info.find((item : Client) => {
       return item.companyName === name
     }))
+    setData({...data, clientId : info.find((item : Client) => {
+      return item.companyName === name
+    }).id})
   }
 
   function batchFind(name : any){
@@ -195,8 +193,25 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
   } 
 
   useEffect(() => {
+    setData({...data, remarks : remarks})
+  },[remarks])
+
+  useEffect(() => {
+    setData({...data, currentDate : dateIssued})
+  },[dateIssued])
+
+  useEffect(() => {
+    setData({...data, pmrId : pmrId})
+  },[pmrId])
+  
+  useEffect(() => {
+    setData({...data, term : terms})
+  },[terms])
+
+  useEffect(() => {
     setEmptyFieldsError(true)
   }, [data])
+  
 
   useEffect(() => {
     if(tableDatum.itemId !== ''){
@@ -257,9 +272,10 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
  
 
   async function handleOnClick(e : React.MouseEvent<HTMLButtonElement, MouseEvent>){
-    // e.preventDefault();
+    e.preventDefault();
     console.log(data)
-    console.log("It went Through")
+
+    
 
     // try {
     //   const res = await axios.post('http://localhost:3000/api/sales/addInvoice', data)
@@ -280,7 +296,12 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
 
     }
 
+    function getDate() : string{
+        const date = new Date(Date.now())
+        const localDate = new Date(date.getTime() +  24 * 60 * 60 * 1000).toISOString()
 
+        return localDate.substring(0, 10)
+    }
   return (
     // session.data && 
     <>
@@ -307,13 +328,13 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
             </Form.Field>
             <Form.Field>
                 <label htmlFor="remarks">Remarks</label>
-                <Input id="remarks" placeholder="Remarks" />
+                <Input id="remarks" placeholder="Remarks" onChange={(e) => {setRemarks(e.target.value)}} />
             </Form.Field>
         </Form.Group>
         <Form.Group>
             <Form.Field>
                 <label htmlFor="dateIssued">Date Issued</label>
-                <Input type='date' id="dateIssued"/>
+                <Input type='date' max={getDate()} id="dateIssued" onChange={(e) =>  {setDateIssued(e.target.value + "T00:00:00Z")}}/>
             </Form.Field>
             <Form.Field required>
                 <label htmlFor="PMR">PMR</label>
@@ -324,11 +345,12 @@ export default function item({ info, options, pmrCodes, items} : InferGetServerS
                   selection
                   wrapSelection
                   options={pmrCodes}
+                  onChange={(e, item) => {setPmrId(item.value)}}
                 />
             </Form.Field>
             <Form.Field required>
               <label htmlFor="terms">Terms</label>
-              <Input type='number' min="0" label={{content : "Days", color : "blue"}} labelPosition='right'/>
+              <Input onChange={(e) => {setTerms(parseInt(e.target.value))}} type='number' min="0" label={{content : "Days", color : "blue"}} labelPosition='right'/>
             </Form.Field>
         </Form.Group>
         <Form.Field>

@@ -60,12 +60,12 @@ model ClientInfo {
 model Client {
   id String @id @default(uuid())
 
-  clientInfo      ClientInfo      @relation(fields: [clientInfoId], references: [id])
+  clientInfo      ClientInfo?     @relation(fields: [clientInfoId], references: [id])
   clientInfoId    String
   salesInvoice    SalesInvoice    @relation(fields: [salesInvoiceId], references: [id])
   salesInvoiceId  String
   deliveryRecipt  DeliveryRecipt? @relation(fields: [delveryReciptId], references: [id])
-  delveryReciptId String          @unique
+  delveryReciptId String?         @unique
 
   client      SalesInvoice[] @relation(name: "Client")
   WeeklySales WeeklySales[]
@@ -109,16 +109,16 @@ model SalesInvoice {
   currentDate String
   totalAmount Decimal
   term        Int
-  discount    Float
+  discount    Float?
   VAT         Decimal
-  remarks     String  @db.VarChar(500)
+  remarks     String? @db.VarChar(500)
 
   pmr           Employee? @relation(name: "pmrEmployee", fields: [pmrEmployeeId], references: [id])
   pmrEmployeeId String?
   preparedBy    Employee? @relation(name: "preparedByEmployee", fields: [employeeId], references: [id])
   employeeId    String?
-  client        Client    @relation(name: "Client", fields: [clientId], references: [id])
-  clientId      String
+  client        Client?   @relation(name: "Client", fields: [clientId], references: [id])
+  clientId      String?
 
   Employee Employee[]
   items    Item[]

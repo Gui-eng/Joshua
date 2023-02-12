@@ -24,7 +24,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         case 'POST':
             {
                 try {
-                    const { currentDate, totalAmount, term, discount, VAT, preparedBy, pmrId, items } = req.body;
+                    const {
+                        currentDate,
+                        totalAmount,
+                        term,
+                        discount,
+                        VAT,
+                        preparedBy,
+                        pmrId,
+                        items,
+                        remarks,
+                        clientId,
+                    } = req.body;
                     const itemArr = items[0].map((item: any) => {
                         return {
                             quantity: item.quantity,
@@ -35,19 +46,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                             itemInfoId: item.itemId,
                         };
                     });
-                    const info = await prisma.salesInvoice.create({
-                        data: {
-                            currentDate: currentDate,
-                            totalAmount: totalAmount,
-                            term: term,
-                            discount: discount,
-                            VAT: VAT,
-                            items: {
-                                createMany: {
-                                    data: itemArr,
-                                },
+
+                    const data = {
+                        currentDate: currentDate,
+                        totalAmount: totalAmount,
+                        term: term,
+                        discount: discount,
+                        VAT: VAT,
+                        items: {
+                            createMany: {
+                                data: itemArr,
                             },
                         },
+                        remarks: remarks,
+                    };
+
+                    const info = await prisma.salesInvoice.create({
+                        data: data,
                     });
 
                     const pmr = await prisma.employee.create({
@@ -64,16 +79,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         },
                     });
 
+                    const client = await prisma.client.create({
+                        data: {
+                            clientInfoId: clientId,
+                            salesInvoiceId: info.id,
+                        },
+                    });
+
                     const updateInfo = await prisma.salesInvoice.update({
                         where: { id: info.id },
                         data: {
                             pmrEmployeeId: pmr.id,
                             employeeId: prepare.id,
+                            clientId: client.id,
                         },
                     });
 
-                    console.log(itemArr);
-                    // res.status(200).json({ success: true, data: info });
+                    res.status(200).json({ success: true, data: info });
                 } catch (error) {
                     console.log(error);
                     res.status(403).json({ success: false, data: [] });
