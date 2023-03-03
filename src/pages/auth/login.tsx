@@ -2,9 +2,28 @@ import React, { useEffect, useState } from 'react'
 import { Button, Checkbox, Form, Input, Message } from 'semantic-ui-react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/router'
+import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
+import axios from 'axios'
+
+export const getServerSideProps : GetServerSideProps = async (context) => {
+  try {
+    const res = await axios.get('http://localhost:3000/api/getInfo/users/one')
+    return {props: { data : res.data}}
+  } catch (error) {
+    return { props : { error : 'Something Went Wrong'}}
+  }
+}
 
 
-const login : React.FC = () => {
+const login : React.FC = ({ data } : InferGetServerSidePropsType<typeof getServerSideProps>) => {
+
+
+    useEffect(() => {
+      if(data.length === 0){
+        router.push('/setup')
+      }
+    },[])
+
     const router = useRouter()
     const [Data, setData] = useState({
         username : '',

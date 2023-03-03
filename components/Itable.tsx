@@ -95,7 +95,7 @@ export default function Itable({ data, headerTitles, color} : Props) {
             {Object.values(item).map((item : any, index) => {
               if(index > 0){
                 return (
-                  <TableCell key={item}>{item}</TableCell>
+                  <TableCell key={item + index + (index * 2)}>{item}</TableCell>
                 )
               }else{
                 return null

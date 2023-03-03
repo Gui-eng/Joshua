@@ -15,7 +15,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         case 'POST':
             {
                 try {
-                    const data = { ...req.body, password: await bcrypt.hash(req.body.password, 10) };
+                    const { password } = req.body;
+                    console.log(req.body);
+                    const data = { ...req.body, password: await bcrypt.hash(password, 10) };
                     const items = await prisma.user.create({ data: data });
 
                     res.status(200).json({ success: true, data: {} });

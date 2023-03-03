@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
@@ -10,7 +11,7 @@ interface User {
     role : string 
     username : string
     password : string
-     
+    isAdmin : Boolean
 }
 
 const Role = [
@@ -22,28 +23,56 @@ const Role = [
 
 ]
 
-export default function register() {
+
+export const getServerSideProps : GetServerSideProps = async (context) => {
+  try {
+    const res = await axios.get('http://localhost:3000/api/getInfo/users/one')
+    return {props: { datum : res.data}}
+  } catch (error) {
+    return { props : { error : 'Something Went Wrong'}}
+  }
+}
+
+export default function register({ datum } : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
   const router = useRouter()
   const session = useSession();
+  const [isAdmin, setIsAdmin] = useState(false)
+ 
 
-  // useEffect(() => {
-  //   if(!session.data){
-  //     alert("Invalid Access")
-  //     router.push('/')
-  //   }
-  // }, [])
+  
 
   const [data, setData]  = useState<User>({
     email : '',
-    role : '',
+    role : 'ACCOUNTING',
     username : '',
     password : '',
+    isAdmin : isAdmin
   })
+
+
+
+  useEffect(() => {
+    if(datum.length === 0){
+      setIsAdmin(true)
+      return;
+    }
+
+    if(!session.data){
+      alert("Invalid Access")
+      router.push('/')
+    }
+  }, [])
 
   const [password, setPassword] = useState({password : '', repassword : ''})
   const [emptyFieldsError, setEmptyFieldsError] = useState(true)
   const [passwordError, setPasswordError] = useState(false)
+
+  useEffect(() => {
+    if(isAdmin){
+      setData({...data, isAdmin : isAdmin})
+    }
+  }, [isAdmin])
 
   useEffect(() => {
    if(password.password === password.repassword){
@@ -66,14 +95,15 @@ export default function register() {
     }
 
     setEmptyFieldsError(true)
-
     try {
+
       const res = await axios.post("http://localhost:3000/api/register", data)
       console.log(res)
     } catch (error) {
       console.log(error)
     }
     
+    router.push('/')
 
   }
 
@@ -92,10 +122,10 @@ export default function register() {
               <label htmlFor="email">Email</label>
                 <Input onChange={(e) => {setData({...data, [e.target.id] : e.target.value })}}  type='email' id='email' placeholder="Email"/>
               </Form.Field>  
-              <Form.Field required>
+              {datum.length > 0 ? <Form.Field required>
                 <label htmlFor="role">Department</label>
-                <Select onChange={(e, item) => {setData({...data, role : item.value })}} placeholder='Department' id="role" options={Role}></Select>
-              </Form.Field>    
+                <Select onChange={(e, item) => {setData({...data, role : item.value !== undefined ? item.value.toString() : " " })}} placeholder='Department' id="role" options={Role}></Select>
+              </Form.Field> : null}   
         </Form.Group> 
         <Form.Field required>
             <label htmlFor="password">New password</label>
@@ -117,7 +147,7 @@ export default function register() {
             header='Action Forbidden'
             content='Password does not match!'
         />
-        <Form.Button inverted color='green' onClick={(e) => {handleSubmit(e)}}>Submit</Form.Button>
+        <Form.Button color='blue' onClick={(e) => {handleSubmit(e)}}>Submit</Form.Button>
       </Form>
     </div>
   )

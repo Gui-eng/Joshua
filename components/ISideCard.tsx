@@ -22,7 +22,7 @@ export default function ISideCard({ Icon, name, link} : Props) {
             {Icon}
         </div>
         <div className='tw-ml-4'>
-            <h3 onClick={handleOnClick} className='tw-text-xl tw-font-black tw-text-teal-800 hover:tw-text-teal-600 hover:tw-cursor-pointer active:tw-text-black'>{name}</h3>
+            <h3 onClick={handleOnClick} className='tw-text-xl tw-font-black tw-text-sky-500 hover:tw-text-sky-600 hover:tw-cursor-pointer active:tw-text-black'>{name}</h3>
         </div>
     </div>
   )

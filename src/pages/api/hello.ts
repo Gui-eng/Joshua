@@ -1,39 +1,37 @@
-import { PrismaClient } from '@prisma/client'
-import type { NextApiRequest, NextApiResponse } from 'next'
+import { PrismaClient } from '@prisma/client';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 interface data {
-  id : string
-  firstName : string
-  middleInitial : string
-  lastName : string
-  role : string
-  idNumber : string
+    id: string;
+    firstName: string;
+    middleInitial: string;
+    lastName: string;
+    role: string;
+    idNumber: string;
 }
 
 type Data = {
-  success : Boolean
-  data : data[]
-}
+    success: Boolean;
+    data: any;
+};
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<Data>
-) {
-  const { method } = req;
-  switch (method){
-    case 'GET': {
-      try {
-          const items : data[] = await prisma.employee.findMany()
-          res.status(200).json({success : true, data : items})
-      } catch (error) {
-          res.status(403).json({success : false, data : []})
-      }
+export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+    const { method } = req;
+    switch (method) {
+        case 'GET':
+            {
+                try {
+                    const items = await prisma.employee.findMany();
+                    res.status(200).json({ success: true, data: items });
+                } catch (error) {
+                    res.status(403).json({ success: false, data: [] });
+                }
+            }
+            break;
+        default:
+            res.status(403).json({ success: false, data: [] });
+            break;
     }
-      break;
-    default:
-      res.status(403).json({success : false, data : []})
-      break;
-  }
 }

@@ -12,6 +12,14 @@ interface data {
     idNumber: string;
 }
 
+enum DEPARTMENT {
+    SALES = 'SALES',
+    PMR = 'PMR',
+    INVENTORY = 'INVENTORY',
+    ACCOUNTING = 'ACCOUNTING',
+    IT = 'IT',
+}
+
 type Data = {
     success: Boolean;
     data: data[] | Object;
@@ -35,6 +43,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             {
                 try {
                     const info = await prisma.itemInfo.create({ data: req.body });
+                    //PMR to give stocks to
+
+                    const pmr = await prisma.employeeInfo.findMany({ where: { department: DEPARTMENT.PMR } });
+                    pmr.map(async (item: any) => {
+                        await prisma.stocks.create({
+                            data: {
+                                pmrEmployeeId: item.id,
+                                itemInfoId: info.id,
+                            },
+                        });
+                    });
+
                     res.status(200).json({ success: true, data: info });
                 } catch (error) {
                     console.log(error);

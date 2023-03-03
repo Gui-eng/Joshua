@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, User } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 const prisma = new PrismaClient();
@@ -14,7 +14,7 @@ interface data {
 
 type Data = {
     success: Boolean;
-    data: data[];
+    data: any;
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
@@ -23,11 +23,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         case 'GET':
             {
                 try {
-                    const items = await prisma.user.findUnique({
+                    let items = await prisma.user.findUnique({
                         where: {
-                            email: req.query.email,
+                            email: req.query.email?.toString(),
                         },
+                        select: { isAdmin: true, employeeInfoId: true, email: true, isActive: true, role: true },
                     });
+
+                    if (items?.employeeInfoId !== null) {
+                        items = await prisma.user.findUnique({
+                            where: {
+                                email: req.query.email?.toString(),
+                            },
+                            select: {
+                                isAdmin: true,
+                                employeeInfoId: true,
+                                email: true,
+                                employeeInfo: true,
+                                isActive: true,
+                                role: true,
+                            },
+                        });
+                    }
 
                     res.status(200).json({ success: true, data: items });
                 } catch (error) {

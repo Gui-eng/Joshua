@@ -1,16 +1,16 @@
 import axios from 'axios'
 import _, { floor, uniqueId } from 'lodash'
 import { v4 as uuidv4 } from 'uuid';
-import IFlexTable from '../../../../components/IFlexTable'
+import IFlexTable from '../../../../components/InvoiceTable'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
-import { useSession } from 'next-auth/react'
+import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
-import { Button, Dropdown, Form, FormField, Input, Message } from 'semantic-ui-react'
+import { Button, Checkbox, Dropdown, Form, FormField, Header, Input, Label, Message } from 'semantic-ui-react'
 
 
 
-const tableHeaders = ["id","QTY", "UNIT", "ARTICLES", "VATABLE", "U-PRICE", "DISCOUNT", "AMOUNT"]
+const tableHeaders = ["id","QTY", "UNIT", "ARTICLES","BATCH NO.", "VATABLE", "U-PRICE", "DISCOUNT", "AMOUNT"]
 
 interface Client{
   id          :String
@@ -58,7 +58,7 @@ interface Employee {
 
 const headerTitles = ["id", "itemId", "Company Name", "Company Address", "TIN"]
 
-export const getServerSideProps : GetServerSideProps = async () => {
+export const getServerSideProps : GetServerSideProps = async (context) => {
     const res = await axios.get("http://localhost:3000/api/getInfo/client")
     let opt = res.data.data.map((items : Client, index : number) => {
       return {
@@ -79,13 +79,16 @@ export const getServerSideProps : GetServerSideProps = async () => {
     })
 
     const item = await axios.get('http://localhost:3000/api/getInfo/item')
+
+    const session = await getSession(context);
+    const usr = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
     
     return {
-      props : { info : res.data.data, options : opt , pmrCodes : pmrCodes, items : item.data.data, pmr : pmr.data.data}
+      props : { info : res.data.data, options : opt , pmrCodes : pmrCodes, items : item.data.data, pmr : pmr.data.data, user : usr.data.data}
     }
 }
 
-export default function item({ info, options, pmr, pmrCodes, items} : InferGetServerSidePropsType<typeof getServerSideProps>) {
+export default function item({ info, options, user, pmrCodes, items} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
   const router = useRouter()
   const session = useSession();
@@ -97,21 +100,6 @@ export default function item({ info, options, pmr, pmrCodes, items} : InferGetSe
   //   }
   // }, [])
 
-  const testItems = {
-    clientId : "5980c2b6-0413-4a3f-9529-f8c8f3594840",
-    currentDate : '2013-03-10T02:00:00Z',
-    totalAmount : 2300,
-    term        : 90,
-    discount    : 12,
-    VAT         : 230.00,
-    preparedBy  : "2cf9e0a2-1a64-4fe9-9726-333bd208424d",
-    pmrId : "96246ffe-a9a1-49e3-9e34-65098b251604",
-    items : [],
-    remarks : "PO#1234"
-  }
-
-  
-  
 
   const [emptyFieldsError, setEmptyFieldsError] = useState(true)
   const [client, setClient] = useState<Client>()
@@ -130,6 +118,7 @@ export default function item({ info, options, pmr, pmrCodes, items} : InferGetSe
     quantity : 0,
     unit : UNITS.VIALS,
     article : "",
+    batchNumber : "",
     VAT : "Yes",
     uPrice : 0,
     discount : 0,
@@ -146,6 +135,8 @@ export default function item({ info, options, pmr, pmrCodes, items} : InferGetSe
   const [dateIssued, setDateIssued] = useState("")
   const [pmrId, setPmrId] = useState("")
   const [total, setTotal] = useState(0)
+  const [stockIn, setStockIn] = useState(false)
+  const [disabledStockIn, setDisabledStockIn] = useState(false)
   const [terms, setTerms] = useState(0)
   
  const [data, setData] = useState({
@@ -155,15 +146,20 @@ export default function item({ info, options, pmr, pmrCodes, items} : InferGetSe
     term        : 0,
     discount    : 0,
     VAT         : 0,
-    preparedBy  : "",
+    preparedBy  : user.employeeInfo.id,
     pmrId : "",
     items : [tableData],
-    remarks : ""
+    remarks : "",
+    stockIn : false,
   })
  
 
   function handleDataFromChild(data : any){
     setTableData(data)
+  }
+
+  function handleSetTotal(amount : number){
+    setTotal(amount)
   }
   
   function clientFind(name : any){ 
@@ -184,6 +180,7 @@ export default function item({ info, options, pmr, pmrCodes, items} : InferGetSe
         value : item.id,
         key : item.id
     }}))
+    setDisabled(true)
   }
 
   function itemFind(id : any){
@@ -203,14 +200,33 @@ export default function item({ info, options, pmr, pmrCodes, items} : InferGetSe
   useEffect(() => {
     setData({...data, pmrId : pmrId})
   },[pmrId])
+
+  useEffect(() => {
+    setData({...data, stockIn : stockIn})
+  },[stockIn])
   
   useEffect(() => {
     setData({...data, term : terms})
   },[terms])
 
   useEffect(() => {
+    setData({...data, totalAmount : total})
+  }, [total]) 
+
+  useEffect(() => {
+    setData({...data, items : tableData})
+  }, [tableData]) 
+
+  useEffect(() => {
     setEmptyFieldsError(true)
+    if(data.items.length !== 0 && !stockIn){
+      setDisabledStockIn(true)
+    }else{
+      setDisabledStockIn(false)
+    }
   }, [data])
+  
+ 
   
 
   useEffect(() => {
@@ -249,7 +265,7 @@ export default function item({ info, options, pmr, pmrCodes, items} : InferGetSe
       })
       setVatable(item.VAT ? true : false)
       setDisabled(false)
-      setTableDatum({...tableDatum,uPrice : item.priceVial, id : uuidv4(), article : item.itemName})
+      setTableDatum({...tableDatum, VAT : item.VAT ? "Yes" : "No", uPrice : item.priceVial, id : uuidv4(), article : item.itemName, batchNumber : item.batchNumber})
     }
     return;
   },[tableDatum.itemId])
@@ -273,138 +289,202 @@ export default function item({ info, options, pmr, pmrCodes, items} : InferGetSe
 
   async function handleOnClick(e : React.MouseEvent<HTMLButtonElement, MouseEvent>){
     e.preventDefault();
-    console.log(data)
+    if(data.items.length === 0 || data.clientId === '' || data.pmrId === '' || data.term === 0 || data.currentDate === '' ){
+      alert("There are black requried fields!!")
+      return;
+    }
 
-    
+    try {
+      const res = await axios.post('http://localhost:3000/api/sales/addInvoice', data)
 
-    // try {
-    //   const res = await axios.post('http://localhost:3000/api/sales/addInvoice', data)
-    //   console.log(res)
-    // } catch (error) {
-    //   console.log(error)
-    // }
+    } catch (error) {
+      console.log(error)
+    }
+
+    router.push('/sales/info/salesInvoice')
       
     }
 
-    function handleAddItem(){
-      if(tableDatum.quantity < 1 || tableDatum.article === '' || tableDatum.itemId === '' || tableDatum.uPrice === 0){
-        console.log(tableDatum)
+    
+
+    async function handleAddItem(){
+      if(data.pmrId === '' || tableDatum.quantity < 1 || tableDatum.article === '' || tableDatum.itemId === '' || tableDatum.uPrice === 0){
+        alert("There are empt requred fields")
         return;
       }
-     ((setTableDatum({...tableDatum, id: uuidv4()}), setTableData([...tableData, tableDatum])))
-      
 
+      const collection = await axios.get(`http://localhost:3000/api/getInfo/item/stocks/${data.pmrId}`)
+      const selected = collection.data.data.find((item : any) => {
+        return item.itemInfoId === tableDatum.itemId
+      });
+      
+      if(!stockIn){
+        switch(unit){
+          case UNITS.VIALS : 
+            if (selected.stocksVial === 0 || selected.stocksVial < tableDatum.quantity ){
+              alert("Item is out of stock!")
+              return;
+            }
+            break;
+          case UNITS.BOX : 
+            if (selected.stocksBox === 0 || selected.stocksVial < tableDatum.quantity){
+              alert("Item is out of stock!")
+              return;
+            }
+            break;
+          case UNITS.BOTTLES : 
+            if (selected.stocksBottle === 0 || selected.stocksVial < tableDatum.quantity){
+              alert("Item is out of stock!")
+              return;
+            }
+            break;
+          case UNITS.PER_PIECE : 
+            if (selected.stocksPiece === 0 || selected.stocksVial < tableDatum.quantity){
+              alert("Item is out of stock!")
+              return;
+            }
+            break;
+          default:
+              break;
+        }
+      }
+
+     (setTableDatum({...tableDatum, id: uuidv4()}), setTableData([...tableData, tableDatum]))
+      
     }
 
     function getDate() : string{
         const date = new Date(Date.now())
-        const localDate = new Date(date.getTime() +  24 * 60 * 60 * 1000).toISOString()
+        const localDate = new Date(date.getTime() +  24 * 60 * 1000).toISOString()
 
         return localDate.substring(0, 10)
     }
   return (
-    // session.data && 
-    <>
-      <Form>
-        <Form.Group>
-            <Form.Field required>
-                <label htmlFor="companyName">Company Name</label>
-                <Dropdown
-                    id = 'companyName'
-                    placeholder='--Company Name--'
+    session.data && 
+    <div className='tw-h-screen tw-w-full'>
+      <div className='tw-w-screen tw-flex tw-justify-center'>
+        <div className='tw-w-[90%]  tw-flex tw-justify-center tw-bg-sky-600 tw-bg-opacity-30 tw-mt-4 tw-py-8'>
+            <div className='tw-w-[90%] tw-rounded-tl-lg tw-rounded-tr-lg'>
+             <Form>
+              <Form.Field>
+                <h1 className='tw-font-bold tw-text-2xl'>Sales Invoice</h1>
+              </Form.Field>
+              <Form.Group>
+                  <Form.Field required >
+                      <label htmlFor="companyName">Company Name</label>
+                      <Dropdown
+                          id = 'companyName'
+                          placeholder='--Company Name--'
+                          search
+                          selection
+                          options={options}
+                          onChange={(e, item) => {clientFind(item.value)}}
+                          
+                      />
+                  </Form.Field>
+                  <Form.Field>
+                      <label htmlFor="address">Address</label>
+                      <Input id="address" value={client === undefined ? "" : client.address} readOnly/>
+                  </Form.Field>
+                  <Form.Field>
+                      <label htmlFor="TIN">TIN</label>
+                      <Input id="TIN" value={client === undefined ? "" : client.TIN} readOnly/>
+                  </Form.Field>
+                  <Form.Field>
+                      <label htmlFor="remarks">Remarks</label>
+                      <Input id="remarks" placeholder="Remarks" onChange={(e) => {setRemarks(e.target.value)}} />
+                  </Form.Field>
+              </Form.Group>
+              <Form.Group>
+                  <Form.Field>
+                      <label htmlFor="dateIssued">Date Issued</label>
+                      <Input type='date' max={getDate()} id="dateIssued" onChange={(e) =>  {setDateIssued(e.target.value + "T00:00:00Z")}}/>
+                  </Form.Field>
+                  <Form.Field required>
+                      <label htmlFor="PMR">PMR</label>
+                      <Dropdown
+                        id = "PMR"
+                        placeholder='--PMR Code--'
+                        search
+                        selection
+                        wrapSelection
+                        options={pmrCodes}
+                        onChange={(e, item) => {setPmrId(item.value ? item.value.toString() : "")}}
+                      />
+                  </Form.Field>
+                  <Form.Field required>
+                    <label htmlFor="terms">Terms</label>
+                    <Input onChange={(e) => {setTerms(parseInt(e.target.value))}} type='number' min="0" label={{content : "Days", color : "blue"}} labelPosition='right'/>
+                  </Form.Field>
+              </Form.Group>
+              <Form.Field>
+                <h3 className='tw-font-bold tw-text-xl'>Add Item</h3>
+              </Form.Field>
+              <Form.Group>
+              <Form.Field required>
+                    <label htmlFor="itemName">Item Name</label>
+                    <Dropdown
+                    id="itemName"
                     search
                     selection
-                    options={options}
-                    onChange={(e, item) => {clientFind(item.value)}}
-                />
-            </Form.Field>
-            <Form.Field>
-                <label htmlFor="address">Address</label>
-                <Input id="address" value={client === undefined ? "" : client.address} readOnly/>
-            </Form.Field>
-            <Form.Field>
-                <label htmlFor="TIN">TIN</label>
-                <Input id="TIN" value={client === undefined ? "" : client.TIN} readOnly/>
-            </Form.Field>
-            <Form.Field>
-                <label htmlFor="remarks">Remarks</label>
-                <Input id="remarks" placeholder="Remarks" onChange={(e) => {setRemarks(e.target.value)}} />
-            </Form.Field>
-        </Form.Group>
-        <Form.Group>
-            <Form.Field>
-                <label htmlFor="dateIssued">Date Issued</label>
-                <Input type='date' max={getDate()} id="dateIssued" onChange={(e) =>  {setDateIssued(e.target.value + "T00:00:00Z")}}/>
-            </Form.Field>
-            <Form.Field required>
-                <label htmlFor="PMR">PMR</label>
-                <Dropdown
-                  id = "PMR"
-                  placeholder='--PMR Code--'
-                  search
-                  selection
-                  wrapSelection
-                  options={pmrCodes}
-                  onChange={(e, item) => {setPmrId(item.value)}}
-                />
-            </Form.Field>
-            <Form.Field required>
-              <label htmlFor="terms">Terms</label>
-              <Input onChange={(e) => {setTerms(parseInt(e.target.value))}} type='number' min="0" label={{content : "Days", color : "blue"}} labelPosition='right'/>
-            </Form.Field>
-        </Form.Group>
-        <Form.Field>
-          <h3 className='tw-font-bold tw-text-2xl'>Add Item</h3>
-        </Form.Field>
-        <Form.Group>
-        <Form.Field required>
-              <label htmlFor="itemName">Item Name</label>
-              <Dropdown
-              id="itemName"
-              search
-              selection
-              options={item}
-              onChange={(e, item) => {batchFind(item.value)}}
-              />
-          </Form.Field>
-          <Form.Field required>
-              <label htmlFor="BatchNumner">Batch Number</label>
-              <Dropdown
-              id="batchNumber"
-              disabled={batch ? false : true}
-              search
-              selection
-              options={batch}
-              onChange={(e, item) => {(itemFind(item.value), setTableDatum({...tableDatum, itemId : item.value !== undefined ? item.value.toString() : '' }))}}
-              />
-          </Form.Field>
-          <Form.Field disabled={disabled}>
-              <label htmlFor="manufacturingDate">Manufacturing Date</label>
-              <Input id="manufacturingDate" type='date' value={itemInfo !== undefined ? itemInfo.manufacturingDate.substring(0, 10) : ''} readOnly/>
-          </Form.Field>
-          <Form.Field disabled={disabled}>
-              <label htmlFor="ExpirationDate">Expiration Date</label>
-              <Input id="ExpirationDate" type='date' value={itemInfo !== undefined ? itemInfo.ExpirationDate.substring(0, 10) : ''} readOnly/>
-          </Form.Field>  
-        </Form.Group>
-        <Form.Group>
-          <Form.Field disabled={disabled}>
-              <label htmlFor="quantity">VAT?</label>
-              <Input value={tableDatum.itemId != '' ? (Vatable ? "Yes" : "No") : ""} readOnly/>
-          </Form.Field>
-          <Form.Field disabled={disabled}>
-              <label htmlFor="quantity">Quantity</label>
-              <Input onChange={(e) => {(setTableDatum({...tableDatum, quantity : parseInt(e.target.value)}), setQuantity(parseInt(e.target.value)))}} min="0" type="number" label={{content : <Dropdown color='blue' defaultValue="VIALS" options={quantityOptions} onChange={(e, item) => {setUnit(item.value !== undefined ? item.value?.toString() : '')}}/>, color : "blue"}} labelPosition='right'/>
-          </Form.Field>
-          <Form.Field disabled={disabled}>
-              <label htmlFor="discount">Discount</label>
-              <Input onChange={(e) => {setDiscount(parseFloat(e.target.value) > 100 ? -1 : parseFloat(e.target.value))}} max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
-          </Form.Field>
-          <Button color='blue' onClick={handleAddItem}>Add Item</Button>
-        </Form.Group>
-        <IFlexTable color='blue' data={tableData} setData={handleDataFromChild} headerTitles={tableHeaders}/>
-      </Form>
-      {tableData.length > 0 ? <Button onClick={handleOnClick} color='blue'>Create Sales Invoice</Button> : <Button onClick={handleOnClick} color='blue'>Create Sales Invoice</Button>}
-    </>
+                    options={item}
+                    onChange={(e, item) => {batchFind(item.value)}}
+                    />
+                </Form.Field>
+                <Form.Field required>
+                    <label htmlFor="BatchNumner">Batch Number</label>
+                    <Dropdown
+                    id="batchNumber"
+                    disabled={batch ? false : true}
+                    search
+                    selection
+                    options={batch}
+                    onChange={(e, item) => {(itemFind(item.value), setTableDatum({...tableDatum, itemId : item.value !== undefined ? item.value.toString() : '' }))}}
+                    />
+                </Form.Field>
+                <Form.Field disabled={disabled}>
+                    <label htmlFor="manufacturingDate">Manufacturing Date</label>
+                    <Input id="manufacturingDate" type='date' value={itemInfo !== undefined ? (disabled ? " " : itemInfo.manufacturingDate.substring(0, 10)) : ''} readOnly/>
+                </Form.Field>
+                <Form.Field disabled={disabled}>
+                    <label htmlFor="ExpirationDate">Expiration Date</label>
+                    <Input id="ExpirationDate" type='date' value={itemInfo !== undefined ? (disabled ? " " : itemInfo.manufacturingDate.substring(0, 10)) : ''} readOnly/>
+                </Form.Field>  
+              </Form.Group>
+              <Form.Group>
+                <Form.Field disabled={disabled}>
+                    <label htmlFor="quantity">VAT?</label>
+                    <Input value={tableDatum.itemId != '' ? (disabled ? "" : (Vatable ? "Yes" : "No")) : ""} onChange={(e) => {setVatable(e.target.value === "No" ? false : true)}} readOnly/>
+                </Form.Field>
+                <Form.Field disabled={disabled}>
+                    <label htmlFor="quantity">Quantity</label>
+                    <Input value={disabled ? "" : null} onChange={(e) => {(setTableDatum({...tableDatum, quantity : parseInt(e.target.value)}), setQuantity(parseInt(e.target.value)))}} min="0" type="number" label={{content : <Dropdown color='blue' defaultValue="VIALS" options={quantityOptions} onChange={(e, item) => {setUnit(item.value !== undefined ? item.value?.toString() : '')}}/>, color : "blue"}} labelPosition='right'/>
+                </Form.Field>
+                <Form.Field disabled={disabled}>
+                    <label htmlFor="discount">Discount</label>
+                    <Input value={disabled ? "" : null} onChange={(e) => {setDiscount(parseFloat(e.target.value) > 100 ? -1 : parseFloat(e.target.value))}} max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
+                </Form.Field>
+                <Button color='blue' onClick={handleAddItem}>Add Item</Button>
+              </Form.Group>
+              <Checkbox 
+              disabled={disabledStockIn}
+              label = {<label>{!stockIn ? <Header color='grey'>Stock In</Header> : <Header>Stock In</Header>}</label>}
+              onChange={() => {setStockIn(!stockIn ? true : false)}}
+              toggle/>
+            </Form>
+            </div>
+        </div>
+      </div>
+      <div className='tw-w-screen tw-flex tw-justify-center'>
+          <div className='tw-w-[90%]'>
+            <IFlexTable color='blue' data={tableData} setData={handleDataFromChild} setTotal={handleSetTotal} headerTitles={tableHeaders}/>
+          </div>
+        </div>
+        <div className='tw-w-full tw-flex tw-justify-center tw-pt-4'>
+          <div className='tw-w-[90%]'>
+            {tableData.length > 0 ? <Button onClick={handleOnClick} color='blue'>Create Sales Invoice</Button> : null}  
+          </div>
+        </div>
+    </div>
   )
 }

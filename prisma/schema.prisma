@@ -17,6 +17,7 @@ model User {
   email    String  @unique
   role     ROLES   @default(ACCOUNTING)
   isAdmin  Boolean @default(false)
+  isActive Boolean @default(true)
 
   employeeInfo   EmployeeInfo? @relation(fields: [employeeInfoId], references: [id])
   employeeInfoId String?       @unique
@@ -34,18 +35,22 @@ model EmployeeInfo {
   contactNo  String
 
   Employee Employee[]
+  Stocks   Stocks[]   @relation(name: "pmrEmployee")
   User     User?
 }
 
 model Employee {
-  id             String        @id @default(uuid())
-  employee       EmployeeInfo  @relation(fields: [employeeInfoId], references: [id])
-  employeeInfoId String
-  SalesInvoice   SalesInvoice? @relation(fields: [SalesInvoiceId], references: [id])
-  SalesInvoiceId String?
+  id               String          @id @default(uuid())
+  employee         EmployeeInfo    @relation(fields: [employeeInfoId], references: [id])
+  employeeInfoId   String
+  SalesInvoice     SalesInvoice?   @relation(fields: [SalesInvoiceId], references: [id])
+  SalesInvoiceId   String?
+  DeliveryRecipt   DeliveryRecipt? @relation(fields: [DeliveryReciptId], references: [id])
+  DeliveryReciptId String?
 
-  SIPmr        SalesInvoice[] @relation(name: "pmrEmployee")
-  SIPreparedBy SalesInvoice[] @relation(name: "preparedByEmployee")
+  SIPmr        SalesInvoice[]   @relation(name: "pmrEmployee")
+  SIPreparedBy SalesInvoice[]   @relation(name: "preparedByEmployee")
+  DRPreparedBy DeliveryRecipt[] @relation(name: "preparedByEmployee")
 }
 
 model ClientInfo {
@@ -62,12 +67,13 @@ model Client {
 
   clientInfo      ClientInfo?     @relation(fields: [clientInfoId], references: [id])
   clientInfoId    String
-  salesInvoice    SalesInvoice    @relation(fields: [salesInvoiceId], references: [id])
-  salesInvoiceId  String
+  salesInvoice    SalesInvoice?   @relation(fields: [salesInvoiceId], references: [id])
+  salesInvoiceId  String?
   deliveryRecipt  DeliveryRecipt? @relation(fields: [delveryReciptId], references: [id])
-  delveryReciptId String?         @unique
+  delveryReciptId String?
 
-  client      SalesInvoice[] @relation(name: "Client")
+  client      SalesInvoice[]   @relation(name: "Client")
+  DRclient    DeliveryRecipt[] @relation(name: "Client")
   WeeklySales WeeklySales[]
 }
 
@@ -81,9 +87,15 @@ model ItemInfo {
   priceVial         Decimal  @default(0)
   pricePiece        Decimal  @default(0)
   priceBox          Decimal  @default(0)
+  stocksPiece       Int      @default(0)
+  stocksVial        Int      @default(0)
+  stocksBottle      Int      @default(0)
+  stocksBox         Int      @default(0)
   VAT               Boolean
 
-  items Item[]
+  items       Item[]
+  ItemSummary ItemSummary[]
+  Stocks      Stocks[]
 }
 
 model Item {
@@ -112,27 +124,42 @@ model SalesInvoice {
   discount    Float?
   VAT         Decimal
   remarks     String? @db.VarChar(500)
+  stockIn     Boolean @default(false)
 
-  pmr           Employee? @relation(name: "pmrEmployee", fields: [pmrEmployeeId], references: [id])
-  pmrEmployeeId String?
-  preparedBy    Employee? @relation(name: "preparedByEmployee", fields: [employeeId], references: [id])
-  employeeId    String?
-  client        Client?   @relation(name: "Client", fields: [clientId], references: [id])
-  clientId      String?
+  pmr              Employee?    @relation(name: "pmrEmployee", fields: [pmrEmployeeId], references: [id])
+  pmrEmployeeId    String?
+  preparedBy       Employee?    @relation(name: "preparedByEmployee", fields: [employeeId], references: [id])
+  employeeId       String?
+  client           Client?      @relation(name: "Client", fields: [clientId], references: [id])
+  clientId         String?
+  salesItemSummary ItemSummary? @relation(fields: [itemSummaryId], references: [id])
+  itemSummaryId    String?
 
-  Employee Employee[]
-  items    Item[]
-  Client   Client[]
+  Employee    Employee[]
+  items       Item[]
+  Client      Client[]
+  ItemSummary ItemSummary[] @relation(name: "salesInvoice")
 }
 
 model DeliveryRecipt {
-  id          String  @id @default(uuid())
-  client      Client?
-  items       Item[]
+  id          String   @id @default(uuid())
   totalAmount Decimal
+  currentDate DateTime
   Term        Int
-  discount    Int
-  VAT         Decimal
+  remarks     String?  @db.VarChar(500)
+
+  client        Client?      @relation(name: "Client", fields: [clientId], references: [id])
+  clientId      String?
+  preparedBy    Employee?    @relation(name: "preparedByEmployee", fields: [employeeId], references: [id])
+  employeeId    String?
+  itemSummary   ItemSummary? @relation(fields: [itemSummaryId], references: [id])
+  itemSummaryId String?
+  stockIn       Boolean      @default(false)
+
+  items       Item[]
+  Client      Client[]
+  Employee    Employee[]
+  ItemSummary ItemSummary[] @relation(name: "deliveryRecipt")
 }
 
 model WeeklySales {
@@ -144,6 +171,38 @@ model WeeklySales {
   discount    Decimal
   VAT         Decimal
   total       Decimal
+}
+
+model ItemSummary {
+  id        String  @id @default(uuid())
+  stocksIn  Int     @default(0)
+  stocksOut Int     @default(0)
+  remaining Int     @default(0)
+  remakes   String?
+  status    STATUS
+
+  salesInvoice     SalesInvoice?   @relation(name: "salesInvoice", fields: [salesInvoiceId], references: [id])
+  salesInvoiceId   String?
+  deliveryRecipt   DeliveryRecipt? @relation(name: "deliveryRecipt", fields: [deliveryReciptId], references: [id])
+  deliveryReciptId String?
+  itemInfo         ItemInfo?       @relation(fields: [itemInfoId], references: [id])
+  itemInfoId       String?
+
+  SalesInvoice   SalesInvoice[]
+  DeliveryRecipt DeliveryRecipt[]
+}
+
+model Stocks {
+  id           String @id @default(uuid())
+  stocksPiece  Int    @default(0)
+  stocksVial   Int    @default(0)
+  stocksBottle Int    @default(0)
+  stocksBox    Int    @default(0)
+
+  pmr           EmployeeInfo? @relation(name: "pmrEmployee", fields: [pmrEmployeeId], references: [id])
+  pmrEmployeeId String?
+  itemInfo      ItemInfo?     @relation(fields: [itemInfoId], references: [id])
+  itemInfoId    String?
 }
 
 model SOA {

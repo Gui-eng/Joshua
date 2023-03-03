@@ -4,6 +4,12 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 
 const prisma = new PrismaClient();
 
+enum UNITS {
+    BOX = 'BOXES',
+    VIALS = 'VIALS',
+    BOTTLES = 'BOTTLES',
+    PER_PIECE = 'PER_PIECE',
+}
 interface data {
     id: string;
     firstName: string;
@@ -35,8 +41,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         items,
                         remarks,
                         clientId,
+                        stockIn,
                     } = req.body;
-                    const itemArr = items[0].map((item: any) => {
+
+                    const itemArr = items.map((item: any) => {
                         return {
                             quantity: item.quantity,
                             unit: item.unit,
@@ -59,6 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                             },
                         },
                         remarks: remarks,
+                        stockIn: stockIn,
                     };
 
                     const info = await prisma.salesInvoice.create({
@@ -94,6 +103,98 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                             clientId: client.id,
                         },
                     });
+
+                    if (stockIn) {
+                        items.map(async (item: any) => {
+                            const itemToUpdate = await prisma.stocks.findFirstOrThrow({
+                                where: { itemInfoId: item.itemId },
+                            });
+
+                            switch (item.unit) {
+                                case UNITS.VIALS:
+                                    await prisma.stocks.update({
+                                        where: { id: itemToUpdate?.id },
+                                        data: { stocksVial: itemToUpdate?.stocksVial + item.quantity },
+                                    });
+                                    break;
+                                case UNITS.BOTTLES:
+                                    await prisma.itemInfo.update({
+                                        where: { id: itemToUpdate?.id },
+                                        data: { stocksVial: itemToUpdate?.stocksVial + item.quantity },
+                                    });
+                                    break;
+                                case UNITS.BOX:
+                                    await prisma.itemInfo.update({
+                                        where: { id: itemToUpdate?.id },
+                                        data: { stocksVial: itemToUpdate?.stocksVial + item.quantity },
+                                    });
+                                    break;
+                                case UNITS.PER_PIECE:
+                                    await prisma.itemInfo.update({
+                                        where: { id: itemToUpdate?.id },
+                                        data: { stocksVial: itemToUpdate?.stocksVial + item.quantity },
+                                    });
+                                    break;
+                                default:
+                                    break;
+                            }
+                        });
+                    } else {
+                        items.map(async (item: any) => {
+                            const itemToUpdate = await prisma.stocks.findFirstOrThrow({
+                                where: { itemInfoId: item.itemId },
+                            });
+
+                            switch (item.unit) {
+                                case UNITS.VIALS:
+                                    await prisma.itemInfo.update({
+                                        where: { id: itemToUpdate?.id },
+                                        data: {
+                                            stocksVial:
+                                                itemToUpdate?.stocksVial === undefined
+                                                    ? 0
+                                                    : itemToUpdate?.stocksVial - item.quantity,
+                                        },
+                                    });
+                                    break;
+                                case UNITS.BOTTLES:
+                                    await prisma.itemInfo.update({
+                                        where: { id: itemToUpdate?.id },
+                                        data: {
+                                            stocksVial:
+                                                itemToUpdate?.stocksBottle === undefined
+                                                    ? 0
+                                                    : itemToUpdate?.stocksBottle - item.quantity,
+                                        },
+                                    });
+                                    break;
+                                case UNITS.BOX:
+                                    await prisma.itemInfo.update({
+                                        where: { id: itemToUpdate?.id },
+                                        data: {
+                                            stocksVial:
+                                                itemToUpdate?.stocksBox === undefined
+                                                    ? 0
+                                                    : itemToUpdate?.stocksBox - item.quantity,
+                                        },
+                                    });
+                                    break;
+                                case UNITS.PER_PIECE:
+                                    await prisma.itemInfo.update({
+                                        where: { id: itemToUpdate?.id },
+                                        data: {
+                                            stocksVial:
+                                                itemToUpdate?.stocksPiece === undefined
+                                                    ? 0
+                                                    : itemToUpdate?.stocksPiece - item.quantity,
+                                        },
+                                    });
+                                    break;
+                                default:
+                                    break;
+                            }
+                        });
+                    }
 
                     res.status(200).json({ success: true, data: info });
                 } catch (error) {
