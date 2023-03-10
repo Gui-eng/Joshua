@@ -396,6 +396,7 @@ export default function item({ info, options, user, pmrCodes, items} : InferGetS
                           onChange={(e, item) => {setData({...data, pmrId : item.value ? item.value.toString() : ""})}}
                         />
                     </Form.Field>
+                      
                   <Form.Field required >
                       <label htmlFor="dateIssued">Date Issued</label>
                       <Input type='date' max={getDate()} id="dateIssued" onChange={(e) =>  {setDateIssued(e.target.value + "T00:00:00Z")}}/>

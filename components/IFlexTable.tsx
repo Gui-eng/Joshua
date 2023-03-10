@@ -78,7 +78,7 @@ export default function Itable({ data, headerTitles, color, handleEditing, editi
 
   return (
     <div>
-      <Table sortable celled  color={color}>
+      <Table sortable celled color={color}>
       <Table.Header>
         <Table.Row >
           {datas[0] !== undefined ? Object.keys(datas[0]).map((item, index) => {

@@ -25,6 +25,7 @@
     "next-auth": "^4.19.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-to-print": "^2.14.12",
     "semantic-ui-css": "^2.5.0",
     "semantic-ui-react": "^2.1.4",
     "typescript": "4.9.4",

@@ -17,7 +17,6 @@ export default function setup({ data } : InferGetServerSidePropsType<typeof getS
 
    const router = useRouter()
 
-   console.log(data)
 
    useEffect(() => {
     if(data.length > 0){

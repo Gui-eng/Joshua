@@ -136,6 +136,7 @@ export default function item({ info, options, user, pmrCodes, items} : InferGetS
   const [pmrId, setPmrId] = useState("")
   const [total, setTotal] = useState(0)
   const [stockIn, setStockIn] = useState(false)
+  const [ mainStock, setMainStock] = useState(false)
   const [disabledStockIn, setDisabledStockIn] = useState(false)
   const [terms, setTerms] = useState(0)
   
@@ -370,6 +371,10 @@ export default function item({ info, options, user, pmrCodes, items} : InferGetS
                 <h1 className='tw-font-bold tw-text-2xl'>Sales Invoice</h1>
               </Form.Field>
               <Form.Group>
+                  <Form.Field>
+                      <label htmlFor="salesInvoiceNumber">SI No.</label>
+                      <Input id="salesInvoiceNumber" placeholder="ie. 89901" onChange={(e) => {setRemarks(e.target.value)}} />
+                  </Form.Field>
                   <Form.Field required >
                       <label htmlFor="companyName">Company Name</label>
                       <Dropdown
@@ -411,6 +416,14 @@ export default function item({ info, options, user, pmrCodes, items} : InferGetS
                         options={pmrCodes}
                         onChange={(e, item) => {setPmrId(item.value ? item.value.toString() : "")}}
                       />
+                  </Form.Field>
+                  <Form.Field className={`tw-items-center tw-flex tw-flex-col ${mainStock ? 'tw-py-4' : 'tw-py-8'}`}>
+                    {mainStock ? <p><small><small className='tw-flex'><p className='tw-text-red-600'>*</p>NOTE: Stocks will be deducted from the main inventory</small></small></p> : null}
+                    <Checkbox
+                  
+                  label = {<label>{!mainStock ? <Header color='grey'>Remote Inventory</Header> : <Header>Main Inventory</Header>}</label>}
+                  onChange={() => {setMainStock(mainStock ? false : true)}}
+                  toggle/>
                   </Form.Field>
                   <Form.Field required>
                     <label htmlFor="terms">Terms</label>
