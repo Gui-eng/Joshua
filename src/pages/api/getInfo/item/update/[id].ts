@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { ItemInfo } from '../../../../../../types';
 
 const prisma = new PrismaClient();
 
@@ -13,12 +14,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     switch (method) {
         case 'POST':
             {
+                const { batchNumber, VAT, expirationDate, itemName, manufacturingDate, price }: ItemInfo = req.body;
                 try {
-                    const info = await prisma.itemInfo.update({
+                    const item = await prisma.itemInfo.update({
                         where: { id: req.query.id?.toString() },
-                        data: req.body,
+                        data: {
+                            batchNumber: batchNumber,
+                            expirationDate: expirationDate,
+                            itemName: itemName,
+                            manufacturingDate: manufacturingDate,
+                            VAT: VAT,
+                            ItemPrice: {
+                                update: {
+                                    where: { id: price?.id },
+                                    data: {
+                                        bottle: price?.bottle,
+                                        box: price?.box,
+                                        capsule: price?.capsule,
+                                        tablet: price?.tablet,
+                                        vial: price?.vial,
+                                    },
+                                },
+                            },
+                        },
                     });
-                    res.status(200).json({ success: true, data: info });
+
+                    console.log(item);
+
+                    res.status(200).json({ success: true, data: item });
                 } catch (error) {
                     console.log(error);
                     res.status(403).json({ success: false, data: [] });

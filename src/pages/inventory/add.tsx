@@ -222,7 +222,7 @@ export default function add({ user, docsId} : InferGetServerSidePropsType<typeof
       </div>
       <div className='tw-w-screen tw-flex tw-justify-center'>
           <div className='tw-w-[90%]'>
-            <Itable data={[]} headerTitles={["id", "test"]} allowDelete={false} editing={true}/>
+            <Itable data={[]} headerTitles={["id", "test"]} allowDelete={false} />
           </div>
         </div>
         <div className='tw-w-full tw-flex tw-justify-center tw-pt-4'>

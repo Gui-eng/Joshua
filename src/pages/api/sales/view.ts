@@ -16,8 +16,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                 try {
                     const info = await prisma.salesInvoice.findMany({
                         include: {
-                            pmr: { include: { employee: true } },
-                            preparedBy: { include: { employee: true } },
+                            pmr: { include: { employeeInfo: true } },
+                            preparedBy: { include: { employeeInfo: true } },
+                            items: {
+                                include: {
+                                    ItemInfo: { include: { ItemPrice: true } },
+                                    ItemSalesDetails: true,
+                                },
+                            },
+                            client: { include: { clientInfo: true } },
                         },
                     });
 

@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE `deliveryrecipt` ADD COLUMN `amountPaid` DECIMAL(65, 30) NOT NULL DEFAULT 0,
+    ADD COLUMN `balance` DECIMAL(65, 30) NOT NULL DEFAULT 0,
+    ADD COLUMN `payables` DECIMAL(65, 30) NOT NULL DEFAULT 0;

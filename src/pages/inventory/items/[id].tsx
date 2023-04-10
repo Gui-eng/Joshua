@@ -23,7 +23,6 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     
 
     const info = await axios.get(`http://localhost:3000/api/getInfo/item/info/${context.params !== undefined ? context.params.id : ""}`)
-
     const stocks = await axios.get(`http://localhost:3000/api/getInfo/item/stocks/all/${info.data.data.id}`)
     
     return {
@@ -35,62 +34,45 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 const headerTitles = ["id", "Date", "Clients Name", "Stocks In", "Stocks Out", "Related Document", "Remarks"]
 
 export default function index({ post, info, items, stocks}  : InferGetServerSidePropsType<typeof getServerSideProps>) {
-
-  const router = useRouter()
-
-  const [stock, setStocks] = useState({
-      stocksVial: _.sumBy(stocks, 'stocksVial'),
-      stocksBox: _.sumBy(stocks, 'stocksBox'),
-      stocksBottle: _.sumBy(stocks, 'stocksBottle'),
-      stocksPiece: _.sumBy(stocks, 'stocksPiece'),
-  })
-
-
-
-  const [data, setData] = useState(items.map( (item : any) => {
-    const { ItemInfo, unit} = item
+ 
+  console.log(items)
+  const list = items.map((item : any) => {
+    const doc = item.DR ? item.DR : item.SI
     return {
       id : item.id,
-      date : item.SI ? item.SI.currentDate.substring(10, 0) : item.DR.currentDate.substring(10, 0),
-      clientName : item.SI ? item.SI.client.clientInfo.companyName : item.DR.client.clientInfo.companyName,
-      stocksIn : item.SI ? item.SI.stockIn ? item.quantity + " "  + item.unit  : "-" : item.DR.stockIn ? item.quantity + " "  + item.unit : "-",
-      stocksOut : item.SI ? !item.SI.stockIn ? item.quantity + " "  + item.unit : "-" : !item.DR.stockIn ? item.quantity  + " "  + item.unit : "-",
-
-      relatedDocument : item.sIId ? <a href={`http://localhost:3000/sales/info/${item.sIId}`}>SI : {item.sIId}</a> : <a href={`http://localhost:3000/sales/info/deliveryRecipt/${item.dRId}`}>DR : {item.dRId}</a>,
-      remarks : item.SI ? item.SI.remarks : item.DR.remarks
+      date : doc.currentDate.substring(10, 0),
+      clientName: doc.client.clientInfo.companyName,
+      stockIn : doc.stockIn ? item.quantity : 0,
+      stockOut : !doc.stockIn ? item.quantity : 0,
+      relatedDocument : <a href={`http://localhost:3000/sales/info/${doc.id}`}>{item.DR ? "DR: " + item.DR.deliveryReciptNumber : "SI : " + item.SI.salesInvoiceNumber}</a>
     }
-  }))
-
-
-
-
-
+  })
   return (
     <>
     <div className='tw-w-full tw-h-full'>
     <Inav firstName={post.employeeInfo.firstName}/>
       <div className='tw-w-full tw-flex tw-flex-col tw-pb-60'>
-           <div className='tw-w-full tw-flex tw-justify-center tw-my-8'>
+           <div className='tw-w-full tw-flex tw-justify-center tw-my-52'>
                 <div className='tw-w-[90%] tw-flex tw-flex-col tw-gap-4'>
                     <h1 className='tw-text-2xl tw-font-bold'>{info.itemName}</h1>
                     <div>
                       <h1 className='tw-font-bold tw-text-xl'>Manufacturing Date : {info.manufacturingDate.substring(10, 0)}</h1>
-                      <h1 className='tw-font-bold tw-text-xl'>Expiration Date : {info.ExpirationDate.substring(10, 0)}</h1>
+                      <h1 className='tw-font-bold tw-text-xl'>Expiration Date : {info.expirationDate.substring(10, 0)}</h1>
                     </div>
                     <h1 className='tw-text-xl tw-font-bold'>Batch No. : {info.batchNumber}</h1>
-                    <div>
+                    {/* <div>
                       <h1 >Vials Remaining : {stock.stocksVial}</h1>
                       <h1 >Bottles Remaining : {stock.stocksBottle}</h1>
                       <h1 >Boxes Remaining : {stock.stocksBox}</h1>
                       <h1 >Pieces Remaining : {stock.stocksPiece}</h1>
-                    </div>
+                    </div> */}
 
                 </div>
                 
             </div>
             <div className='tw-w-full tw-flex tw-justify-center '>
                 <div className='tw-w-[90%]'>
-                    <Itable allowDelete={false} headerTitles={headerTitles} data={data} editing={false} />
+                    <Itable allowDelete={false} headerTitles={headerTitles} data={list} />
                 </div>
             </div>
       </div>

@@ -32,10 +32,11 @@ export default function index({ post, info }  : InferGetServerSidePropsType<type
         itemName : item.itemName,
         batchNumber : item.batchNumber,
         manufacturingDate : item.manufacturingDate.substring(10, 0),
-        expirationDate : item.ExpirationDate.substring(10, 0),
+        expirationDate : item.expirationDate.substring(10, 0),
         view : <Button onClick={() => {router.push(`http://localhost:3000/inventory/items/${item.id}`)}}color='blue'>View</Button>
     }
 }))
+
 
 
 
@@ -52,7 +53,7 @@ export default function index({ post, info }  : InferGetServerSidePropsType<type
             </div>
             <div className='tw-w-full tw-flex tw-justify-center '>
                 <div className='tw-w-[90%]'>
-                    <Itable allowDelete={false} headerTitles={headerTitles} data={data} editing={false} />
+                    <Itable allowDelete={false} headerTitles={headerTitles} data={data} />
                 </div>
             </div>
       </div>

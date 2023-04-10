@@ -1,99 +1,171 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button, Container, Dropdown, Form, FormField, Header, Input, Label } from 'semantic-ui-react'
 import Itable from 'components/IFlexTable'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
-import axios from 'axios'
+import axios, { AxiosResponse } from 'axios'
 import { getSession } from 'next-auth/react'
-import { CollectionData, ClientInfo } from 'types'
-import { useRouter } from 'next/router'
-
-
-
-
-
-
-
-
+import { CollectionData, ClientInfo, SalesInvoiceData, Option } from 'types'
+import { NextRouter, useRouter } from 'next/router'
+import { filterRecords, salesRecord, handleOptionsChange, handleUndefined, makeOptions, filterSalesInvoices, fetchBalance, formatCurrency, makeOptionsForFilter, handleFilteredOptionsChange } from 'functions'
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     
-
+    let selectedDocument : AxiosResponse<any, any>;
     const session = await getSession(context);
     const usr = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
-
-
     const clients = await axios.get(`http://localhost:3000/api/getInfo/client`)
+    const salesInvoiceData = await axios.get(`http://localhost:3000/api/sales/view`)
+    const deliveryReciptData = await axios.get(`http://localhost:3000/api/sales/viewDR`)
     
+    const documentData = [...salesInvoiceData.data.data, ...deliveryReciptData.data.data]
+
+    selectedDocument = await axios.get(`http://localhost:3000/api/getInfo/deliveryRecipt/${context.query.id}`).catch( async () => {
+      return selectedDocument = await axios.get(`http://localhost:3000/api/getInfo/salesInvoice/${context.query.id}`)
+    })
+  
     
+
     return {
-      props : {user : usr.data.data, clients : clients.data.data}
+      props : {user : usr.data.data, clients : clients.data.data, salesInvoiceData : documentData , selectedDocument : selectedDocument.data.data}
     }
 }
 
-const headerTitles = ["id", "SI No.", "Client's Name", "Date Issued", "Due Date", "Amount Due", "Amount Paid", "Balance", "Status", "Action"]
-
-const sample : CollectionData[]= [{
-    id : "dfjgkdlsfjg",
-    salesInvoiceNumber : "89901",
-    clientsName : "Super H. Drug",
-    dateIssued : "2023-03-06T02:00:00Z",
-    amountDue : 10000,
-    balance : 8000,
-    amountPaid : 2000,
-    terms : 90
-
-},
-{
-    id : "dfjgkdlsfjg1",
-    salesInvoiceNumber : "89902",
-    clientsName : "Super H. Drug",
-    dateIssued : "2023-03-07T02:00:00Z",
-    amountDue : 12000,
-    balance : 2000,
-    amountPaid : 14000,
-    terms : 30,
-}
-]
 
 
-const categoryOption = [
-    { key:'paid' , value : "unpaid", text : 'Unpaid'},
-    { key:'unpaid' , value : "paid", text : 'Paid'},
-    { key:'both' , value : "both", text : 'Unpaid/Paid'},
+const categoryOption : Option[] = [
+    { id : 'categoryOption', key:'paid' , value : "unpaid", text : 'Unpaid'},
+    { id : 'categoryOption', key:'unpaid' , value : "paid", text : 'Paid'},
+    { id : 'categoryOption', key:'both' , value : "unpaid/paid", text : 'Unpaid/Paid'},
 
 ]
 
 
-export default function add({ user, clients} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
-    const [client, setClient] = useState(clients.map((client : ClientInfo) => {
-        return {
-            key : client.id,
-            value : client.id,
-            text : client.companyName
-        }
-    }))
+
+
+export default function add({ user, clients, salesInvoiceData, selectedDocument} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
     const router = useRouter()
 
-    const sampleData = sample.map((item : CollectionData) => {
-        const date = new Date(item.dateIssued)
-        date.setDate(date.getDate() + item.terms)
-        const dueDate = date.toISOString().substring(10, 0)
+    
 
-        return {
-            id : item.id,
-            salesInvoiceNumber : item.salesInvoiceNumber,
-            clientsName : item.clientsName,
-            dateIssued : item.dateIssued.substring(10, 0),
-            dueDate : dueDate,
-            amountDue : <p className={`tw-text-red-600 tw-font-bold`}>{item.amountDue.toLocaleString()}</p>,
-            amountPaid : <p>{item.amountPaid.toLocaleString()}</p>,
-            balance : <p className={`${item.amountDue < item.amountPaid ? 'tw-text-green-500' : 'tw-text-red-500'} tw-font-bold`}>{item.balance.toLocaleString()}</p>,
-            status : item.amountDue < item.amountPaid ?  <p className='tw-text-green-600 tw-w-full tw-h-full'>Overpaid</p> : <p className='tw-text-yellow-700'>Pending Payment</p>,
-            action : <Button onClick={() => {router.push('/sales/collection/processPayment/1')}} color='blue'>Process Payment</Button>
-        }
+    const [salesInvoiceNumberOptions, setSalesInvoiceNumberOptions] = useState<any>([])
+    const [totalBalance, setTotalBalance] = useState(0)
+
+    const clientsOption = makeOptions(clients, 'companyId', ['companyName'])
+    
+
+    const [rawData, setRawData] = useState<any>({
+        companyId : selectedDocument.client.clientInfo.id,
+        salesInvoiceNumber : selectedDocument.id,
+        balance : selectedDocument.balance,
+        selectedDocument : selectedDocument,
+        categoryOption : 'unpaid',
+        
     })
+
+
+    const [selectedDocumentTableData, setSelectedDocumentTableData] = useState<Array<any>>([salesRecord(rawData.selectedDocument, router)])
+    const [moreTableData, setMoreTableData] = useState<Array<any>>(filterRecords(salesInvoiceData, rawData, router))
+
+
+    
+    
+
+    useEffect(() => {
+        const filter = salesInvoiceData.filter((item : any) => {
+            return item.client.clientInfo.id === rawData.companyId
+        })
+        const selectedDoc = selectedDocument || {}; // handle case where selectedDocument is undefined
+        const valueParam = selectedDoc.salesInvoiceNumber !== undefined ? 'salesInvoiceNumber' : 'deliveryReciptNumber';
+        const textElems = [valueParam];
+        
+        if (valueParam === 'salesInvoiceNumber') {
+          textElems.push('deliveryReciptNumber');
+        } else {
+          textElems.push('salesInvoiceNumber');
+        }
+
+        
+        const options = makeOptionsForFilter(filter, valueParam, textElems,);
+        setSalesInvoiceNumberOptions(options);
+
+    }, [rawData])
+
+    const memoizedFilterSalesInvoices = useMemo(() => {
+      return (salesInvoiceData: any, rawData: any, router: any, paid: boolean = false, both: boolean = false) => {
+        // Filter the sales invoice data to include only those for the current company and exclude the current sales invoice number
+        const filteredItems = salesInvoiceData.filter((item: any) => {
+          return item.client.clientInfo.id === rawData.companyId && item.id !== rawData.salesInvoiceNumber;
+        })
+        // Filter the sales invoice data to include only paid or unpaid sales invoices based on the specified criteria
+        .filter((item: any) => {
+          // If both is true, return all sales invoices
+          if (both) {
+            return true;
+          }
+          // Otherwise, return only paid or unpaid sales invoices based on the specified criteria
+          return item.isPaid === paid;
+        })
+        // Map the filtered sales invoice data to a new array of sales record data
+        .map((item: any) => {
+          return salesRecord(item, router);
+        });
+    
+        // Return the filtered array of sales invoice data
+        return filteredItems;
+      }
+    }, [router]);
+    
+    // Use the memoized function in the effect hook
+    useEffect(() => {
+      switch (rawData.categoryOption) {
+        case 'unpaid': {
+          setMoreTableData(memoizedFilterSalesInvoices(salesInvoiceData, rawData, router));
+          break;
+        }
+        case 'paid': {
+          setMoreTableData(memoizedFilterSalesInvoices(salesInvoiceData, rawData, router, true));
+          break;
+        }
+        case 'unpaid/paid': {
+          setMoreTableData(memoizedFilterSalesInvoices(salesInvoiceData, rawData, router, true, true));
+          break;
+        }
+        default: {
+          break;
+        }
+      }
+    }, [rawData.categoryOption, memoizedFilterSalesInvoices, salesInvoiceData, rawData, router]);
+    
+    useEffect(() => {
+        setRawData((prevData : any) => {
+          const updatedData = {...prevData, selectedDocument: salesInvoiceData.find((item: SalesInvoiceData) => prevData.salesInvoiceNumber === item.id)};
+          setSelectedDocumentTableData([salesRecord(updatedData.selectedDocument, router)]);
+          
+          return updatedData;
+        });
+
+
+      }, [rawData.salesInvoiceNumber]);
+
+    
+
+      useEffect(() => {
+        setSelectedDocumentTableData([]);
+        setMoreTableData([]);
+        const fetchBalanceAndSetState = async () => {
+            const bal = await fetchBalance(rawData.companyId);
+            setTotalBalance(bal);
+        };
+        fetchBalanceAndSetState();
+    }, [rawData.companyId]);
+
+
+    const headerTitles = ["id", "SI/DR No.", "Client's Name", "Date Issued", "Due Date", "Amount Due", "Amount Paid", "Balance", "Status", "Action"]
+
+    
+    
  
   return (
     <div className='tw-h-screen tw-w-full'>
@@ -112,48 +184,63 @@ export default function add({ user, clients} : InferGetServerSidePropsType<typeo
                         <label htmlFor="salesInvoiceNumber">SI#</label>
                         <Dropdown
                                 id = 'salesInvoiceNumber'
-                                placeholder='ie. 89901'
+                                placeholder='-- Sales Invoice Number -- '
                                 search
                                 selection
-                                options={client}
+                                value = {rawData.salesInvoiceNumber}
+                                options={salesInvoiceNumberOptions}
+                                onChange={(e, item) => {handleFilteredOptionsChange(e, item, rawData, setRawData)}}
                             />
                     </Form.Field>
                     <Form.Field>
                         <label htmlFor="salesInvoiceNumber">Clients Name</label>
                         <Dropdown
-                                id = 'companyName'
+                                id = 'companyId'
                                 placeholder='--Company Name--'
                                 search
+                                value={rawData.companyId}
                                 selection
-                                options={client}
+                                options={clientsOption}
+                                onChange={(e, item) => {handleOptionsChange(e, item, rawData, setRawData)}}
                             />
                     </Form.Field>
                </Form.Group>
                     <Form.Field >
                         <div className='tw-flex tw-gap-4 tw-items-center'>
                             <h1 className='tw-text-lg tw-font-bold'>Current Balance:</h1>
-                            <p className='tw-text-green-600 tw-text-lg tw-font-bold'>₱ {"2,000"}</p>
+                            <p className='tw-text-green-600 tw-text-lg tw-font-bold'>₱ {formatCurrency(totalBalance.toString())}</p>
                         </div>
                     </Form.Field>
                     <Form.Field className='tw-float-right'>
                         <Dropdown
-                                id = 'companyName'
-                                defaultValue={"Unpaid"}
+                                id = 'categoryOption'
                                 search
                                 selection
                                 options={categoryOption}
+                                value = {rawData.categoryOption}
+                                onChange={(e, item) => {handleOptionsChange(e, item, rawData, setRawData)}}
                             />
                     </Form.Field>
-                
                 </Form>
             </div>
         </div>
       </div>
-      <div className='tw-w-screen tw-flex tw-justify-center'>
-          <div className='tw-w-[90%]'>
-            <Itable data={sampleData} headerTitles={headerTitles} allowDelete={false} editing={false}/>
+      <div className='tw-w-screen tw-flex tw-flex-col tw-items-center'>
+      <div className='tw-py-4 tw-w-[90%]'>
+            <Header>Selected : </Header>
           </div>
-        </div>
+          <div className='tw-w-[90%]'>
+            <Itable data={selectedDocumentTableData} headerTitles={headerTitles} allowDelete={false} />
+          </div>
+      </div>
+      <div className='tw-w-screen tw-flex tw-flex-col tw-items-center'>
+          <div className='tw-py-4 tw-w-[90%]'>
+            <Header>More {rawData.categoryOption}</Header>
+          </div>
+          <div className='tw-w-[90%]'>
+            <Itable data={moreTableData} headerTitles={headerTitles} allowDelete={false} />
+          </div>
+      </div>
         <div className='tw-w-full tw-flex tw-justify-center tw-pt-4'>
           <div className='tw-w-[90%]'>
             

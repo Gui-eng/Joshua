@@ -82,6 +82,9 @@ export default function home({ post } : any) {
                     <Grid.Column>
                         <ICard Icon={<Chart fill='white' width={35}/>} name='Summary' link='/inventory/summary'/>
                     </Grid.Column>
+                    <Grid.Column>
+                        <ICard Icon={<Chart fill='white' width={35}/>} name='Proof Of Delivery' link='/inventory/summary'/>
+                    </Grid.Column>
                   </Grid.Row>
                 </Grid>
               </div>

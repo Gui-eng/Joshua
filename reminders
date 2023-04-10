@@ -1,0 +1,13 @@
+
+do paid
+if the product is near expiry set isexpired to true every visit to item page will promt the server
+make edit in 
+add a navbar to everything
+make so that the balance from client is also included in amountPaid
+
+make reminders if sales Invoice number is taken
+make  the navbar  info in the navbar Info
+
+add undo on payment processing or cancelled
+can delete items on sales invoice table
+add secured interactions

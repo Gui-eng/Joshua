@@ -31,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
                     const stocks = await prisma.stocks.findMany({
                         where: { itemInfoId: req.query.id?.toString() },
-                        select: { stocksBottle: true, stocksBox: true, stocksPiece: true, stocksVial: true },
+                        select: { bottle: true, box: true, capsule: true, vial: true, tablet: true },
                     });
 
                     let items = await prisma.item.findMany({
@@ -42,6 +42,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                             SI: { include: { client: { include: { clientInfo: true } } } },
                         },
                     });
+
+                    console.log(info);
 
                     res.status(200).json({ success: true, data: info, items: items, stocks: stocks });
                 } catch (error) {

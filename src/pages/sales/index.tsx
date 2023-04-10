@@ -5,7 +5,7 @@ import ISideCard from 'components/ISideCard'
 import ISidePanel from 'components/ISidePanel'
 import Inav from 'components/Inav'
 import Itable from 'components/Itable'
-import { GetServerSideProps } from 'next'
+import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import React, { SVGProps, useEffect } from 'react'
@@ -18,7 +18,7 @@ const tableData = [
   { id: 1, name: 'Ben', age: 70, gender: 'Male' },
 ]
 
-const headerTitles = ["id", "ID", "Date Issued", "Med Rep", "Prepared By", "Total Amount", "Remarks", "Actions"]
+const headerTitles = ["id", "#", "Date Issued", "Med Rep", "Prepared By", "Total Amount", "Remarks", "Actions"]
 
 const Chart = (props : SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" {...props}>
@@ -44,19 +44,17 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
   const session = await getSession(context);
   const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
 
-  const siArray = await axios.get('http://localhost:3000/api/sales/view')
-  
   return {
-    props : { post : res.data.data, info : siArray.data.data }
+    props : { post : res.data.data }
   }
   
 }
 
-export default function index({ post , info} : any) {
+export default function index({ post , salesInvoiceData} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
   const router = useRouter()
   const session = useSession();
-
+  
   
   // useEffect(() => {
   //   if(!session.data){
@@ -65,18 +63,7 @@ export default function index({ post , info} : any) {
   //   }  
   // }, [])
 
-  let items = info.map((item : any) => {
-    return {
-      id : item.id,
-      SalesInvoiceId : item.id,
-      dateIssued : item.currentDate.substring(10, 0),
-      pmr : item.pmr.employee.firstName + " " + item.pmr.employee.lastName,
-      preparedBy : item.preparedBy.employee.firstName + " " + item.preparedBy.employee.lastName,
-      totalAmount : item.totalAmount,
-      remarks : item.remarks,
-      actions : <Button color='blue' onClick={() => {router.push(`http://localhost:3000/sales/info/${item.id}`)}}>View</Button>
-    }
-  })
+  
   
 
 

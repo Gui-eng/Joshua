@@ -1,79 +1,89 @@
 import { useEffect, useReducer, useState } from "react"
 import _ from 'lodash'
-import { Button, SemanticCOLORS, Table, TableCell } from 'semantic-ui-react'
+import { Button, Header, Label, SemanticCOLORS, Table, TableCell } from 'semantic-ui-react'
 import axios from 'axios'
 import { GetServerSideProps } from "next"
+import { TableProps} from  '../types'
+import { formatCurrency } from "functions"
 
-
-
+const CHANGE_SORT = 'CHANGE_SORT'
+const UPDATE_INITIAL_STATE = 'UPDATE_INITIAL_STATE'
 interface State {
   column : string | undefined | null
   datas : Object[]
   direction : "ascending" | "descending" | undefined
 }
 
+const cellStyle :string = 'tw-border-none tw-bg-gray-100 tw-py-2 '
+
 interface Action {
-  type : 'CHANGE_SORT'
+  type : string
   column? : string | null
+  data? : any
 }
 
-interface Props{
-  data: any
-  headerTitles : Array<string>
-  color? : SemanticCOLORS
-  handleEditing? : any
-  editing : Boolean
-  handleDeleting? : any
-  allowDelete : Boolean
-}
 
-function exampleReducer(state : State, action : Action) : State {
-  switch (action.type) {
-    case 'CHANGE_SORT':
-      if (state.column === action.column) {
+function exampleReducer(state: State, action: Action): State {
+  const { type, column, data } = action;
+
+  switch (type) {
+    case UPDATE_INITIAL_STATE:
+      return {
+        column,
+        datas: data !== undefined ? [...data] : [],
+        direction: undefined,
+      };
+    case CHANGE_SORT:
+      if (state.column === column) {
+        const sortedDatas = [...state.datas];
+        if (state.direction === 'ascending') {
+          sortedDatas.reverse();
+        }
         return {
           ...state,
-          datas: state.datas.slice().reverse(),
-          direction:
-            state.direction === 'ascending' ? 'descending' : 'ascending',
-        }
+          datas: sortedDatas,
+          direction: state.direction === 'ascending' ? 'descending' : 'ascending',
+        };
       }
-
       return {
-        column: action.column,
+        column,
         datas: _.sortBy(state.datas, [action.column]),
         direction: 'ascending',
-      }
+      };
     default:
-      throw new Error()
+      return state;
   }
 }
 
 
-export default function Itable({ data, headerTitles, color, handleEditing, editing, handleDeleting, allowDelete} : Props) {
+export default function Itable({ data, headerTitles, color, allowEditing, updateItem, hasFooter, extraData} : TableProps) {
 
   const [deleting, setDeleting] = useState(false)
+  const [propsData, setPropsData ] = useState(data)
+
 
   const initalState : State = {
     column: null,
-    datas: data,
+    datas: propsData,
     direction: undefined,
   }
 
   const [state, dispatch] = useReducer(exampleReducer, initalState) 
   const { column, datas, direction } = state
 
-  function handleEdit(id : string){
-    handleEditing(datas.find((item : any) => {
-        return item.id === id
-    } ))
-  }
-
-  function handleDelete(id : string){
-    handleDeleting(datas.find((item : any) => {
+  function findItem(id : string){
+      updateItem(datas.find((item : any) => {
       return item.id === id
     } ))
-  }
+  } 
+  
+  useEffect(() => {
+    setPropsData(data)
+  }, [data])
+
+  useEffect(() => {
+    dispatch({ type : UPDATE_INITIAL_STATE, data : propsData})
+  }, [propsData])
 
 
   return (
@@ -104,7 +114,7 @@ export default function Itable({ data, headerTitles, color, handleEditing, editi
             )
           })
           }
-          {editing ? <Table.HeaderCell >
+          {allowEditing ? <Table.HeaderCell >
                   Actions
           </Table.HeaderCell> : null}
         </Table.Row>
@@ -125,13 +135,26 @@ export default function Itable({ data, headerTitles, color, handleEditing, editi
             {deleting ? <div>
               <p>Are you Sure?</p>
               <div className="tw-flex">
-                <Button color="blue" onClick={() => {handleDelete(item.id)}}>Yes</Button>
                 <Button color="red" onClick={() => {setDeleting(false)}}>No</Button>
               </div>
-            </div> : editing ? <div className="tw-flex"><Button color="blue" onClick={() => {handleEdit(item.id)}}>Edit</Button>{allowDelete ? <Button color="red"  onClick={() => {setDeleting(true)}}>Delete</Button> : null}</div> : null}
+            </div> : allowEditing ? <div className="tw-flex"><Button color="blue" onClick={() => {findItem(item.id)}}>Edit</Button></div> : null}
           </Table.Row>
         ))}
       </Table.Body>
+      {
+        (hasFooter && propsData.length > 0 ) && 
+       <Table.Footer>
+         <Table.Row >
+            <Table.HeaderCell colSpan={6}/>
+            <Table.HeaderCell>
+                <Header as={'h4'} >Amount Due: </Header>
+            </Table.HeaderCell>
+            <Table.HeaderCell>
+                <Header as={'h4'} >{formatCurrency(extraData)}<Label color="blue" >₱</Label></Header>
+            </Table.HeaderCell>
+          </Table.Row>
+       </Table.Footer>
+       }
     </Table>
       
     </div>

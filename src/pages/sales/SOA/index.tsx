@@ -21,9 +21,10 @@ const Chart = (props : SVGProps<SVGSVGElement>) => (
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
     const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const clients = await axios.get(`http://localhost:3000/api/getInfo/client`)
     
     return {
-      props : { post : res.data.data }
+      props : { post : res.data.data, clientsData : clients.data.data }
     }
     
 }
@@ -44,17 +45,11 @@ const options = [
 
 const headerTitles = ["id", "Client Name", "No. of SOA", "Last Date Issued", "Actions" ]
 
-export default function home({ post } : any) {
+export default function home({ post, clientsData } : any) {
   const router = useRouter()
   const { data } = useSession();
 
-//   useEffect(() => {
-//     if(!data){
-//       alert("Invalid Access")
-//       router.push('/')
-//     }
-//   }, [])
-  
+  console.log(clientsData)
 
   useEffect(() => {
     if(post.employeeInfoId === null){
@@ -62,10 +57,13 @@ export default function home({ post } : any) {
     }
   },[])
 
-  const tableData = sample.map((items) => {
+  const tableData = clientsData.map((items : any) => {
         return {
-            ...items,
-            view : <Button onClick={() => {router.push('/sales/SOA/1')}}color='blue'>View</Button>
+            id : items.id,
+            clientName : items.companyName,
+            numberOfSOA : 0,
+            lastDateIssued : "2023-03-07",
+            view : <Button onClick={() => {router.push(`/sales/SOA/${items.id}`)}}color='blue'>View</Button>
         }
   })
 
@@ -84,7 +82,7 @@ export default function home({ post } : any) {
                 </div>
               </div>
               <div className='tw-w-[95%] tw-p-4 tw-h-full'>
-                <Itable data={tableData} headerTitles={headerTitles} allowDelete={false} editing={false}/>
+                <Itable data={tableData} headerTitles={headerTitles} allowDelete={false}/>
               </div>
         </div>
       </div>

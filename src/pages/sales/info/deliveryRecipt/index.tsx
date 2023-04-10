@@ -3,61 +3,45 @@ import IFooter from 'components/IFooter'
 import ISideCard from 'components/ISideCard'
 import Inav from 'components/Inav'
 import Itable from 'components/Itable'
-import { GetServerSideProps } from 'next'
+import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import React, { useEffect } from 'react'
-import { Button } from 'semantic-ui-react'
-
-const tableData = [
-  { id: 1, name: 'John', age: 15, gender: 'Male' },
-  { id: 1, name: 'Amber', age: 40, gender: 'Female' },
-  { id: 1, name: 'Leslie', age: 25, gender: 'Other' },
-  { id: 1, name: 'Ben', age: 70, gender: 'Male' },
-]
+import { Button, Header } from 'semantic-ui-react'
+import { DeliveryReciptData, SalesInvoiceData } from 'types'
 
 
-
-const headerTitles = ["id", "ID", "Date Issued", "Prepared By", "Total Amount", "Remarks", "Actions"]
+const headerTitles = ["id", "DR #", "Date Issued", "Med Rep", "Prepared By", "Total Amount", "Remarks", "Actions"]
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
   const session = await getSession(context);
   const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
 
-  const siArray = await axios.get('http://localhost:3000/api/getInfo/deliveryRecipt')
+  const deliveryReciptData = await axios.get('http://localhost:3000/api/sales/viewDR')
   
   return {
-    props : { post : res.data.data, info : siArray.data.data }
+    props : { post : res.data.data, deliveryReciptData : deliveryReciptData.data.data }
   }
   
 }
 
-export default function index({ post , info} : any) {
+export default function index({ post , deliveryReciptData } : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
   const router = useRouter()
   const session = useSession();
 
-  
-  // useEffect(() => {
-  //   if(!session.data){
-  //     alert("Invalid Access")
-  //     router.push('/')
-  //   }  
-  // }, [])
-
-  let items = info.map((item : any) => {
+  const tableData = deliveryReciptData .map((item : DeliveryReciptData) => {
     return {
-      id : item.id,
-      deliveryReciptId : item.id,
-      dateIssued : item.currentDate.substring(10, 0),
-      preparedBy : item.preparedBy.employee.firstName + " " + item.preparedBy.employee.lastName,
-      totalAmount : item.totalAmount,
-      remarks : item.remarks,
-      actions : <Button color='blue' onClick={() => {router.push(`http://localhost:3000/sales/info/deliveryRecipt/${item.id}`)}}>View</Button>
-    }
-  })
-  
-
+      id: item.id,
+      deliveryReciptNumber: item.deliveryReciptNumber,
+      dateIssued: item.dateIssued.substring(10, 0),
+      medRep: item.pmr?.employeeInfo.firstName + " " + item.pmr?.employeeInfo.lastName,
+      preparedBy: item.preparedBy?.employeeInfo.firstName + " " + item.preparedBy?.employeeInfo.lastName,
+      totalAmount: <Header as={'h5'}>{parseFloat(item.totalAmount.toString()).toLocaleString()}</Header>,
+      remarks: item.remarks,
+      actions: <Button onClick={() => {router.push(`http://localhost:3000/sales/info/deliveryRecipt/${item.id}`)}} color='blue' >View</Button>
+    
+  }})
 
   
 
@@ -69,7 +53,7 @@ export default function index({ post , info} : any) {
             <h1 className='tw-text-[3rem] tw-font-extrabold tw-mt-20 tw-ml-20 tw-mb-10'>Delivery Recipt List</h1>
             <div className='tw-w-full tw-flex tw-justify-center'>
               <div className='tw-w-[90%]'>
-                  <Itable data={items} headerTitles={headerTitles}/>
+                  <Itable data={tableData} headerTitles={headerTitles}/>
               </div>
             </div>
       </div>

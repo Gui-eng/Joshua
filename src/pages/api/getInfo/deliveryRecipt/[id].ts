@@ -17,10 +17,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     const info = await prisma.deliveryRecipt.findUnique({
                         where: { id: req.query.id?.toString() },
                         include: {
-                            preparedBy: { include: { employee: true } },
-                            items: { include: { ItemInfo: true } },
+                            pmr: { include: { employeeInfo: true } },
+                            preparedBy: { include: { employeeInfo: true } },
+                            client: { include: { clientInfo: true } },
+                            items: {
+                                include: {
+                                    ItemInfo: {
+                                        include: {
+                                            ItemPrice: true,
+                                        },
+                                    },
+                                },
+                            },
                         },
                     });
+
                     if (!info) {
                         res.status(403).json({ success: false, data: [] });
                     }

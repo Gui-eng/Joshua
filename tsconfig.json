@@ -19,7 +19,7 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "tests/pages/index.test.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "tests/pages/index.test.js", "src/pages/api/collection/[clientId]"],
   "exclude": ["node_modules"]
 
  

@@ -1,354 +1,241 @@
 import axios from 'axios'
 import _, { floor, uniqueId } from 'lodash'
 import { v4 as uuidv4 } from 'uuid';
-import IFlexTable from '../../../../components/IDRTable'
+import ITable from '../../../../components/IFlexTable'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
-import { Button, Checkbox, Dropdown, Form, FormField, Header, Input, Message } from 'semantic-ui-react'
+import { Button, Checkbox, Dropdown, Form, FormField, Header, Input, Label, Message, Table } from 'semantic-ui-react'
+import { Client, ClientInfo, EmployeeInfo, Item, ItemInfo, ItemPrice, ItemSalesDetails, Option, DeliveryReciptData, UNITS } from '../../../../types'
 
+import { getPrice, showAvailableUnits, handleUndefined, removeDuplicates ,find, getDate, makeOptions, handleOnChange, handleOptionsChange, handleDateChange, findMany, emptyOptions, emptyDeliveryRecipt, emptySalesItemData, quantityOptions, hasEmptyFields, emptyItemData, getTotal } from '../../../../functions'
 
+const tableHeaders = ["id","Quanity", "Unit", "Articles","Batch No.", "Vatable", "U-Price", "Discount", "Amount"]
 
-const tableHeaders = ["id","QTY", "UNIT", "ARTICLES", "VATABLE", "U-PRICE", "DISCOUNT", "AMOUNT"]
-
-interface Client{
-  id          :String
-  companyName :String 
-  address     :String
-  TIN         :String 
-}
-
-enum UNITS {
-  BOX = 'BOXES',
-  VIALS = 'VIALS',
-  BOTTLES = 'BOTTLES',
-  PER_PIECE = 'PER_PIECE',
-}
-
-const quantityOptions = [
-  { key:'vial' , value : UNITS.VIALS, text : 'Vial/s'},
-  { key:'box' , value : UNITS.BOX, text : 'Box/s'},
-  { key:'bottle' , value : UNITS.BOTTLES, text : 'Bottle/s'},
-  { key:'piece' , value : UNITS.PER_PIECE, text : 'Piece/s'}
-
-]
-interface Items {
-  id                :String  
-  itemName          :String
-  batchNumber       :String 
-  manufacturingDate :String
-  ExpirationDate    :String
-  priceBottle       :Number
-  priceVial         :Number
-  pricePiece        :Number
-  VAT               :Boolean
-}
-interface Employee {
-  id         :String     
-  firstName  :String
-  middleName :String
-  lastName   :String
-  code       :String
-  address    :String
-  dateHired  :String
-  department :String
-  contactNo  :String
-}
-
-const headerTitles = ["id", "itemId", "Company Name", "Company Address", "TIN"]
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
-    const res = await axios.get("http://localhost:3000/api/getInfo/client")
-    let opt = res.data.data.map((items : Client, index : number) => {
-      return {
-        text : items.companyName,
-        value : items.companyName,
-        key : items.id
-      }
-    })
-
-    const pmr = await axios.get("http://localhost:3000/api/getInfo/employee/pmr")
-
-    const pmrCodes = pmr.data.data.map((item : Employee) => {
-      return {
-        text : item.code + " " + item.firstName + " " + item.lastName,
-        value : item.id,
-        key : item.id
-      }
-    })
-
-    const item = await axios.get('http://localhost:3000/api/getInfo/item')
-
+  
     const session = await getSession(context);
-    const usr = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const client = await axios.get("http://localhost:3000/api/getInfo/client")
+    const pmr = await axios.get("http://localhost:3000/api/getInfo/employee/pmr")
+    const item = await axios.get('http://localhost:3000/api/getInfo/item')
+    const preparedBy = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
     
+
     return {
-      props : { info : res.data.data, options : opt , pmrCodes : pmrCodes, items : item.data.data, pmr : pmr.data.data, user : usr.data.data}
+      props : { preparedBy: preparedBy.data.data, itemInfo : item.data.data, clientInfo : client.data.data, pmrInfo : pmr.data.data}
     }
 }
 
-export default function item({ info, options, user, pmrCodes, items} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
+export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : InferGetServerSidePropsType<typeof getServerSideProps>) {
+
+  const itemList = removeDuplicates(itemInfo, 'itemName')
   const router = useRouter()
-  const session = useSession();
 
-  // useEffect(() => {
-  //   if(!session.data){
-  //     alert("Invalid Access")
-  //     router.push('/')
-  //   }
-  // }, [])
+  
 
 
-  const [emptyFieldsError, setEmptyFieldsError] = useState(true)
-  const [client, setClient] = useState<Client>()
-  const [item, setItem] = useState(_.uniqBy(items, 'itemName').map((items : any) => {
-    return {
-      text : items.itemName,
-      value : items.itemName,
-      key : items.id
-    }
-  }))
-  const [batch, setBatch] = useState<Array<any>>()
-  const [itemInfo, setItemInfo] = useState<Items>()
-  const [tableDatum, setTableDatum] = useState({
-    id : '',
-    itemId : '',
-    quantity : 0,
-    unit : UNITS.VIALS,
-    article : "",
-    VAT : "Yes",
-    uPrice : 0,
-    discount : 0,
-    amount : 0
-  })
+  //Options
+  const itemOptions : Option[] = makeOptions(itemList, 'itemName', ['itemName'], 'itemName')
+  const clientOptions : Option[] = makeOptions(clientInfo, 'clientId', ['companyName'])
+  const pmrOptions : Option[] = makeOptions(pmrInfo, 'pmrEmployeeId', ['code', 'firstName', 'lastName']) 
+  const [availableQuantityOptions, setAvailableQuantityOption] = useState(quantityOptions)
+
+  //Data
+  const [deliveryReciptData, setDeliveryReciptData] = useState(emptyDeliveryRecipt)
+  const [itemData, setItemData] = useState<Item>(emptySalesItemData)
+  const [selectedItemData, setSelectedItemData] = useState<ItemInfo>()
+  const [selectedItemId, setSelectedItemId] = useState<string>('')
   const [tableData, setTableData] = useState<Array<any>>([])
-  const [unit, setUnit] = useState('VIALS')
-  const [price, setPrice] = useState(0)
-  const [quantity, setQuantity] = useState(0)
-  const [discount, setDiscount] = useState(0)
-  const [Vatable, setVatable] = useState(true)
+  const [sales, setSales] = useState<Array<ItemSalesDetails>>([])
+  const [total, setTotal] = useState({})
+
+  //Temps
+  const [batchOption, setBatchOption] = useState<Array<Option>>([emptyOptions])
+  const [filteredItemList, setFilteredItemList] = useState<Array<ItemInfo>>()
+  const [itemArray, setItemArray] = useState<Array<any>>([])
+
+  //Booleans
+  const [isRemote, setIsRemote] = useState(true)
   const [disabled, setDisabled] = useState(true)
-  const [remarks, setRemarks] = useState("")
-  const [dateIssued, setDateIssued] = useState("")
-  const [total, setTotal] = useState(0)
-  const [stockIn, setStockIn] = useState(false)
-  const [pmrId, setPmrId] = useState("")
   const [disabledStockIn, setDisabledStockIn] = useState(false)
-
-  const [terms, setTerms] = useState(0)
-  
- const [data, setData] = useState({
-    clientId : "",
-    currentDate : '',
-    totalAmount : 0,
-    term        : 0,
-    pmrId : '',
-    preparedBy  : user.employeeInfo.id,
-    items : [tableData],
-    remarks : "",
-    stockIn : false
-  })
+  const [stockIn, setStockIn] = useState(false)
+  const [emptyFieldsError, setEmptyFieldError] = useState(false)
  
 
-  function handleDataFromChild(data : any){
-    setTableData(data)
+
+
+  function handleDiscount(e : React.ChangeEvent<HTMLInputElement>){
+    const discount = parseFloat(e.target.value) / 100
+    setItemData({...itemData, discount : discount, itemSalesDetails : {...itemData.itemSalesDetails, discount : discount} })
   }
 
-  function handleSetTotal(amount : number){
-    setTotal(amount)
+  function handleQuantity(e : React.ChangeEvent<HTMLInputElement>){
+    setItemData({...itemData, quantity : parseFloat(e.target.value)})
   }
   
-  function clientFind(name : any){ 
-    setClient(info.find((item : Client) => {
-      return item.companyName === name
-    }))
-    setData({...data, clientId : info.find((item : Client) => {
-      return item.companyName === name
-    }).id})
-  }
-
-  function batchFind(name : any){
-    setBatch(_.filter(items, (item) => {
-      return item.itemName === name
-    }).map((item) => {
-      return{
-        text : item.batchNumber,
-        value : item.id,
-        key : item.id
-    }}))
-    setDisabled(true)
-  }
-
-  function itemFind(id : any){
-    setItemInfo(items.find((item : Items) => {
-      return item.id === id
-    }))
-  } 
+  useEffect(() => {
+    setEmptyFieldError(false)
+  }, [deliveryReciptData])
 
   useEffect(() => {
-    setData({...data, remarks : remarks})
-  },[remarks])
+    setDeliveryReciptData({...deliveryReciptData, isRemote : isRemote})
+  }, [isRemote])
 
   useEffect(() => {
-    setData({...data, currentDate : dateIssued})
-  },[dateIssued])
-
-
-  
-  useEffect(() => {
-    setData({...data, term : terms})
-  },[terms])
-
-  useEffect(() => {
-    setData({...data, totalAmount : total})
-  }, [total]) 
-
-  useEffect(() => {
-    setData({...data, items : tableData, stockIn : stockIn})
-  }, [tableData]) 
-
-  useEffect(() => {
-    setEmptyFieldsError(true)
-    
-  }, [data])
-   
- 
-  
-
-  useEffect(() => {
-    if(tableDatum.itemId !== ''){
-      const item = items.find((item : Items) => {
-        return item.id === tableDatum.itemId
-      })
-
-
-      switch(unit){
-        case UNITS.VIALS:
-          (setPrice(parseFloat(item.priceVial)), setTableDatum({...tableDatum, uPrice : parseFloat(parseFloat(item.priceVial).toFixed(2)), unit : UNITS.VIALS}));
-          break;
-        case UNITS.PER_PIECE:
-          (setTableDatum({...tableDatum, uPrice : parseFloat(parseFloat(item.pricePiece).toFixed(2)), unit : UNITS.PER_PIECE}), setPrice(parseFloat(item.pricePiece)))
-          break;
-        case UNITS.BOTTLES :
-          (setTableDatum({...tableDatum, uPrice : parseFloat(parseFloat(item.priceBottle).toFixed(2)), unit : UNITS.BOTTLES}), setPrice(parseFloat(item.priceBottle)))
-          break;
-        case UNITS.BOX :
-          (setTableDatum({...tableDatum, uPrice : parseFloat(parseFloat(item.priceBox).toFixed(2)), unit : UNITS.BOX}), setPrice(parseFloat(item.priceBox)))
-          break;
-        default:
-          return;
-      }
+    setBatchOption(makeOptions(filteredItemList !== undefined ? filteredItemList : [], 'id', ['batchNumber']))
+    if(selectedItemId !== ''){
+      setDisabled(true)
     }
-    return;
-  }, [unit, quantity, tableDatum.itemId])
-
- 
+  }, [filteredItemList])
 
   useEffect(() => {
-    if(tableDatum.itemId !== ''){
-      const item = items.find((item : Items) => {
-        return item.id === tableDatum.itemId
-      })
-      setVatable(item.VAT ? true : false)
+    setDeliveryReciptData({...deliveryReciptData, stockIn : stockIn})
+  }, [stockIn])
+
+  useEffect(() => {
+    setSelectedItemData(find(selectedItemId, itemInfo))
+    if(selectedItemId !== ''){
       setDisabled(false)
-      setTableDatum({...tableDatum, VAT : item.VAT ? "Yes" : "No", uPrice : item.priceVial, id : uuidv4(), article : item.itemName})
     }
-    return;
-  },[tableDatum.itemId])
+    
+  },[selectedItemId])
 
   useEffect(() => {
-    setTableDatum({...tableDatum, VAT : Vatable ? "Yes" : "No"})
-  },[Vatable])
+    if(deliveryReciptData.clientId !== ''){
+
+      const client : ClientInfo = find(handleUndefined(deliveryReciptData.clientId), clientInfo)
+    
+      setDeliveryReciptData({...deliveryReciptData, client : find(handleUndefined(deliveryReciptData.clientId), clientInfo), preparedById : preparedBy.employeeInfoId, pmrEmployeeId : client.pmrId})
+    }
+  }, [deliveryReciptData.clientId])
 
   useEffect(() => {
-    const amount = price * quantity
-    setTableDatum({...tableDatum, amount : amount})
-  },[price, quantity])
+    if (selectedItemData) {
+      setItemData({
+        ...itemData,
+        ItemInfo: selectedItemData,
+        itemInfoId: selectedItemData.id,
+        vatable: handleUndefined(selectedItemData.VAT)
+      });
+      showAvailableUnits(handleUndefined(selectedItemData.ItemPrice), setAvailableQuantityOption);
+    }
+  }, [selectedItemData]);
 
   useEffect(() => {
-    const amount = price * quantity
-    const percent = discount / 100
-    setTableDatum({...tableDatum, discount : discount, amount : amount - (amount * percent)})
-  }, [discount, quantity])
 
+
+    setItemData({
+      ...itemData,
+      
+      unitPrice: handleUndefined(getPrice(handleUndefined(selectedItemData?.ItemPrice), itemData.unit))
+    });
+    
+  }, [itemData.quantity, itemData.unit, itemData.discount]);
+  
+  console.log({
+    id : itemArray.map(item => item.id),
+    quanity : itemData.quantity
+   })
  
 
-  async function handleOnClick(e : React.MouseEvent<HTMLButtonElement, MouseEvent>){
-    e.preventDefault();
-    if(data.items.length === 0 || data.clientId === '' || data.term === 0 || data.currentDate === ''){
-      alert("There are black requried fields!!")
-      return;
-    }
+  useEffect(() => {
+    const totalAmount = itemData.unitPrice * itemData.quantity
+    const netTotalAmount = totalAmount - (totalAmount * handleUndefined(itemData.discount))
+    setItemData({...itemData, totalAmount : totalAmount, itemSalesDetails : { ...itemData.itemSalesDetails,
+      grossAmount : itemData.unitPrice * itemData.quantity,
+      itemId : handleUndefined(itemData.id),
+      netAmount : netTotalAmount,
+      vatable : itemData.vatable,
+      VATAmount : netTotalAmount - (netTotalAmount * 0.12)
+    }})
+  }, [itemData.unitPrice, itemData.quantity])
 
-    console.log(data)
 
-    try {
-      const res = await axios.post('http://localhost:3000/api/sales/addDR', data)
-      console.log(res)
-    } catch (error) {
-      console.log(error)
-    }
+  //temp
+  useEffect(() => {
 
-    router.push('/sales/info/deliveryRecipt')
-      
-    }
+    const tableDataSales = itemArray.map((item : Item) => {
+      const VATAmountWithDiscount = Math.round(((item.totalAmount - (item.totalAmount * handleUndefined(item.discount))) * 0.12) * 100) / 100
 
-    async function handleAddItem(){
-      if(tableDatum.quantity < 1 || tableDatum.article === '' || tableDatum.itemId === '' || tableDatum.uPrice === 0){
-        console.log(tableDatum)
-        return;
+      const VATAmountWithoutDiscount = Math.round((item.totalAmount * 0.12) * 100) / 100
+
+      const data = {
+        itemId : handleUndefined(item.id),
+        grossAmount : Math.round(item.totalAmount * 100) / 100,
+        discount : handleUndefined(item.discount),
+        netAmount : (item.totalAmount - (item.totalAmount * handleUndefined(item.discount))),
+        VATAmount : item.vatable ? handleUndefined(item.discount) !== 0 ?  VATAmountWithDiscount : VATAmountWithoutDiscount  : 0,
+        vatable : item.vatable,
       }
 
-      const collection = await axios.get(`http://localhost:3000/api/getInfo/item/stocks/${data.pmrId}`)
-      const selected = collection.data.data.find((item : any) => {
-        return item.itemInfoId === tableDatum.itemId
-      });
-      
-      if(!stockIn){
-        switch(unit){
-          case UNITS.VIALS : 
-            if (selected.stocksVial === 0 || selected.stocksVial < tableDatum.quantity ){
-              alert("Item is out of stock!")
-              return;
-            }
-            break;
-          case UNITS.BOX : 
-            if (selected.stocksBox === 0 || selected.stocksVial < tableDatum.quantity){
-              alert("Item is out of stock!")
-              return;
-            }
-            break;
-          case UNITS.BOTTLES : 
-            if (selected.stocksBottle === 0 || selected.stocksVial < tableDatum.quantity){
-              alert("Item is out of stock!")
-              return;
-            }
-            break;
-          case UNITS.PER_PIECE : 
-            if (selected.stocksPiece === 0 || selected.stocksVial < tableDatum.quantity){
-              alert("Item is out of stock!")
-              return;
-            }
-            break;
-          default:
-              break;
-        }
+
+      return data
+    })
+
+    setSales(tableDataSales)
+
+    const tableDataItems = itemArray.map((item : Item) => {
+      return {
+        id : item.id,
+        quantity : item.quantity,
+        unit : item.unit,
+        article : item.ItemInfo?.itemName,
+        batchNumber : item.ItemInfo?.batchNumber,
+        VAT : item.vatable ? <Header color='green' as='h5'>Yes</Header> : <Header color='red' as='h5'>No</Header>,
+        unitPrice : item.unitPrice.toLocaleString(),
+        discount : handleUndefined(item.discount) * 100 + "%",
+        totalAmount : (item.totalAmount - (item.totalAmount * handleUndefined(item.discount))).toLocaleString(),
       }
+    })
 
-     ((setTableDatum({...tableDatum, id: uuidv4()}), setTableData([...tableData, tableDatum])))
-      
+    setTableData(tableDataItems)
+    setDeliveryReciptData({...deliveryReciptData, item : itemArray, })
+  },[itemArray])
+
+  useEffect(() => {
+    setDeliveryReciptData({...deliveryReciptData, totalAmount : _.sumBy(sales, 'netAmount'), VAT : _.sumBy(sales, 'VATAmount'), total : getTotal(sales)})
+  }, [sales])
+
+
+  //Data Handling
+
+  async function handleAddItem(){
+    if(hasEmptyFields(itemData, ['discount'])){
+      setEmptyFieldError(true)
+      return
     }
 
-    function getDate() : string{
-        const date = new Date(Date.now())
-        const localDate = new Date(date.getTime() +  24 * 60 * 1000).toISOString()
+    const newId = uuidv4()
 
-        return localDate.substring(0, 10)
+    setItemData({...itemData, id: newId})
+
+    setItemArray(prevItemArray => [...prevItemArray, itemData])
+  }
+
+  async function handleOnClick(){
+    if(hasEmptyFields(deliveryReciptData, ['remarks', 'nonVATSales', 'VATableSales'])){
+      setEmptyFieldError(true)
+      alert('There are Empty Fields')
+      return
     }
+
+    console.log(deliveryReciptData.isRemote)
+
+    const res = await axios.post('http://localhost:3000/api/sales/addDR', deliveryReciptData)
+    
+    if(!res.status){
+      console.log(res.statusText)
+    }
+
+    router.reload()
+  }
+
+
+    
   return (
-    session.data && 
     <div className='tw-h-screen tw-w-full'>
       <div className='tw-w-screen tw-flex tw-justify-center'>
         <div className='tw-w-[90%]  tw-flex tw-justify-center tw-bg-sky-600 tw-bg-opacity-30 tw-mt-4 tw-py-8'>
@@ -358,122 +245,129 @@ export default function item({ info, options, user, pmrCodes, items} : InferGetS
                 <h1 className='tw-font-bold tw-text-2xl'>Delivery Recipt</h1>
               </Form.Field>
               <Form.Group>
-                  <Form.Field required >
+                  <Form.Field required error={(emptyFieldsError && deliveryReciptData.deliveryReciptNumber === '')}>
+                      <label htmlFor="deliveryReciptNumber">DR No.</label>
+                      <Input id="deliveryReciptNumber" placeholder="ie. 89901" onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} />
+                  </Form.Field>
+                  <Form.Field required error={(emptyFieldsError && deliveryReciptData.clientId === '')} >
                       <label htmlFor="companyName">Company Name</label>
                       <Dropdown
-                          id = 'companyName'
                           placeholder='--Company Name--'
                           search
                           selection
-                          options={options}
-                          onChange={(e, item) => {clientFind(item.value)}}
-                          
+                          options={clientOptions}
+                          onChange={(e, item) => {handleOptionsChange(e, item, deliveryReciptData, setDeliveryReciptData)}}
                       />
                   </Form.Field>
                   <Form.Field>
-                      <label htmlFor="address">Address</label>
-                      <Input id="address" value={client === undefined ? "" : client.address} readOnly/>
+                      <label htmlFor="address" >Address</label>
+                      <Input id="address" value={handleUndefined(deliveryReciptData.client?.address)} readOnly/>
                   </Form.Field>
                   <Form.Field>
                       <label htmlFor="TIN">TIN</label>
-                      <Input id="TIN" value={client === undefined ? "" : client.TIN} readOnly/>
+                      <Input id="TIN" value={handleUndefined(deliveryReciptData.client?.TIN)} readOnly/>
                   </Form.Field>
                   <Form.Field>
                       <label htmlFor="remarks">Remarks</label>
-                      <Input id="remarks" placeholder="Remarks" onChange={(e) => {setRemarks(e.target.value)}} />
+                      <Input id="remarks" placeholder="Remarks" onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} />
                   </Form.Field>
               </Form.Group>
               <Form.Group>
-                <Form.Field required>
-                        <label htmlFor="PMR">PMR</label>
-                        <Dropdown
-                          id = "PMR"
-                          placeholder='--PMR Code--'
-                          search
-                          selection
-                          wrapSelection
-                          options={pmrCodes}
-                          onChange={(e, item) => {setData({...data, pmrId : item.value ? item.value.toString() : ""})}}
-                        />
-                    </Form.Field>
-                      
-                  <Form.Field required >
+                  <Form.Field required error={(emptyFieldsError && deliveryReciptData.dateIssued === '')}>
                       <label htmlFor="dateIssued">Date Issued</label>
-                      <Input type='date' max={getDate()} id="dateIssued" onChange={(e) =>  {setDateIssued(e.target.value + "T00:00:00Z")}}/>
+                      <Input type='date' max={getDate()} id="dateIssued" onChange={(e) =>  {handleDateChange(e, deliveryReciptData, setDeliveryReciptData)}}/>
                   </Form.Field>
-                  <Form.Field required>
-                    <label htmlFor="terms">Terms</label>
-                    <Input onChange={(e) => {setTerms(parseInt(e.target.value))}} type='number' min="0" label={{content : "Days", color : "blue"}} labelPosition='right'/>
+                  <Form.Field required error={(emptyFieldsError && deliveryReciptData.pmrEmployeeId === '')}>
+                      <label htmlFor="PMR">PMR</label>
+                      <Dropdown
+                        id = "PMR"
+                        placeholder='--PMR Code--'
+                        search
+                        selection
+                        wrapSelection
+                        value ={deliveryReciptData.pmrEmployeeId}
+                        options={pmrOptions}
+                        onChange={(e, item) => {handleOptionsChange(e, item, deliveryReciptData, setDeliveryReciptData)}}
+                      />
+                  </Form.Field>
+                  <Form.Field className={`tw-items-center tw-flex tw-flex-col ${!isRemote ? 'tw-py-4' : 'tw-py-8'}`}>
+                    {!isRemote ? <p><small><small className='tw-flex'><p className='tw-text-red-600'>*</p>NOTE: Stocks will be deducted from the main inventory</small></small></p> : null}
+                    <Checkbox
+                  
+                  label = {<label>{isRemote? <Header color='grey'>Remote Inventory</Header> : <Header>Main Inventory</Header>}</label>}
+                  onChange={() => {setIsRemote(isRemote ? false : true)}}
+                  toggle/>
+                  </Form.Field>
+                  <Form.Field required error={(emptyFieldsError && deliveryReciptData.term === 0)}>
+                    <label htmlFor="term">Terms</label>
+                    <Input id="term"  onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} type='number' min="0" label={{content : "Days", color : "blue"}} labelPosition='right'/>
                   </Form.Field>
               </Form.Group>
               <Form.Field>
                 <h3 className='tw-font-bold tw-text-xl'>Add Item</h3>
               </Form.Field>
               <Form.Group>
-              <Form.Field required>
+              <Form.Field required error={(emptyFieldsError && itemData.itemInfoId === '')} >
                     <label htmlFor="itemName">Item Name</label>
                     <Dropdown
                     id="itemName"
                     search
                     selection
-                    options={item}
-                    onChange={(e, item) => {batchFind(item.value)}}
+                    options={itemOptions}
+                    onChange={(e, item) => {setFilteredItemList(findMany(e.currentTarget.id, itemInfo, item.value !== undefined ? item.value.toString() : ''))}}
                     />
                 </Form.Field>
-                <Form.Field required>
+                <Form.Field required error={(emptyFieldsError && itemData.ItemInfo?.batchNumber === '')}>
                     <label htmlFor="BatchNumner">Batch Number</label>
                     <Dropdown
                     id="batchNumber"
-                    disabled={batch ? false : true}
+                    disabled={filteredItemList !== undefined ? filteredItemList[0].itemName === '' : true}
                     search
                     selection
-                    options={batch}
-                    onChange={(e, item) => {(itemFind(item.value), setTableDatum({...tableDatum, itemId : item.value !== undefined ? item.value.toString() : '' }))}}
+                    options={batchOption}
+                    onChange={(e, item) => {setSelectedItemId(handleUndefined(item.value))}}
                     />
                 </Form.Field>
                 <Form.Field disabled={disabled}>
                     <label htmlFor="manufacturingDate">Manufacturing Date</label>
-                    <Input id="manufacturingDate" type='date' value={itemInfo !== undefined ? (disabled ? " " : itemInfo.manufacturingDate.substring(0, 10)) : ''} readOnly/>
+                    <Input id="manufacturingDate" type='date' value={selectedItemId !== '' ? (disabled ? "" : selectedItemData?.manufacturingDate.toString().substring(10, 0)) : ''} readOnly/>
                 </Form.Field>
                 <Form.Field disabled={disabled}>
                     <label htmlFor="ExpirationDate">Expiration Date</label>
-                    <Input id="ExpirationDate" type='date' value={itemInfo !== undefined ? (disabled ? " " : itemInfo.manufacturingDate.substring(0, 10)) : ''} readOnly/>
+                    <Input id="ExpirationDate" type='date' value={selectedItemId !== '' ? (disabled ? "" : selectedItemData?.expirationDate.toString().substring(10, 0)): ''} readOnly/>
                 </Form.Field>  
               </Form.Group>
               <Form.Group>
                 <Form.Field disabled={disabled}>
                     <label htmlFor="quantity">VAT?</label>
-                    <Input value={tableDatum.itemId != '' ? (disabled ? "" : (Vatable ? "Yes" : "No")) : ""} onChange={(e) => {setVatable(e.target.value === "No" ? false : true)}} readOnly/>
+                    <Input value={deliveryReciptData.id != '' ? (disabled ? "" : (selectedItemData?.VAT ? "Yes" : "No")) : ""} readOnly/>
                 </Form.Field>
-                <Form.Field disabled={disabled}>
+                <Form.Field disabled={disabled} required error={(emptyFieldsError && itemData.quantity === 0)}>
                     <label htmlFor="quantity">Quantity</label>
-                    <Input value={disabled ? "" : null} onChange={(e) => {(setTableDatum({...tableDatum, quantity : parseInt(e.target.value)}), setQuantity(parseInt(e.target.value)))}} min="0" type="number" label={{content : <Dropdown color='blue' defaultValue="VIALS" options={quantityOptions} onChange={(e, item) => {setUnit(item.value !== undefined ? item.value?.toString() : '')}}/>, color : "blue"}} labelPosition='right'/>
+                    <Input value={handleUndefined(itemData.quantity)} id='quantity' onChange={(e) => {handleQuantity(e)}} min="0" type="number" label={{content : <Dropdown color='blue' options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, itemData, setItemData)}}/>, color : "blue"}} labelPosition='right'/>
                 </Form.Field>
                 <Form.Field disabled={disabled}>
                     <label htmlFor="discount">Discount</label>
-                    <Input value={disabled ? "" : null} onChange={(e) => {setDiscount(parseFloat(e.target.value) > 100 ? -1 : parseFloat(e.target.value))}} max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
+                    <Input onChange={(e) => { handleDiscount(e) }}  max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
                 </Form.Field>
                 <Button color='blue' onClick={handleAddItem}>Add Item</Button>
               </Form.Group>
-              <Checkbox 
-              disabled={disabledStockIn}
-              label = {<label>{!stockIn ? <Header color='grey'>Stock In</Header> : <Header>Stock In</Header>}</label>}
-              onChange={() => {setStockIn(!stockIn ? true : false)}}
-              toggle/>
+              
             </Form>
             </div>
         </div>
       </div>
-      <div className='tw-w-screen tw-flex tw-justify-center'>
-          <div className='tw-w-[90%]'>
-            <IFlexTable color='blue' data={tableData} setData={handleDataFromChild} setTotal={handleSetTotal} headerTitles={tableHeaders}/>
+      <div className='tw-w-screen tw-flex tw-flex-col tw-pb-52 tw-items-center'>
+          <div className='tw-w-[90%] '>
+            <ITable color='blue' data={tableData} headerTitles={tableHeaders} hasFooter={true} extraData={deliveryReciptData.totalAmount}/>
+            
+          </div>
+          <div className='tw-w-full tw-flex tw-justify-center tw-pt-4'>
+            <div className='tw-w-[90%]'>
+              {tableData.length > 0 ? <Button onClick={handleOnClick} color='blue'>Create Delivery Recipt</Button> : null}  
           </div>
         </div>
-        <div className='tw-w-full tw-flex tw-justify-center tw-pt-4'>
-          <div className='tw-w-[90%]'>
-            {tableData.length > 0 ? <Button onClick={handleOnClick} color='blue'>Create Delivery Recipt</Button> : null}  
-          </div>
-        </div>
+      </div>
     </div>
   )
 }

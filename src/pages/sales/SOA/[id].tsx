@@ -3,13 +3,29 @@ import Itable from 'components/Itable';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import React, { useRef } from 'react'
-import { Button } from 'semantic-ui-react';
+import React, { useEffect, useRef, useState } from 'react'
+import { Button, Input } from 'semantic-ui-react';
 import ReactToPrint, { useReactToPrint } from 'react-to-print';
 import ComponentToPrint from 'components/ISOA';
+import { documentRecord, formatCurrency } from 'functions';
+import { cloneDeep } from 'lodash';
 
 
-const headerTitle = ["id", "Invoice No.", "Invoice Date", "Invoice Amount" , "Due Date", "Amount Paid", "CR/AR No." , "Description", "Amount Outstanding"]
+
+const headerTitle = ["id", "SI/DR No.", "SI/DR Amount" , "Date Issued", "Due Date", "Amount Paid", "CR/AR No." , "Description", "Amount Outstanding", "Remarks"]
+
+export const getServerSideProps : GetServerSideProps = async (context) => {
+    const session = await getSession(context);
+    const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const clients = await axios.get(`http://localhost:3000/api/getInfo/client/${context.query.id}`)
+    const document = await axios.get(`http://localhost:3000/api/getInfo/document/client/${context.query.id}`)
+    const totalAmountDue = await axios.get(`http://localhost:3000/api/collection/SOA/totalAmountDue/${context.query.id}`)
+    
+    return {
+      props : { post : res.data.data, clientsData : clients.data.data, documentData: document.data.data, totalAmounDue : totalAmountDue.data.data }
+    }
+    
+}
 
 const sample = {
     companyName: "Super H. Drug",
@@ -23,34 +39,29 @@ const sample = {
     }
 }
 
-const sampleTableData = [
-    {
-        id : "123",
-        invoiceNumber : "89901",
-        invoiceDate : '2023-03-01',
-        invoiceAmount : 4000,
-        dueDate : '2023-06-01',
-        amountPaid : 5000,
-        checkNumber : "1231",
-        description : "Overpaid",
-        outstandingAmount : 1000,
-    },
-    {
-        id : "1231",
-        invoiceNumber : "89902",
-        invoiceDate : '2023-04-01',
-        invoiceAmount : 4000,
-        dueDate : '2023-07-01',
-        amountPaid : 2000,
-        checkNumber : "1232",
-        description : "Underpaid",
-        outstandingAmount : 2000,
+const updateRemarks = (id: number, remarks: string, rawData : any, setRawData : React.Dispatch<any>) => {
+    const clonedRawData = cloneDeep(rawData);
+    const index = clonedRawData.data.findIndex((data : any) => data.id === id);
+    if (index !== -1) {
+      clonedRawData.data[index].remarks = remarks;
+      setRawData(clonedRawData);
     }
-]
+  };
 
-export default function ID() {
+
+export default function ID({ clientsData, documentData, totalAmounDue } : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
     const router = useRouter()
+
+
+    const [rawData, setRawData] = useState<any>({
+        totalAmountDue : formatCurrency(totalAmounDue.toString()),
+        companyName : clientsData.companyName,
+        address : clientsData.address,
+        data : []
+    })
+    const [tableData, setTableData] = useState([])
+
     const data = sample
     const componentRef = useRef(null)
     const handlePrint = useReactToPrint({
@@ -63,6 +74,46 @@ export default function ID() {
         }
       `,
     });
+
+    useEffect(() => {
+        const fetchDocs = async () => {
+            const docs = await documentRecord(documentData, router)
+            setRawData({...rawData, data : docs})
+        }
+        fetchDocs()
+    }, [])
+
+   useEffect(() => {
+    if(rawData !== undefined){
+    
+
+        setTableData(rawData.data.map((item : any) => {
+            return {
+                id: item.id,
+                number : item.siOrDrNo,
+                totalAmount : formatCurrency(item.amount.toString()),
+                dateIssued : item.dateIssued,
+                dueDate : item.dueDate,
+                amountPaid : formatCurrency(item.amountPaid),
+                crOrArNo : item.modeOfPayment === 'CASH' ? '-' : item.checkNumber,
+                status : item.status,
+                outstadningAmount : formatCurrency(item.balance),
+                action : <Input type='text' onChange={(e) => {
+                    setRawData(updateRemarks(item.id, e.target.value, rawData, setRawData))
+                }} />
+    
+            }
+        }))
+    }
+   }, [rawData])
+
+
+   async function viewExcel(){  
+        console.log(rawData)
+
+        // const res = await axios.post('http://localhost:3000/api/collection/SOA/print', rawData)
+        // console.log(res.data.data)
+   }
    
   return (
     <div>
@@ -73,19 +124,19 @@ export default function ID() {
         <div className='tw-w-full tw-flex tw-justify-center'>
             
             <div className='tw-w-[90%] tw-pt-8 tw-bg-sky-600 tw-bg-opacity-30 tw-rounded-tl-lg tw-rounded-tr-lg tw-mt-4 tw-flex tw-flex-col tw-items-center'>
-            
+               
                 <div className='tw-flex tw-w-[90%] tw-pb-4'>
                     <h1 className='tw-text-2xl tw-font-bold'>Statement of Account</h1>
                 </div>
                 <div className='tw-w-[90%] tw-pb-4 tw-flex tw tw-justify-center tw-items-center tw-text-lg'>
-                    <div className='tw-flex tw-gap-1 tw-items-center tw-w-full tw-justify-start'><h1>Clients Name : </h1><h1 className='tw-font-bold'>{data.companyName}</h1></div>
+                    <div className='tw-flex tw-gap-1 tw-items-center tw-w-full tw-justify-start'><h1>Clients Name : </h1><h1 className='tw-font-bold'>{clientsData.companyName}</h1></div>
                     <div className='tw-flex tw-gap-1 tw-w-full tw-justify-end'><h1>Last Date Issued: </h1><h1 className='tw-font-bold'>{data.lastDateIssued}</h1></div>
                 </div>
                 <div className='tw-w-[90%] tw-pb-4 tw-flex tw tw-justify-center tw-items-center tw-text-lg '>
-                    <div className='tw-flex tw-gap-1 tw-w-full tw-justify-start'><h1>Address:  </h1><h1 className='tw-font-bold'>{data.address}</h1></div>
+                    <div className='tw-flex tw-gap-1 tw-w-full tw-justify-start'><h1>Address:  </h1><h1 className='tw-font-bold'>{clientsData.address}</h1></div>
                 </div>
                     <div className='tw-w-full tw-pb-4 tw-flex tw tw-justify-center tw-items-center tw-text-lg '>
-                    <div className='tw-flex tw-gap-1 tw-w-[90%] tw-pb-4 tw-justify-star'><h1 >Total Balance Due: </h1><h1 className='tw-font-bold'>{data.totalBalance().toLocaleString()}</h1>
+                    <div className='tw-flex tw-gap-1 tw-w-[90%] tw-pb-4 tw-justify-star'><h1 >Total Balance Due: </h1><h1 className='tw-font-bold'>{formatCurrency(totalAmounDue.toString())}</h1>
                     </div>
                 </div>
                
@@ -93,13 +144,13 @@ export default function ID() {
         </div>
         <div className='tw-w-full tw-flex tw-justify-center'>
            <div className='tw-w-[90%]'>
-                <Itable color='blue' data={sampleTableData} headerTitles={headerTitle}/>
+            { tableData.length > 0 && <Itable color='blue' data={tableData} headerTitles={headerTitle}/>}
            </div>
            
         </div>
         <div className='tw-w-full tw-flex tw-justify-center'>
            <div className='tw-w-[90%] tw-pt-4'>
-                <Button color='blue' onClick={handlePrint}>Print SOA</Button>
+                <Button color='blue' onClick={viewExcel}>Print SOA</Button>
                 <div className='tw-hidden'>
           
                      <ComponentToPrint ref={componentRef} />

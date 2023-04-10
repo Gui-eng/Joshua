@@ -1,29 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { EmployeeInfo, ItemInfo } from '../../../../../types';
 
 const prisma = new PrismaClient();
 
-interface data {
-    id: string;
-    firstName: string;
-    middleInitial: string;
-    lastName: string;
-    role: string;
-    idNumber: string;
+interface Data {
+    success: boolean;
+    data: any;
 }
-
-enum DEPARTMENT {
-    SALES = 'SALES',
-    PMR = 'PMR',
-    INVENTORY = 'INVENTORY',
-    ACCOUNTING = 'ACCOUNTING',
-    IT = 'IT',
-}
-
-type Data = {
-    success: Boolean;
-    data: data[] | Object;
-};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
     const { method } = req;
@@ -31,39 +15,88 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         case 'GET':
             {
                 try {
-                    const info = await prisma.itemInfo.findMany();
-                    res.status(200).json({ success: true, data: info });
+                    const info: ItemInfo[] = await prisma.itemInfo.findMany({
+                        include: { ItemPrice: true },
+                    });
+
+                    const itemInfo = info.map((item: ItemInfo) => {
+                        return {
+                            ...item,
+                            ItemPrice: item.ItemPrice !== undefined ? item.ItemPrice[0] : null,
+                        };
+                    });
+
+                    res.status(200).json({ success: true, data: itemInfo });
                 } catch (error) {
                     console.log(error);
-                    res.status(403).json({ success: false, data: [] });
+                    res.status(403).json({ success: false, data: null });
                 }
             }
             break;
         case 'POST':
             {
                 try {
-                    const info = await prisma.itemInfo.create({ data: req.body });
-                    //PMR to give stocks to
+                    const {
+                        batchNumber,
+                        expirationDate,
+                        itemName,
+                        manufacturingDate,
+                        VAT,
+                        price: { bottle, box, capsule, vial, tablet, itemInfoId },
+                    } = req.body;
 
-                    const pmr = await prisma.employeeInfo.findMany({ where: { department: DEPARTMENT.PMR } });
-                    pmr.map(async (item: any) => {
+                    console.log();
+                    const addItem = await prisma.itemInfo.create({
+                        data: {
+                            batchNumber: batchNumber,
+                            expirationDate: expirationDate,
+                            itemName: itemName,
+                            manufacturingDate: manufacturingDate,
+                            VAT: VAT,
+                        },
+                    });
+
+                    const price = await prisma.itemPrice.create({
+                        data: {
+                            itemInfoId: addItem.id,
+                            bottle: bottle,
+                            box: box,
+                            capsule: capsule,
+                            tablet: tablet,
+                            vial: vial,
+                        },
+                    });
+
+                    const pmr = await prisma.employeeInfo.findMany({
+                        where: {
+                            department: 'PMR',
+                        },
+                    });
+
+                    pmr.map(async (pmr) => {
                         await prisma.stocks.create({
                             data: {
-                                pmrEmployeeId: item.id,
-                                itemInfoId: info.id,
+                                pmrEmployeeId: pmr.id,
+                                itemInfoId: addItem.id,
                             },
                         });
                     });
 
-                    res.status(200).json({ success: true, data: info });
+                    await prisma.mainStocks.create({
+                        data: {
+                            itemInfoId: addItem.id,
+                        },
+                    });
+
+                    res.status(200).json({ success: true, data: addItem });
                 } catch (error) {
                     console.log(error);
-                    res.status(403).json({ success: false, data: [] });
+                    res.status(403).json({ success: false, data: null });
                 }
             }
             break;
         default:
-            res.status(403).json({ success: false, data: [] });
+            res.status(403).json({ success: false, data: null });
             break;
     }
 }

@@ -34,14 +34,17 @@ model EmployeeInfo {
   department DEPARTMENT
   contactNo  String
 
-  Employee Employee[]
-  Stocks   Stocks[]   @relation(name: "pmrEmployee")
-  User     User?
+  Employee           Employee[]
+  proofOfDeliveryPmr proofOfDelivery[] @relation(name: "pmr")
+  Stocks             Stocks[]          @relation(name: "pmrEmployee")
+  User               User?
+  ClientInfo         ClientInfo[]
+  PullOut            PullOut[]
 }
 
 model Employee {
   id               String          @id @default(uuid())
-  employee         EmployeeInfo    @relation(fields: [employeeInfoId], references: [id])
+  employeeInfo     EmployeeInfo    @relation(fields: [employeeInfoId], references: [id])
   employeeInfoId   String
   SalesInvoice     SalesInvoice?   @relation(fields: [SalesInvoiceId], references: [id])
   SalesInvoiceId   String?
@@ -49,6 +52,7 @@ model Employee {
   DeliveryReciptId String?
 
   SIPmr        SalesInvoice[]   @relation(name: "pmrEmployee")
+  DRPmr        DeliveryRecipt[] @relation(name: "DRpmrEmployee")
   SIPreparedBy SalesInvoice[]   @relation(name: "preparedByEmployee")
   DRPreparedBy DeliveryRecipt[] @relation(name: "preparedByEmployee")
 }
@@ -59,7 +63,16 @@ model ClientInfo {
   address     String
   TIN         String @unique
 
-  Client Client[]
+  pmr   EmployeeInfo? @relation(fields: [pmrId], references: [id])
+  pmrId String?
+
+  Client            Client[]
+  SOA               SOA[]
+  monthlyCollection MonthlyCollection[]
+  CheckInfo         PaymentInfo[]
+  PullOut           PullOut[]
+
+  proofOfDeliveryClient proofOfDelivery[] @relation(name: "deliveredClient")
 }
 
 model Client {
@@ -82,20 +95,28 @@ model ItemInfo {
   itemName          String
   batchNumber       String   @unique
   manufacturingDate DateTime
-  ExpirationDate    DateTime
-  priceBottle       Decimal  @default(0)
-  priceVial         Decimal  @default(0)
-  pricePiece        Decimal  @default(0)
-  priceBox          Decimal  @default(0)
-  stocksPiece       Int      @default(0)
-  stocksVial        Int      @default(0)
-  stocksBottle      Int      @default(0)
-  stocksBox         Int      @default(0)
+  expirationDate    DateTime
   VAT               Boolean
 
   items       Item[]
   ItemSummary ItemSummary[]
   Stocks      Stocks[]
+  pullOutItem PullOutItem[]
+  mainStocks  mainStocks[]
+  ItemPrice   ItemPrice[]
+}
+
+model ItemPrice {
+  id String @id @default(uuid())
+
+  bottle  Decimal @default(0)
+  vial    Decimal @default(0)
+  capsule Decimal @default(0)
+  tablet  Decimal @default(0)
+  box     Decimal @default(0)
+
+  itemInfo   ItemInfo @relation(fields: [itemInfoId], references: [id])
+  itemInfoId String   @unique
 }
 
 model Item {
@@ -104,62 +125,128 @@ model Item {
   quantity    Int
   unit        UNITS
   discount    Float?
-  vatable     Boolean
   totalAmount Decimal
 
+  vatable   Boolean
+  isPullout Boolean @default(false)
+
   //Handles Relationships 
-  SI         SalesInvoice?   @relation(fields: [sIId], references: [id])
-  sIId       String?
-  DR         DeliveryRecipt? @relation(fields: [dRId], references: [id])
-  dRId       String?
-  ItemInfo   ItemInfo        @relation(fields: [itemInfoId], references: [id])
-  itemInfoId String
+  SI               SalesInvoice?      @relation(fields: [sIId], references: [id])
+  sIId             String?
+  DR               DeliveryRecipt?    @relation(fields: [dRId], references: [id])
+  dRId             String?
+  ItemInfo         ItemInfo           @relation(fields: [itemInfoId], references: [id])
+  itemInfoId       String
+  ItemSalesDetails ItemSalesDetails[] @relation(name: "itemRef")
+}
+
+model ItemSalesDetails {
+  id           String  @id @default(uuid())
+  netAmount    Decimal
+  vatExempt    Boolean
+  VATAmount    Decimal
+  netVATAmount Decimal
+  discount     Decimal
+  //Before Discount / Original Price
+  grossAmount  Decimal
+
+  item   Item   @relation(name: "itemRef", fields: [itemId], references: [id])
+  itemId String
+}
+
+model TotalDetails {
+  id String @id @default(uuid())
+
+  grossAmount Decimal
+  discount    Decimal
+  netAmount   Decimal
+  VATAmount   Decimal
+  vatable     Boolean
+
+  salesInvoice     SalesInvoice?   @relation(fields: [salesInvoiceId], references: [id])
+  salesInvoiceId   String?         @unique
+  deliveryRecipt   DeliveryRecipt? @relation(fields: [deliveryReciptId], references: [id])
+  deliveryReciptId String?
 }
 
 model SalesInvoice {
-  id          String  @id @default(uuid())
-  currentDate String
-  totalAmount Decimal
-  term        Int
-  discount    Float?
-  VAT         Decimal
-  remarks     String? @db.VarChar(500)
-  stockIn     Boolean @default(false)
+  id                 String  @id @default(uuid())
+  salesInvoiceNumber String  @unique
+  dateIssued         String
+  totalAmount        Decimal
+  term               Int
+  discount           Float?
+  VAT                Decimal
+  remarks            String? @db.VarChar(500)
 
-  pmr              Employee?    @relation(name: "pmrEmployee", fields: [pmrEmployeeId], references: [id])
-  pmrEmployeeId    String?
-  preparedBy       Employee?    @relation(name: "preparedByEmployee", fields: [employeeId], references: [id])
-  employeeId       String?
-  client           Client?      @relation(name: "Client", fields: [clientId], references: [id])
-  clientId         String?
-  salesItemSummary ItemSummary? @relation(fields: [itemSummaryId], references: [id])
-  itemSummaryId    String?
+  balance    Decimal @default(0)
+  payables   Decimal @default(0)
+  amountPaid Decimal @default(0)
 
-  Employee    Employee[]
-  items       Item[]
-  Client      Client[]
-  ItemSummary ItemSummary[] @relation(name: "salesInvoice")
+  stockIn   Boolean @default(false)
+  isPullout Boolean @default(false)
+  isPaid    Boolean @default(false)
+  isRemote  Boolean @default(true)
+
+  pmr                Employee?        @relation(name: "pmrEmployee", fields: [pmrEmployeeId], references: [id])
+  pmrEmployeeId      String?
+  preparedBy         Employee?        @relation(name: "preparedByEmployee", fields: [preparedById], references: [id])
+  preparedById       String?
+  client             Client?          @relation(name: "Client", fields: [clientId], references: [id])
+  clientId           String?
+  salesItemSummary   ItemSummary?     @relation(fields: [salesItemSummaryId], references: [id])
+  salesItemSummaryId String?
+  proofOfDelivery    proofOfDelivery? @relation(fields: [proofOfDeliveryId], references: [id])
+  proofOfDeliveryId  String?
+
+  Employee     Employee[]
+  items        Item[]
+  Client       Client[]
+  monthlySales monthlySales[]
+  PullOutItem  PullOutItem[]
+  ItemSummary  ItemSummary[]  @relation(name: "salesInvoice")
+  TotalDetails TotalDetails?
+  PaymentInfo  PaymentInfo[]
 }
 
 model DeliveryRecipt {
-  id          String   @id @default(uuid())
-  totalAmount Decimal
-  currentDate DateTime
-  Term        Int
-  remarks     String?  @db.VarChar(500)
+  id                   String  @id @default(uuid())
+  deliveryReciptNumber String  @unique
+  dateIssued           String
+  totalAmount          Decimal
+  term                 Int
+  discount             Float?
+  VAT                  Decimal
+  remarks              String? @db.VarChar(500)
 
-  client        Client?      @relation(name: "Client", fields: [clientId], references: [id])
-  clientId      String?
-  preparedBy    Employee?    @relation(name: "preparedByEmployee", fields: [employeeId], references: [id])
-  employeeId    String?
-  itemSummary   ItemSummary? @relation(fields: [itemSummaryId], references: [id])
-  itemSummaryId String?
-  stockIn       Boolean      @default(false)
+  balance    Decimal @default(0)
+  payables   Decimal @default(0)
+  amountPaid Decimal @default(0)
 
-  items       Item[]
-  Client      Client[]
-  Employee    Employee[]
-  ItemSummary ItemSummary[] @relation(name: "deliveryRecipt")
+  pmr                Employee?        @relation(name: "DRpmrEmployee", fields: [pmrEmployeeId], references: [id])
+  pmrEmployeeId      String?
+  preparedBy         Employee?        @relation(name: "preparedByEmployee", fields: [preparedById], references: [id])
+  preparedById       String?
+  client             Client?          @relation(name: "Client", fields: [clientId], references: [id])
+  clientId           String?
+  salesItemSummary   ItemSummary?     @relation(fields: [salesItemSummaryId], references: [id])
+  salesItemSummaryId String?
+  proofOfDelivery    proofOfDelivery? @relation(fields: [proofOfDeliveryId], references: [id])
+  proofOfDeliveryId  String?
+
+  stockIn   Boolean @default(false)
+  isRemote  Boolean @default(false)
+  isPullout Boolean @default(false)
+  isPaid    Boolean @default(false)
+
+  items        Item[]
+  Client       Client[]
+  Employee     Employee[]
+  ItemSummary  ItemSummary[]  @relation(name: "deliveryRecipt")
+  monthlySales monthlySales[]
+  PullOutItem  PullOutItem[]
+  PaymentInfo  PaymentInfo[]
+  TotalDetails TotalDetails[]
 }
 
 model WeeklySales {
@@ -193,11 +280,12 @@ model ItemSummary {
 }
 
 model Stocks {
-  id           String @id @default(uuid())
-  stocksPiece  Int    @default(0)
-  stocksVial   Int    @default(0)
-  stocksBottle Int    @default(0)
-  stocksBox    Int    @default(0)
+  id      String @id @default(uuid())
+  vial    Int    @default(0)
+  bottle  Int    @default(0)
+  box     Int    @default(0)
+  capsule Int    @default(0)
+  tablet  Int    @default(0)
 
   pmr           EmployeeInfo? @relation(name: "pmrEmployee", fields: [pmrEmployeeId], references: [id])
   pmrEmployeeId String?
@@ -205,19 +293,118 @@ model Stocks {
   itemInfoId    String?
 }
 
+model mainStocks {
+  id      String @id @default(uuid())
+  Vial    Int    @default(0)
+  Bottle  Int    @default(0)
+  Box     Int    @default(0)
+  Capsule Int    @default(0)
+  Tablet  Int    @default(0)
+
+  itemInfo   ItemInfo? @relation(fields: [itemInfoId], references: [id])
+  itemInfoId String?
+}
+
 model SOA {
-  id     String   @id @default(uuid())
-  name   String
-  date   DateTime
-  orders Int
-  amount Decimal
+  id                String   @id @default(uuid())
+  statementNumber   Int      @default(0)
+  lastDateIssued    DateTime
+  amountDue         Decimal
+  outstandingAmount Decimal
+  remarks           String?
+
+  client       ClientInfo @relation(fields: [clientInfoId], references: [id])
+  clientInfoId String
+}
+
+model monthlySales {
+  id         String   @id @default(uuid())
+  dateIssued DateTime
+
+  salesInvoice     SalesInvoice?   @relation(fields: [salesInvoiceId], references: [id])
+  salesInvoiceId   String?
+  deliveryRecipt   DeliveryRecipt? @relation(fields: [deliveryReciptId], references: [id])
+  deliveryReciptId String?
+}
+
+model PaymentInfo {
+  id String @id @default(uuid())
+
+  modeOfPayment      PAYMENT
+  checkNumber        String?        @unique @default(uuid())
+  checkDate          DateTime?
+  dateIssued         DateTime
+  amount             Decimal
+  fromBalance        Decimal        @default(0)
+  depositDateAndTime DateTime
+  status             PAYMENT_STATUS
+
+  client           ClientInfo      @relation(fields: [clientInfoId], references: [id])
+  clientInfoId     String
+  salesInvoice     SalesInvoice?   @relation(fields: [salesInvoiceId], references: [id])
+  salesInvoiceId   String?
+  deliveryRecipt   DeliveryRecipt? @relation(fields: [deliveryReciptId], references: [id])
+  deliveryReciptId String?
+}
+
+model PullOutItem {
+  id             String @id @default(uuid())
+  quantity       Int
+  unit           UNITS
+  quantityIssued Int
+
+  //Handles Relationships 
+  SI         SalesInvoice?   @relation(fields: [sIId], references: [id])
+  sIId       String?
+  DR         DeliveryRecipt? @relation(fields: [dRId], references: [id])
+  dRId       String?
+  ItemInfo   ItemInfo        @relation(fields: [itemInfoId], references: [id])
+  itemInfoId String
+}
+
+model PullOut {
+  id String @id @default(uuid())
+
+  pullOutNumber String
+  dateIssued    DateTime
+
+  requestedBy   EmployeeInfo @relation(fields: [requestedById], references: [id])
+  requestedById String
+  client        ClientInfo   @relation(fields: [clientInfoId], references: [id])
+  clientInfoId  String
+}
+
+model MonthlyCollection {
+  id String @id @default(uuid())
+
+  modeOfPayment PAYMENT
+  remarks       String
+
+  client       ClientInfo @relation(fields: [clientInfoId], references: [id])
+  clientInfoId String
+}
+
+model proofOfDelivery {
+  id String @id @default(uuid())
+
+  remarks       String
+  dateRequested DateTime
+
+  deliveredClient   ClientInfo   @relation(name: "deliveredClient", fields: [deliveredClientId], references: [id])
+  deliveredClientId String
+  pmr               EmployeeInfo @relation(name: "pmr", fields: [pmrId], references: [id])
+  pmrId             String
+
+  salesInvoice   SalesInvoice[]
+  deliveryRecipt DeliveryRecipt[]
 }
 
 enum UNITS {
   BOX
   VIALS
   BOTTLES
-  PER_PIECE @map("PER PIECE")
+  CAPSULES
+  TABLETS
 }
 
 enum ROLES {
@@ -241,4 +428,21 @@ enum STATUS {
   UN_DELIVERED    @map("UN DELIVRED")
   CANCELLED
   FOR_REPLACEMENT @map("FOR REPLACEMENT")
+}
+
+enum PAYMENT_STATUS {
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum PAYMENT {
+  CHECK
+  CASH
+}
+
+enum PULLOUTSTATUS {
+  FOR_REPLACEMENT @map("FOR REPLACEMENT")
+  EXPIRED
+  NEAR_EXPIRY     @map("NEAR EXPIRY")
 }

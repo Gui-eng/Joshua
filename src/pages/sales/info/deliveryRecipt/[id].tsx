@@ -1,8 +1,10 @@
 import axios from 'axios';
 import Itable from 'components/Itable';
+import { formatCurrency, getPrice, handleUndefined } from 'functions';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
 import React from 'react'
+import { Item } from 'types';
 
 const headerTitle = ["id", "Quantity", "Unit", "Item Name" , "Vatable", "Price", "Batch Number" , "Man. Date", "Exp. Date", "Total Amount"]
 
@@ -11,7 +13,8 @@ enum UNITS {
     BOX = 'BOXES',
     VIALS = 'VIALS',
     BOTTLES = 'BOTTLES',
-    PER_PIECE = 'PER_PIECE',
+    CAPSULES = "CAPSULES",
+    TABLETS = "TABLETS"
   }
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
@@ -21,7 +24,7 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     try{
         const info = await axios.get(`http://localhost:3000/api/getInfo/deliveryRecipt/${context.query.id}`)
         return {
-            props : { info : info.data }
+            props : { info : info.data.data }
           }
     }catch(error){
         return {
@@ -35,45 +38,29 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
 export default function ID( {post, info} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
-    function getPrice(unit : UNITS, index : number) : number {
-        switch(unit){
-            case UNITS.BOTTLES : {
-                return parseFloat(info.data.items[index].ItemInfo.priceBottle)
-            }
-            case UNITS.BOX : {
-                return parseFloat(info.data.items[index].ItemInfo.priceBox)
-            }
-            case UNITS.PER_PIECE : {
-                return parseFloat(info.data.items[index].ItemInfo.pricePiece)
-            }
-            case UNITS.VIALS : {
-                return parseFloat(info.data.items[index].ItemInfo.priceVial)
-            }
-            default :
-            return  -1
-        }
-    }
-    
+    console.log(info)
+   
 
-    const items = info.data.items.map((item : any, index : number) => {
+    const tableData = info.items.map((item : any) => {
+
+        const getThePrice = getPrice(handleUndefined(item.ItemInfo?.ItemPrice[0]), item.unit)
+
         return {
-            id : item.id,
-            quantity : item.quantity,
-            unit : item.unit,
-            name : item.ItemInfo.itemName,
-            vatable : item.vatable ? "Yes" : "No",
-            price : getPrice(item.unit, index),
-            batchNumber : item.ItemInfo.batchNumber,
-            manufacturingDate : item.ItemInfo.manufacturingDate.substring(10, 0),
-            expiryDate : item.ItemInfo.ExpirationDate.substring(10, 0),
-            totalAmount : parseFloat(item.totalAmount)
-
-        }
+            id: item.id,
+            quantity: parseFloat(item.quantity.toString()).toLocaleString(),
+            unit: item.unit,
+            itemName: item.ItemInfo?.itemName,
+            vatable: item.vatable ? 'Yes' : 'No',
+            price: formatCurrency(handleUndefined(getThePrice?.toString())),
+            batchNumber: item.ItemInfo?.batchNumber,
+            manDate: item.ItemInfo?.manufacturingDate.toString().substring(10, 0),
+            expDate: item.ItemInfo?.expirationDate.toString().substring(10, 0),
+            totalAmount: formatCurrency(item.totalAmount.toString())
+          }
     })
-    console.log(items)
-    console.log(info.data)
+    
   return (
-    <div>{!info ? null : 
+    <div>{
     <>
         <div className='tw-w-full tw-flex tw-justify-center'>
             <div className='tw-w-[90%] tw-pt-8 tw-bg-sky-600 tw-bg-opacity-30 tw-rounded-tl-lg tw-rounded-tr-lg tw-mt-4 tw-flex tw-flex-col tw-items-center'>
@@ -81,18 +68,23 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
                     <h1 className='tw-text-2xl tw-font-bold'>Delivery Recipt Summary</h1>
                 </div>
                 <div className='tw-w-[90%] tw-pb-4 tw-flex tw tw-justify-center tw-items-center tw-text-lg'>
-                    <div className='tw-flex tw-gap-1 tw-w-full tw-justify-start'><h1>Delivery Recipt Id : </h1><h1 className='tw-font-bold'>{info.data.id}</h1></div>
-                    <div className='tw-flex tw-gap-1 tw-w-full tw-justify-end'><h1>Date Issued : </h1><h1 className='tw-font-bold'>{info.data.currentDate.substring(10, 0)}</h1></div>
+                    <div className='tw-flex tw-gap-1 tw-w-full tw-justify-start'><h1>Delivery Recipt # : </h1><h1 className='tw-font-bold'>{info.deliveryReciptNumber}</h1></div>
+                    <div className='tw-flex tw-gap-1 tw-w-full tw-justify-end'><h1>Date Issued : </h1><h1 className='tw-font-bold'>{info.dateIssued.substring(10,0)}</h1></div>
                 </div>
                 <div className='tw-w-[90%] tw-pb-4 tw-flex tw tw-justify-center tw-items-center tw-text-lg '>
-                    <div className='tw-flex tw-gap-1 tw-w-[90%] tw-pb-4 tw-justify-star'><h1 >Total Amount : </h1><h1 className='tw-font-bold'>{info.data.totalAmount}</h1></div>
-                    <div className='tw-flex tw-gap-1 tw-w-full tw-justify-end'><h1>Type : </h1><h1 className='tw-font-bold'>{info.data.stockIn ? "Stock in" : "Stock Out"}</h1></div>
+                    <div className='tw-flex tw-gap-1 tw-w-full tw-justify-start'><h1>PMR/ Medical Representative : </h1><h1 className='tw-font-bold'>{info.pmr.employeeInfo.code + " " + info.pmr.employeeInfo.firstName + " " + info.pmr.employeeInfo.lastName }</h1></div>
+                    <div className='tw-flex tw-gap-1 tw-w-full tw-justify-end'><h1>Prepared By : </h1>{info.preparedBy.employeeInfo.firstName + " " + info.preparedBy.employeeInfo.lastName}<h1 className='tw-font-bold'></h1></div>
                 </div>
+                <div className='tw-w-[90%] tw-pb-4 tw-flex tw tw-justify-center tw-items-center tw-text-lg '>
+                <div className='tw-flex tw-gap-1 tw-w-[100%] tw-pb-4 tw-justify-start'><h1 >Total Amount : </h1><h1 className='tw-font-bold'>{formatCurrency(info.totalAmount)}</h1></div>
+                    {/* <div className='tw-flex tw-gap-1 tw-w-full tw-justify-end'><h1>Type : </h1><h1 className='tw-font-bold'></h1></div> */}
+                </div>
+               
             </div>
         </div>
         <div className='tw-w-full tw-flex tw-justify-center'>
            <div className='tw-w-[90%]'>
-                <Itable color='blue' data={items} headerTitles={headerTitle}/>
+                <Itable color='blue' data={tableData} headerTitles={headerTitle}/>
            </div>
         </div>
     </>}</div>

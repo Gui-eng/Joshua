@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                 try {
                     const info = await prisma.deliveryRecipt.findMany({
                         include: {
-                            preparedBy: { include: { employee: true } },
+                            preparedBy: { include: { employeeInfo: true } },
                         },
                     });
 

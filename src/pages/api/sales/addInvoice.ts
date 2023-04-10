@@ -1,6 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { ItemSalesDetails, PrismaClient } from '@prisma/client';
+import { handleUndefined, handleUnits } from 'functions';
 import { create } from 'lodash';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { Item } from 'types';
 
 const prisma = new PrismaClient();
 
@@ -27,176 +29,147 @@ type Data = {
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
     const { method } = req;
     switch (method) {
-        case 'POST':
+        case 'GET': {
             {
                 try {
-                    const {
-                        currentDate,
-                        totalAmount,
-                        term,
-                        discount,
-                        VAT,
-                        preparedBy,
-                        pmrId,
-                        items,
-                        remarks,
-                        clientId,
-                        stockIn,
-                    } = req.body;
+                    res.status(200).json({ success: true, data: ['haha'] });
+                } catch (error) {
+                    console.log(error);
+                    res.status(403).json({ success: false, data: [] });
+                }
+            }
+            break;
+        }
+        case 'POST':
+            {
+                const {
+                    dateIssued,
+                    salesInvoiceNumber,
+                    term,
+                    totalAmount,
+                    pmrEmployeeId,
+                    clientId,
+                    VAT,
+                    remarks,
+                    item,
+                    isRemote,
+                    client,
+                    stockIn,
+                    preparedById,
+                    total,
+                } = req.body;
 
-                    const itemArr = items.map((item: any) => {
-                        return {
-                            quantity: item.quantity,
-                            unit: item.unit,
-                            discount: item.discount,
-                            vatable: item.VAT === 'Yes' ? true : false,
-                            totalAmount: item.amount,
-                            itemInfoId: item.itemId,
-                        };
-                    });
+                const { grossAmount, netAmount, vatExempt, VATAmount, netVATAmount, VATableSales, nonVATSales } = total;
 
-                    const data = {
-                        currentDate: currentDate,
-                        totalAmount: totalAmount,
+                console.log(isRemote);
+                const salesInvoice = await prisma.salesInvoice.create({
+                    data: {
+                        dateIssued: dateIssued,
+                        salesInvoiceNumber: salesInvoiceNumber,
                         term: term,
-                        discount: discount,
-                        VAT: VAT,
-                        items: {
-                            createMany: {
-                                data: itemArr,
-                            },
-                        },
+                        totalAmount: totalAmount,
                         remarks: remarks,
+                        VAT: VAT,
+                        isRemote: !isRemote,
                         stockIn: stockIn,
+                        payables: totalAmount,
+                    },
+                });
+
+                const totalDetails = await prisma.totalDetails.create({
+                    data: {
+                        grossAmount: grossAmount,
+                        netAmount: netAmount,
+                        vatable: vatExempt,
+                        VATAmount: VATAmount,
+                        discount: 0,
+                        salesInvoiceId: salesInvoice.id,
+                    },
+                });
+
+                const preparedBy = await prisma.employee.create({
+                    data: {
+                        SalesInvoiceId: salesInvoice.id,
+                        employeeInfoId: preparedById,
+                    },
+                });
+
+                const pmr = await prisma.employee.create({
+                    data: {
+                        SalesInvoiceId: salesInvoice.id,
+                        employeeInfoId: pmrEmployeeId,
+                    },
+                });
+
+                const clientCreation = await prisma.client.create({
+                    data: {
+                        clientInfoId: clientId,
+                        salesInvoiceId: salesInvoice.id,
+                    },
+                });
+
+                const itemDetails: Array<any> = item.map((obj: any) => {
+                    const {
+                        itemSalesDetails,
+                        id,
+                        quantity,
+                        totalAmount,
+                        unit,
+                        unitPrice,
+                        vatable,
+                        ItemInfo,
+                        discount,
+                        itemInfoId,
+                    } = obj;
+
+                    return {
+                        id: id,
+                        quantity: quantity,
+                        totalAmount: totalAmount,
+                        unit: handleUnits(unit),
+                        vatable: vatable,
+                        discount: discount,
+                        itemInfoId: handleUndefined(itemInfoId),
+                        sIId: salesInvoice.id,
+                    };
+                });
+
+                const salesDetails = item.map((obj: any) => {
+                    const { itemSalesDetails, id } = obj;
+
+                    const { VATAmount, grossAmount, itemId, netAmount } = itemSalesDetails;
+
+                    const sales = {
+                        discount: handleUndefined(itemSalesDetails.discount),
+                        grossAmount: grossAmount,
+                        netAmount: netAmount,
+                        netVATAmount: netAmount - netAmount * 0.12,
+                        VATAmount: VATAmount,
+                        vatExempt: !itemSalesDetails.vatable,
+                        itemId: itemId,
                     };
 
-                    const info = await prisma.salesInvoice.create({
-                        data: data,
-                    });
+                    return sales;
+                });
 
-                    const pmr = await prisma.employee.create({
-                        data: {
-                            employeeInfoId: pmrId,
-                            SalesInvoiceId: info.id,
-                        },
-                    });
+                const handleItems = await prisma.item.createMany({
+                    data: itemDetails,
+                });
 
-                    const prepare = await prisma.employee.create({
-                        data: {
-                            employeeInfoId: preparedBy,
-                            SalesInvoiceId: info.id,
-                        },
-                    });
+                const handleSales = await prisma.itemSalesDetails.createMany({
+                    data: salesDetails,
+                });
 
-                    const client = await prisma.client.create({
-                        data: {
-                            clientInfoId: clientId,
-                            salesInvoiceId: info.id,
-                        },
-                    });
-
-                    const updateInfo = await prisma.salesInvoice.update({
-                        where: { id: info.id },
-                        data: {
-                            pmrEmployeeId: pmr.id,
-                            employeeId: prepare.id,
-                            clientId: client.id,
-                        },
-                    });
-
-                    if (stockIn) {
-                        items.map(async (item: any) => {
-                            const itemToUpdate = await prisma.stocks.findFirstOrThrow({
-                                where: { itemInfoId: item.itemId },
-                            });
-
-                            switch (item.unit) {
-                                case UNITS.VIALS:
-                                    await prisma.stocks.update({
-                                        where: { id: itemToUpdate?.id },
-                                        data: { stocksVial: itemToUpdate?.stocksVial + item.quantity },
-                                    });
-                                    break;
-                                case UNITS.BOTTLES:
-                                    await prisma.itemInfo.update({
-                                        where: { id: itemToUpdate?.id },
-                                        data: { stocksVial: itemToUpdate?.stocksVial + item.quantity },
-                                    });
-                                    break;
-                                case UNITS.BOX:
-                                    await prisma.itemInfo.update({
-                                        where: { id: itemToUpdate?.id },
-                                        data: { stocksVial: itemToUpdate?.stocksVial + item.quantity },
-                                    });
-                                    break;
-                                case UNITS.PER_PIECE:
-                                    await prisma.itemInfo.update({
-                                        where: { id: itemToUpdate?.id },
-                                        data: { stocksVial: itemToUpdate?.stocksVial + item.quantity },
-                                    });
-                                    break;
-                                default:
-                                    break;
-                            }
-                        });
-                    } else {
-                        items.map(async (item: any) => {
-                            const itemToUpdate = await prisma.stocks.findFirstOrThrow({
-                                where: { itemInfoId: item.itemId },
-                            });
-
-                            switch (item.unit) {
-                                case UNITS.VIALS:
-                                    await prisma.itemInfo.update({
-                                        where: { id: itemToUpdate?.id },
-                                        data: {
-                                            stocksVial:
-                                                itemToUpdate?.stocksVial === undefined
-                                                    ? 0
-                                                    : itemToUpdate?.stocksVial - item.quantity,
-                                        },
-                                    });
-                                    break;
-                                case UNITS.BOTTLES:
-                                    await prisma.itemInfo.update({
-                                        where: { id: itemToUpdate?.id },
-                                        data: {
-                                            stocksVial:
-                                                itemToUpdate?.stocksBottle === undefined
-                                                    ? 0
-                                                    : itemToUpdate?.stocksBottle - item.quantity,
-                                        },
-                                    });
-                                    break;
-                                case UNITS.BOX:
-                                    await prisma.itemInfo.update({
-                                        where: { id: itemToUpdate?.id },
-                                        data: {
-                                            stocksVial:
-                                                itemToUpdate?.stocksBox === undefined
-                                                    ? 0
-                                                    : itemToUpdate?.stocksBox - item.quantity,
-                                        },
-                                    });
-                                    break;
-                                case UNITS.PER_PIECE:
-                                    await prisma.itemInfo.update({
-                                        where: { id: itemToUpdate?.id },
-                                        data: {
-                                            stocksVial:
-                                                itemToUpdate?.stocksPiece === undefined
-                                                    ? 0
-                                                    : itemToUpdate?.stocksPiece - item.quantity,
-                                        },
-                                    });
-                                    break;
-                                default:
-                                    break;
-                            }
-                        });
-                    }
-
-                    res.status(200).json({ success: true, data: info });
+                const updateSalesInvoice = await prisma.salesInvoice.update({
+                    where: { salesInvoiceNumber: salesInvoiceNumber },
+                    data: {
+                        pmrEmployeeId: pmr.id,
+                        preparedById: preparedBy.id,
+                        clientId: clientCreation.id,
+                    },
+                });
+                try {
+                    res.status(200).json({ success: true, data: [] });
                 } catch (error) {
                     console.log(error);
                     res.status(403).json({ success: false, data: [] });

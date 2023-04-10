@@ -1,59 +1,84 @@
-import React, { SVGProps, useEffect } from 'react'
+import React, { SVGProps, useEffect, useState } from 'react'
 import { useSession, signOut, getSession} from 'next-auth/react'
 import { Button, Checkbox, Dropdown, Grid, Header, Input, Label, Search } from 'semantic-ui-react';
 import { useRouter } from 'next/router';
 import Inav from 'components/Inav';
-import { GetServerSideProps } from 'next';
+import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import axios from 'axios';
 import ICard from 'components/ICard';
 import IFooter from 'components/IFooter';
 import ISideCard from 'components/ISideCard'
 import ISidePanel from 'components/ISidePanel';
 import Itable from 'components/IFlexTable';
+import { icon } from '@fortawesome/fontawesome-svg-core';
+import { SalesInvoiceData } from 'types';
+import { handleUndefined } from 'functions';
 
-const Chart = (props : SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" {...props}>
-    <path d="M160 80c0-26.5 21.5-48 48-48h32c26.5 0 48 21.5 48 48v352c0 26.5-21.5 48-48 48h-32c-26.5 0-48-21.5-48-48V80zM0 272c0-26.5 21.5-48 48-48h32c26.5 0 48 21.5 48 48v160c0 26.5-21.5 48-48 48H48c-26.5 0-48-21.5-48-48V272zM368 96h32c26.5 0 48 21.5 48 48v288c0 26.5-21.5 48-48 48h-32c-26.5 0-48-21.5-48-48V144c0-26.5 21.5-48 48-48z" />
-  </svg>
-)
 
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
     const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+
+    const salesInvoiceData = await axios.get(`http://localhost:3000/api/sales/view`)
+    const deliveryReciptData = await axios.get(`http://localhost:3000/api/sales/viewDR`)
+    
     
     return {
-      props : { post : res.data.data }
+      props : { post : res.data.data, salesInvoiceData : salesInvoiceData.data.data, deliveryReciptData : deliveryReciptData.data.data }
     }
     
 }
 
-const sample = [{
-    id: 1,
-    clientName : 'Super H. Drug',
-    salesInvoiceNumber : "89901",
-    dateIssued : "2023-03-07",
-}]
 
-const options = [
-    { key: 'salesInvoice', text: 'Sales Invoice', value: 'salesInvoice' },
-    { key: 'client', text: 'Client\'s Name', value: 'client' },
- 
-  ]
 
-const headerTitles = ["id", "Client Name", "SI No.", "Date Issued", "Actions" ]
+const headerTitles = ["id", "Client Name", "SI/DR No.", "Date Issued", "Actions" ]
 
-export default function home({ post } : any) {
+
+
+export default function home({ post, salesInvoiceData, deliveryReciptData } :  InferGetServerSidePropsType<typeof getServerSideProps>) {
   const router = useRouter()
   const { data } = useSession();
 
-//   useEffect(() => {
-//     if(!data){
-//       alert("Invalid Access")
-//       router.push('/')
-//     }
-//   }, [])
+  const documentData = [...salesInvoiceData, ...deliveryReciptData]
+
+  const [dataArray, setDataArray] = useState(documentData)
+  const [tableData, setTableData] = useState<any>([])
+  const [isSINumber, setIsSINumber] = useState(false)
+
   
+
+  function filterData(str : string, array : Array<any>, isSINumber : boolean){
+    if(isSINumber){
+      const arr = array.filter((item) => {
+        return item.salesInvoiceNumber.includes(str)
+      })
+      setDataArray(arr)
+    }else{
+      const arr = array.filter((item) => {
+        return item.client.clientInfo.companyName.includes(str)
+      })
+      setDataArray(arr)
+    }
+
+    
+  }
+
+
+  useEffect(() => {
+    
+    const data = dataArray.map((items : any) => {
+      return {
+          id : items.id,
+          clientName : items.client?.clientInfo.companyName,
+          documentNumber : items.salesInvoiceNumber !== undefined ? items.salesInvoiceNumber : items.deliveryReciptNumber,
+          dateIssued : items.dateIssued.substring(10, 0),
+          view : <Button onClick={() => {router.push(`/sales/collection/${items.id}`)}}color='blue'>View</Button>
+      }})
+
+      setTableData(data)
+  },[dataArray])
+
 
   useEffect(() => {
     if(post.employeeInfoId === null){
@@ -61,13 +86,7 @@ export default function home({ post } : any) {
     }
   },[])
 
-  const tableData = sample.map((items) => {
-    return {
-        ...items,
-        view : <Button onClick={() => {router.push('/sales/collection/1')}}color='blue'>View</Button>
-    }
-})
-
+  
 
   return (
     data && 
@@ -77,17 +96,20 @@ export default function home({ post } : any) {
         <div className='tw-w-full tw-flex tw-items-center tw-flex-col tw-pb-96'>
               
               <div className='tw-w-[95%] tw-p-4 tw-flex tw-justify-between tw-h-full tw-items-center' >
-                <h1 className='tw-text-xl tw-ml-2 tw-font-bold'>Collection</h1>
+                <Header>Collection</Header>
                 <div className='tw-flex tw-items-center tw-gap-4'>
                     <Checkbox 
                     className='tw-flex'
-                    label={<label><Header>SI Number</Header></label>}
+                    onChange={(e, item) => {setIsSINumber(handleUndefined(item.checked))}}
+                    label={<label><Header>SI/DR Number</Header></label>}
                     />
-                    <Search/>
+
+                    <Input onChange={(e) => {filterData(e.target.value, salesInvoiceData, isSINumber)}} type='text' placeholder='Search...' icon={'search'}/>
+                    
                 </div>
               </div>
               <div className='tw-w-[95%] tw-p-4 tw-h-full'>
-                <Itable data={tableData} headerTitles={headerTitles} allowDelete={false} editing={false}/>
+                <Itable data={tableData} headerTitles={headerTitles} allowDelete={false}/>
               </div>
         </div>
       </div>

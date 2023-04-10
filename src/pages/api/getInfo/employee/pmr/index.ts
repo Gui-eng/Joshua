@@ -14,6 +14,11 @@ interface data {
     contactNo: String;
 }
 
+type Data = {
+    success: Boolean;
+    data: data[] | Object;
+};
+
 enum DEPARTMENT {
     SALES = 'SALES',
     PMR = 'PMR',
@@ -22,13 +27,9 @@ enum DEPARTMENT {
     IT = 'IT',
 }
 
-type Data = {
-    success: Boolean;
-    data: data[] | Object;
-};
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
     const { method } = req;
+
     switch (method) {
         case 'GET':
             {
@@ -38,6 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                             department: DEPARTMENT.PMR,
                         },
                     });
+
                     res.status(200).json({ success: true, data: info });
                 } catch (error) {
                     console.log(error);

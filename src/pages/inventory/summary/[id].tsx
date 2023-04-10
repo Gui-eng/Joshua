@@ -22,13 +22,13 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     
 }
 
-const headerTitles = ["id","Item Name", "Batch No.", "Man. Date", "Exp. Date", "Remaining Vial/s",  "Remaining Bottle/s", "Remaining Box/es", "Remaining Piece/s", "Summary"]
+const headerTitles = ["id","Item Name", "Batch No.", "Man. Date", "Exp. Date", "Remaining Vial/s",  "Remaining Bottle/s", "Remaining Box/es", "Remaining Capsule/s", "Remaining Tablet/s", "Summary"]
 
 export default function index({ post, info, pmr }  : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
   const router = useRouter()
  
-
+  console.log(info)
   const [data, setData] = useState(info.data.map((item : any) => {
     const { itemInfo } = item 
     return {
@@ -36,11 +36,12 @@ export default function index({ post, info, pmr }  : InferGetServerSidePropsType
         itemName : itemInfo.itemName,
         batchNumber : itemInfo.batchNumber,
         manufacturingDate : itemInfo.manufacturingDate.substring(10, 0),
-        expirationDate : itemInfo.ExpirationDate.substring(10, 0),
-        remainingVial : item.stocksVial,
-        remainingBottle : item.stocksBottle,
-        remainingBox : item.stocksBox,
-        remainingPiece : item.stocksPiece,
+        expirationDate : itemInfo.expirationDate.substring(10, 0),
+        remainingVial : item.vial,
+        remainingBottle : item.bottle,
+        remainingBox : item.box,
+        remainingCapsule : item.capsule,
+        remainingTablet : item.tablet,
 
 
     }
@@ -53,7 +54,7 @@ export default function index({ post, info, pmr }  : InferGetServerSidePropsType
     <>
     <div className='tw-w-full tw-h-full'>
      <Inav firstName={post.employeeInfo.firstName}/>
-      <div className='tw-w-full tw-flex tw-flex-col tw-pb-[50vh]'>
+      <div className='tw-w-full tw-flex tw-flex-col tw-mb-[400px]'>
            <div className='tw-w-full tw-flex tw-justify-center tw-my-8'>
                 <div className='tw-w-[90%]'>
                     <h1 className='tw-text-2xl tw-font-bold'>{pmr.firstName + " " + pmr.lastName}</h1>
@@ -61,7 +62,7 @@ export default function index({ post, info, pmr }  : InferGetServerSidePropsType
             </div>
             <div className='tw-w-full tw-flex tw-justify-center '>
                 <div className='tw-w-[90%]'>
-                    <Itable allowDelete={false} headerTitles={headerTitles} data={data} editing={false} />
+                    <Itable allowDelete={false} headerTitles={headerTitles} data={data} />
                 </div>
             </div>
       </div>
