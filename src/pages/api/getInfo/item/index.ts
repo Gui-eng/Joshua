@@ -15,11 +15,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         case 'GET':
             {
                 try {
-                    const info: ItemInfo[] = await prisma.itemInfo.findMany({
+                    const info: any = await prisma.itemInfo.findMany({
                         include: { ItemPrice: true },
                     });
 
-                    const itemInfo = info.map((item: ItemInfo) => {
+                    const itemInfo = info.map((item: any) => {
                         return {
                             ...item,
                             ItemPrice: item.ItemPrice !== undefined ? item.ItemPrice[0] : null,

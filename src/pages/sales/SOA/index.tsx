@@ -10,6 +10,9 @@ import IFooter from 'components/IFooter';
 import ISideCard from 'components/ISideCard'
 import ISidePanel from 'components/ISidePanel';
 import Itable from 'components/IFlexTable';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 const Chart = (props : SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" {...props}>
@@ -22,9 +25,28 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
     const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
     const clients = await axios.get(`http://localhost:3000/api/getInfo/client`)
+
+    const clientData = await Promise.all(clients.data.data.map(async (item : any) => {
+      const soaInstance = await axios.get(`http://localhost:3000/api/collection/SOA/countDocs/${item.id}`);
+
+      const latestItem = await prisma.sOA.findFirst({
+        where : { clientInfoId : item.id.toString()},
+        orderBy: {
+          dateIssued : 'desc'
+        },
+        select : {dateIssued : true}
+      });
+
+     
+      
+      
+      return {...item, num : soaInstance.data.data, latestItem : latestItem ? latestItem?.dateIssued.toISOString().substring(10,0) : "-"};
+  }));
+
+  
     
     return {
-      props : { post : res.data.data, clientsData : clients.data.data }
+      props : { post : res.data.data, clientsData : clientData}
     }
     
 }
@@ -57,12 +79,16 @@ export default function home({ post, clientsData } : any) {
     }
   },[])
 
+  
+
   const tableData = clientsData.map((items : any) => {
+
+   
         return {
             id : items.id,
             clientName : items.companyName,
-            numberOfSOA : 0,
-            lastDateIssued : "2023-03-07",
+            numberOfSOA : items.num,
+            lastDateIssued : items.latestItem,
             view : <Button onClick={() => {router.push(`/sales/SOA/${items.id}`)}}color='blue'>View</Button>
         }
   })
@@ -77,9 +103,7 @@ export default function home({ post, clientsData } : any) {
               
               <div className='tw-w-[95%] tw-p-4 tw-flex tw-justify-between tw-h-full tw-items-center' >
                 <h1 className='tw-text-xl tw-ml-2 tw-font-bold'>Collection</h1>
-                <div className='tw-flex tw-items-center tw-gap-4'>
-                    <Search/>
-                </div>
+        
               </div>
               <div className='tw-w-[95%] tw-p-4 tw-h-full'>
                 <Itable data={tableData} headerTitles={headerTitles} allowDelete={false}/>

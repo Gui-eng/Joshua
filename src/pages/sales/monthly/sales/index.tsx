@@ -21,9 +21,12 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
     const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
     
-    const salesInvoiceData = await axios.get(`http://localhost:3000/api/sales/view`)
+    const documentData = await axios.get(`http://localhost:3000/api/getInfo/document/view`)
+
+
+
     return {
-      props : { post : res.data.data, salesInvoiceData : salesInvoiceData.data.data }
+      props : { post : res.data.data, documentData : documentData.data.data.flat() }
     }
     
 }
@@ -32,7 +35,7 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
 const headerTitles = ["id", "SI No.", "Date", "Total Amount", "Actions" ]
 
-export default function home({ post, salesInvoiceData} :  InferGetServerSidePropsType<typeof getServerSideProps>) {
+export default function home({ post, documentData} :  InferGetServerSidePropsType<typeof getServerSideProps>) {
   const router = useRouter()
   const { data } = useSession();
 
@@ -40,6 +43,8 @@ export default function home({ post, salesInvoiceData} :  InferGetServerSideProp
     to : '',
     from : '',
   })
+
+  console.log(documentData)
 
   const [rawData, setRawData] = useState({
     data : [],
@@ -51,7 +56,7 @@ export default function home({ post, salesInvoiceData} :  InferGetServerSideProp
   const [tableData, setTableData] = useState([])
 
 
-  const generateExcel = async (data : Array<any>) => {
+  const generateExcel = async () => {
     try {
       const res = await axios.post("http://localhost:3000/api/print", rawData)
       alert('File created Successfully!')
@@ -65,7 +70,7 @@ export default function home({ post, salesInvoiceData} :  InferGetServerSideProp
   useEffect(() => {
     if(salesIndexData.to !== '' && salesIndexData.from !== ''){
 
-      const data = salesInvoiceData.filter((item : SalesInvoiceData) => {
+      const data = documentData.filter((item : any) => {
         const date = new Date(item.dateIssued).getTime()
         const from = new Date(salesIndexData.from).getTime()
         const to = new Date(salesIndexData.to).getTime()
@@ -77,7 +82,7 @@ export default function home({ post, salesInvoiceData} :  InferGetServerSideProp
       const table = data.map((item : any) => {
         return {
           id : item.id,
-          salesInvoiceNumber : item.salesInvoiceNumber,
+          salesInvoiceNumber : item.salesInvoiceNumber !== undefined ? item.salesInvoiceNumber : item.deliveryReciptNumber,
           dateIssued : item.dateIssued.substring(10, 0),
           totalAmount : parseFloat(item.totalAmount).toLocaleString(),
           actions : <Button onClick={() => {router.push(`/sales/info/${item.id}`)}} color='blue'>View</Button>
@@ -122,7 +127,7 @@ export default function home({ post, salesInvoiceData} :  InferGetServerSideProp
               <div className='tw-w-[95%] tw-p-4 tw-h-full'>
                 <Itable data={tableData} headerTitles={headerTitles} allowDelete={false} />
 
-                {tableData.length > 0 ? <Button onClick={() => {generateExcel(salesInvoiceData)}}className='tw-mt-4' color='blue'>Generate Excel File</Button> : null}
+                {tableData.length > 0 ? <Button onClick={() => {generateExcel()}}className='tw-mt-4' color='blue'>Generate Excel File</Button> : null}
               </div>
         </div>
       </div>

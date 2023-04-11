@@ -1,81 +1,73 @@
-import React, { SVGProps, useEffect } from 'react';
-import { useSession, signOut, getSession } from 'next-auth/react';
-import { Button, Checkbox, Dropdown, Grid, Header, Input, Label, Search } from 'semantic-ui-react';
-import { useRouter } from 'next/router';
-import Inav from 'components/Inav';
-import { GetServerSideProps } from 'next';
-import axios from 'axios';
-import ICard from 'components/ICard';
-import IFooter from 'components/IFooter';
-import ISideCard from 'components/ISideCard';
-import ISidePanel from 'components/ISidePanel';
-import Itable from 'components/IFlexTable';
+import axios from 'axios'
+import IFooter from 'components/IFooter'
+import ISideCard from 'components/ISideCard'
+import Inav from 'components/Inav'
+import Itable from 'components/Itable'
+import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
+import { getSession, useSession } from 'next-auth/react'
+import { useRouter } from 'next/router'
+import React, { useEffect } from 'react'
+import { Button, Header } from 'semantic-ui-react'
+import { SalesInvoiceData } from 'types'
 
-const Chart = (props: SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" {...props}>
-        <path d="M160 80c0-26.5 21.5-48 48-48h32c26.5 0 48 21.5 48 48v352c0 26.5-21.5 48-48 48h-32c-26.5 0-48-21.5-48-48V80zM0 272c0-26.5 21.5-48 48-48h32c26.5 0 48 21.5 48 48v160c0 26.5-21.5 48-48 48H48c-26.5 0-48-21.5-48-48V272zM368 96h32c26.5 0 48 21.5 48 48v288c0 26.5-21.5 48-48 48h-32c-26.5 0-48-21.5-48-48V144c0-26.5 21.5-48 48-48z" />
-    </svg>
-);
+const tableData = [
+  { id: 1, name: 'John', age: 15, gender: 'Male' },
+  { id: 1, name: 'Amber', age: 40, gender: 'Female' },
+  { id: 1, name: 'Leslie', age: 25, gender: 'Other' },
+  { id: 1, name: 'Ben', age: 70, gender: 'Male' },
+]
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-    const session = await getSession(context);
-    const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`);
 
+
+const headerTitles = ["id", "PO #", "Date Issued", "Client", "Status", "Actions"]
+
+export const getServerSideProps : GetServerSideProps = async (context) => {
+  const session = await getSession(context);
+  const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+
+  const pullOutData = await axios.get('http://localhost:3000/api/pullOut')
+  
+  return {
+    props : { post : res.data.data, pullOutData : pullOutData.data.data }
+  }
+  
+}
+
+export default function index({ post , pullOutData} : InferGetServerSidePropsType<typeof getServerSideProps>) {
+
+  const router = useRouter()
+  const session = useSession();
+
+  console.log(pullOutData)
+
+  const tableData = pullOutData.map((item : any) => {
     return {
-        props: { post: res.data.data },
-    };
-};
+        id : item.id,
+        pullOutNumber : item.pullOutNumber,
+        dateIssued : item.dateIssued.substring(10,0),
+        client : item.client.companyName,
+        status : item.status,
+        actions : <Button color='blue' onClick={() => {router.push(`/sales/pullOut/form/view/${item.pullOutNumber}`)}} >View</Button>
 
-const sample = [
-    {
-        id: 1,
-        pullOutNumber: '89901',
-        dateIssued: '2023-03-08',
-        salesInvoiceNumber: "8921",
-        view: <Button color="blue">Breakdown</Button>,
-    },
-];
+  }})
 
-const options = [
-    { key: 'salesInvoice', text: 'Sales Invoice', value: 'salesInvoice' },
-    { key: 'client', text: "Client's Name", value: 'client' },
-];
-
-const headerTitles = ['id', 'Pull out No.', 'Date Issued', 'SI Number', 'Actions'];
-
-export default function home({ post }: any) {
-    const router = useRouter();
-    const { data } = useSession();
-
-    //   useEffect(() => {
-    //     if(!data){
-    //       alert("Invalid Access")
-    //       router.push('/')
-    //     }
-    //   }, [])
-
-    useEffect(() => {
-        if (post.employeeInfoId === null) {
-            router.push('/newUser');
-        }
-    }, []);
-
-    return (
-        data && (
-            <>
-                <div className="tw-w-full tw-h-full">
-                    <Inav firstName={post.employeeInfoId !== null ? post.employeeInfo.firstName : ''} />
-                    <div className="tw-w-full tw-flex tw-items-center tw-flex-col tw-pb-96">
-                        <div className="tw-w-[95%] tw-p-4 tw-flex tw-justify-between tw-h-full tw-items-center">
-                            <h1 className="tw-text-2xl tw-ml-2 tw-font-bold">Pull Out</h1>
-                        </div>
-                        <div className="tw-w-[95%] tw-p-4 tw-h-full">
-                            <Itable data={sample} headerTitles={headerTitles} allowDelete={false} editing={false} />
-                        </div>
-                    </div>
-                </div>
-                <IFooter />
-            </>
-        )
-    );
+ 
+  return (
+   session.data && 
+    <div>
+      <Inav firstName={post.employeeInfo.firstName}/>
+      <div className='tw-w-full tw-pb-60 tw-flex tw-flex-col'>
+            <h1 className='tw-text-[3rem] tw-font-extrabold tw-mt-20 tw-ml-20 tw-mb-20'>Pull Out List</h1>
+            <div className='tw-w-full tw-flex tw-justify-center'>
+              <div className='tw-w-[90%]'>
+                  <Itable data={tableData} headerTitles={headerTitles}/>
+              </div>
+            </div>
+            <div className='tw-ml-20 tw-mt-4'>
+              <Button onClick={() => {router.push('/sales/pullOut/form')}}color='blue'>Add Pull Out</Button>
+            </div>
+      </div>
+      
+    </div>
+  )
 }

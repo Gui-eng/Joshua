@@ -8,7 +8,7 @@ import { Button, Input } from 'semantic-ui-react';
 import ReactToPrint, { useReactToPrint } from 'react-to-print';
 import ComponentToPrint from 'components/ISOA';
 import { documentRecord, formatCurrency } from 'functions';
-import { cloneDeep } from 'lodash';
+
 
 
 
@@ -39,14 +39,7 @@ const sample = {
     }
 }
 
-const updateRemarks = (id: number, remarks: string, rawData : any, setRawData : React.Dispatch<any>) => {
-    const clonedRawData = cloneDeep(rawData);
-    const index = clonedRawData.data.findIndex((data : any) => data.id === id);
-    if (index !== -1) {
-      clonedRawData.data[index].remarks = remarks;
-      setRawData(clonedRawData);
-    }
-  };
+
 
 
 export default function ID({ clientsData, documentData, totalAmounDue } : InferGetServerSidePropsType<typeof getServerSideProps>) {
@@ -57,6 +50,7 @@ export default function ID({ clientsData, documentData, totalAmounDue } : InferG
     const [rawData, setRawData] = useState<any>({
         totalAmountDue : formatCurrency(totalAmounDue.toString()),
         companyName : clientsData.companyName,
+        id : clientsData.id,
         address : clientsData.address,
         data : []
     })
@@ -82,6 +76,18 @@ export default function ID({ clientsData, documentData, totalAmounDue } : InferG
         }
         fetchDocs()
     }, [])
+    
+    function updateRemarksById(id: string, remarks: string): void {
+
+        const newData = rawData.data.map((dataItem : any) => {
+            if (dataItem.id === id) {
+              return { ...dataItem, remarks };
+            }
+            return dataItem;
+          });
+
+        setRawData({...rawData, data : newData})
+      }
 
    useEffect(() => {
     if(rawData !== undefined){
@@ -99,7 +105,7 @@ export default function ID({ clientsData, documentData, totalAmounDue } : InferG
                 status : item.status,
                 outstadningAmount : formatCurrency(item.balance),
                 action : <Input type='text' onChange={(e) => {
-                    setRawData(updateRemarks(item.id, e.target.value, rawData, setRawData))
+                    updateRemarksById(item.id, e.target.value)
                 }} />
     
             }
@@ -109,10 +115,9 @@ export default function ID({ clientsData, documentData, totalAmounDue } : InferG
 
 
    async function viewExcel(){  
-        console.log(rawData)
 
-        // const res = await axios.post('http://localhost:3000/api/collection/SOA/print', rawData)
-        // console.log(res.data.data)
+        const res = await axios.post('http://localhost:3000/api/collection/SOA/print', rawData)
+        router.reload()
    }
    
   return (

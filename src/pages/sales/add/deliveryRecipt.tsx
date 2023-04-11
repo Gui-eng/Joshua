@@ -234,6 +234,15 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   }
 
 
+  function handleDelete(data : any){
+    const target = itemArray.find((item : any) => {
+      return item.id === data.id
+   })
+  
+    setItemArray((prevItem)=> {return prevItem.filter((value) => {return value.id !== target.id} )})
+     
+   }
+
     
   return (
     <div className='tw-h-screen tw-w-full'>
@@ -359,7 +368,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
       </div>
       <div className='tw-w-screen tw-flex tw-flex-col tw-pb-52 tw-items-center'>
           <div className='tw-w-[90%] '>
-            <ITable color='blue' data={tableData} headerTitles={tableHeaders} hasFooter={true} extraData={deliveryReciptData.totalAmount}/>
+            <ITable color='blue' data={tableData} updateItem={handleDelete} allowDelete={true} headerTitles={tableHeaders} hasFooter={true} extraData={deliveryReciptData.totalAmount}/>
             
           </div>
           <div className='tw-w-full tw-flex tw-justify-center tw-pt-4'>

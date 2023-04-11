@@ -6,9 +6,22 @@ import os from 'os';
 import fs from 'fs';
 import util from 'util';
 import { ItemInfo, SalesInvoiceData } from 'types';
-import { getPrice, handleUndefined, getDate, formatCurrency, formatDateString } from 'functions';
+import {
+    getPrice,
+    handleUndefined,
+    getDate,
+    formatCurrency,
+    formatDateString,
+    getYearMonth,
+    getFullISODate,
+} from 'functions';
 import { TableCell } from 'semantic-ui-react';
 import _ from 'lodash';
+import axios from 'axios';
+import { PrismaClient } from '@prisma/client';
+import PDFDocument from 'pdfkit';
+
+const prisma = new PrismaClient();
 
 interface HeaderData {
     billTo: string;
@@ -48,7 +61,7 @@ const headerStyle: Partial<ExcelJS.Style> = {
         wrapText: true,
     },
     font: {
-        size: 8,
+        size: 10,
         bold: true,
         color: { argb: 'FFFFFF' },
     },
@@ -75,9 +88,7 @@ const documentHeader = (worksheet: ExcelJS.Worksheet, workbook: ExcelJS.Workbook
     worksheet.mergeCells('D3:E3');
     worksheet.getCell('D3').value = 'Tel : 8354-27-25';
 
-    worksheet.mergeCells('I1:K3');
-    const SOATitle = worksheet.getCell('I1');
-
+    const SOATitle = worksheet.getCell('J1');
     SOATitle.value = 'Statement of Account';
     SOATitle.style = {
         font: { bold: true, size: 14 },
@@ -86,6 +97,7 @@ const documentHeader = (worksheet: ExcelJS.Worksheet, workbook: ExcelJS.Workbook
             vertical: 'middle',
         },
     };
+    worksheet.mergeCells('J1:L3');
 };
 
 interface BillData {
@@ -155,16 +167,16 @@ function setupHeader(worksheet: ExcelJS.Worksheet, billStyle: Partial<ExcelJS.St
         const [leftValue, rightValue] = headerValues[i];
         const [leftStyle, rightStyle] = headerStyles[i];
 
-        const leftCell = worksheet.getCell(`H${i + 7}`);
+        const leftCell = worksheet.getCell(`I${i + 7}`);
         leftCell.value = leftValue;
         leftCell.style = leftStyle;
 
-        const rightCell = worksheet.getCell(`J${i + 7}`);
+        const rightCell = worksheet.getCell(`K${i + 7}`);
         rightCell.value = rightValue;
         rightCell.style = rightStyle;
 
-        worksheet.mergeCells(`H${i + 7}:I${i + 7}`);
-        worksheet.mergeCells(`J${i + 7}:K${i + 7}`);
+        worksheet.mergeCells(`I${i + 7}:J${i + 7}`);
+        worksheet.mergeCells(`K${i + 7}:L${i + 7}`);
     }
 }
 
@@ -245,50 +257,56 @@ function dataFill(worksheet: ExcelJS.Worksheet, startingRow: number, data: any[]
         'CR/AR No.',
         'Description',
         'Amount Outstanding',
+        'remarks',
     ];
 
     const B19 = worksheet.getCell(`B${startingRow}`);
     B19.value = SOAHeaderTitles[0];
     B19.style = headerStyle;
-    worksheet.mergeCells(`B${startingRow}:B${startingRow}`);
+    worksheet.mergeCells(`B${startingRow}:B${startingRow + 1}`);
 
     const C19 = worksheet.getCell(`C${startingRow}`);
     C19.value = SOAHeaderTitles[1];
     C19.style = headerStyle;
-    worksheet.mergeCells(`C${startingRow}:C${startingRow}`);
+    worksheet.mergeCells(`C${startingRow}:C${startingRow + 1}`);
 
     const D19 = worksheet.getCell(`D${startingRow}`);
     D19.value = SOAHeaderTitles[2];
     D19.style = headerStyle;
-    worksheet.mergeCells(`D${startingRow}:D${startingRow}`);
+    worksheet.mergeCells(`D${startingRow}:D${startingRow + 1}`);
 
     const E19 = worksheet.getCell(`E${startingRow}`);
     E19.value = SOAHeaderTitles[3];
     E19.style = headerStyle;
-    worksheet.mergeCells(`E${startingRow}:E${startingRow}`);
+    worksheet.mergeCells(`E${startingRow}:E${startingRow + 1}`);
 
     const F19 = worksheet.getCell(`F${startingRow}`);
     F19.value = SOAHeaderTitles[4];
     F19.style = headerStyle;
-    worksheet.mergeCells(`F${startingRow}:F${startingRow}`);
+    worksheet.mergeCells(`F${startingRow}:F${startingRow + 1}`);
 
     const G19 = worksheet.getCell(`G${startingRow}`);
     G19.value = SOAHeaderTitles[5];
     G19.style = headerStyle;
-    worksheet.mergeCells(`G${startingRow}:H${startingRow}`);
+    worksheet.mergeCells(`G${startingRow}:H${startingRow + 1}`);
 
     const I19 = worksheet.getCell(`I${startingRow}`);
     I19.value = SOAHeaderTitles[6];
     I19.style = headerStyle;
-    worksheet.mergeCells(`I${startingRow}:I${startingRow}`);
+    worksheet.mergeCells(`I${startingRow}:I${startingRow + 1}`);
 
     const J19 = worksheet.getCell(`J${startingRow}`);
     J19.value = SOAHeaderTitles[7];
     J19.style = headerStyle;
-    worksheet.mergeCells(`J${startingRow}:J${startingRow}`);
+    worksheet.mergeCells(`J${startingRow}:J${startingRow + 1}`);
+
+    const K19 = worksheet.getCell(`K${startingRow}`);
+    K19.value = SOAHeaderTitles[8];
+    K19.style = headerStyle;
+    worksheet.mergeCells(`K${startingRow}:L${startingRow + 1}`);
 
     //SOA Data
-    let dataStartingRow = startingRow + 1;
+    let dataStartingRow = startingRow + 2;
     data.map((item: any, index: number) => {
         const {
             amount,
@@ -299,6 +317,7 @@ function dataFill(worksheet: ExcelJS.Worksheet, startingRow: number, data: any[]
             dateIssued,
             dueDate,
             id,
+            remarks,
             siOrDrId,
             siOrDrNo,
             status,
@@ -337,6 +356,11 @@ function dataFill(worksheet: ExcelJS.Worksheet, startingRow: number, data: any[]
         amountOutStanding.value =
             balance > 0 ? formatCurrency(balance.toString()) : formatCurrency(amountDue.toString());
         amountOutStanding.style = tableStyle;
+
+        const remarksTable = worksheet.getCell(`K${dataStartingRow + index}`);
+        remarksTable.value = remarks;
+        remarksTable.style = tableStyle;
+        worksheet.mergeCells(`K${dataStartingRow + index}:L${dataStartingRow + index}`);
     });
 
     const totalFill = worksheet.getCell(`B${dataStartingRow + data.length}`);
@@ -349,15 +373,15 @@ function dataFill(worksheet: ExcelJS.Worksheet, startingRow: number, data: any[]
         },
     };
 
-    worksheet.mergeCells(`B${dataStartingRow + data.length}:H${dataStartingRow + data.length}`);
+    worksheet.mergeCells(`B${dataStartingRow + data.length}:I${dataStartingRow + data.length}`);
 
-    const totalTitle = worksheet.getCell(`I${dataStartingRow + data.length}`);
+    const totalTitle = worksheet.getCell(`J${dataStartingRow + data.length}`);
     totalTitle.style = {
         ...billStyle,
         font: {
             color: { argb: '0000000' },
             bold: true,
-            size: 8,
+            size: 9,
             underline: true,
         },
         fill: {
@@ -368,13 +392,13 @@ function dataFill(worksheet: ExcelJS.Worksheet, startingRow: number, data: any[]
     };
     totalTitle.value = 'Amount Due';
 
-    const total = worksheet.getCell(`J${dataStartingRow + data.length}`);
+    const total = worksheet.getCell(`K${dataStartingRow + data.length}`);
     total.style = {
         ...billStyle,
         font: {
             color: { argb: '0000000' },
             bold: true,
-            size: 9,
+            size: 10,
         },
         fill: {
             type: 'pattern',
@@ -383,6 +407,7 @@ function dataFill(worksheet: ExcelJS.Worksheet, startingRow: number, data: any[]
         },
     };
     total.value = formatCurrency(_.sumBy(data, 'amountDue').toString());
+    worksheet.mergeCells(`K${dataStartingRow + data.length}:L${dataStartingRow + data.length}`);
 }
 
 type ObjectWithYears = {
@@ -404,7 +429,9 @@ function removeObjectWithYear(obj: ObjectWithYears, yearToRemove: string) {
 export default async (req: NextApiRequest, res: NextApiResponse) => {
     const { method } = req;
 
-    const { data, to, from, currentDate } = req.body;
+    const { data, to, from, currentDate, id } = req.body;
+    const numberOfDocs = await axios.get(`http://localhost:3000/api/collection/SOA/countDocs/${id}`);
+
     switch (method) {
         case 'POST':
             {
@@ -432,14 +459,12 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                     const getSumCurrentYear = _.sumBy(dataByYear[currentYear], 'amountDue');
                     const getSumWithouthCurrentYear = _.sumBy(withoutCurrentYearArray, 'amountDue');
 
-                    console.log(withoutCurrentYearArray);
-
                     let startingRow = 20;
 
-                    const generateExcel = async (): Promise<ExcelJS.Buffer> => {
-                        const workbook = new ExcelJS.Workbook();
-                        const worksheet = workbook.addWorksheet('SOA');
+                    const workbook = new ExcelJS.Workbook();
+                    const worksheet = workbook.addWorksheet('SOA');
 
+                    const generateExcel = async (): Promise<ExcelJS.Buffer> => {
                         //Page Setup
                         worksheet.pageSetup.paperSize = 9; // set paper size to A4
                         worksheet.pageSetup.margins = {
@@ -451,6 +476,10 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                             footer: 0.3,
                         }; // set margins in inches
                         worksheet.pageSetup.fitToPage = true;
+
+                        // Set the default row height and column width
+                        worksheet.properties.defaultRowHeight = 25; // 14 pixels
+                        worksheet.properties.defaultColWidth = 10; // 9 characters
 
                         const imagePath = path.join(process.cwd(), 'public', 'logo.jpeg');
                         const imageBuffer = await sharp(imagePath).resize({ width: 300 }).toBuffer();
@@ -468,7 +497,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                         //Date and Page Details
                         const headerValues = [
                             ['Date', formatDateString(getDate())],
-                            ['Statement No.', '1 s.2023'],
+                            ['Statement No.', `${numberOfDocs.data.data + 1} s.${getYearMonth(false)}`],
                             ['Page No.', '1 of 1'],
                         ];
                         setupHeader(worksheet, billStyle, headerValues);
@@ -506,7 +535,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
                         const objectData = Object.values(dataByYear).map((item) => {
                             dataFill(worksheet, startingRow, item);
-                            startingRow = startingRow + item.length + 3;
+                            startingRow = startingRow + item.length + 4;
                         });
 
                         const buffer = await workbook.xlsx.writeBuffer();
@@ -515,14 +544,22 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                     };
 
                     const buffer = await generateExcel();
-                    const fileName = `SOA.xlsx`;
+                    const fileName = `${req.body.companyName}-S${getYearMonth(false)}-${numberOfDocs.data.data + 1}`;
+                    const xlsxFileName = `${fileName}.xlsx`;
 
                     const buff = Buffer.from(buffer);
 
                     // Save the file to the desktop
-                    const desktopFolderPath = path.join(os.homedir(), 'Desktop/Reports');
-                    const filePath = path.join(desktopFolderPath, fileName);
+                    const desktopFolderPath = path.join(os.homedir(), 'Desktop/Reports/SOA');
+                    const filePath = path.join(desktopFolderPath, xlsxFileName);
                     await writeFile(filePath, buff);
+
+                    const createSOA = await prisma.sOA.create({
+                        data: {
+                            dateIssued: getFullISODate(),
+                            clientInfoId: handleUndefined(id),
+                        },
+                    });
 
                     res.status(200).json({ data: true });
                 } catch (error) {

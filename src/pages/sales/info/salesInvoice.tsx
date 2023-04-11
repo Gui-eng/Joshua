@@ -61,17 +61,18 @@ export default function index({ post , salesInvoiceData} : InferGetServerSidePro
    session.data && 
     <div>
       <Inav firstName={post.employeeInfo.firstName}/>
-      <div className='tw-w-full tw-h-[80vh] tw-flex tw-flex-col'>
-            <h1 className='tw-text-[3rem] tw-font-extrabold tw-mt-20 tw-ml-20 tw-mb-10'>Sales Invoice List</h1>
+      <div className='tw-w-full tw-pb-60 tw-flex tw-flex-col'>
+            <h1 className='tw-text-[3rem] tw-font-extrabold tw-mt-20 tw-ml-20 tw-mb-20'>Sales Invoice List</h1>
             <div className='tw-w-full tw-flex tw-justify-center'>
               <div className='tw-w-[90%]'>
                   <Itable data={tableData} headerTitles={headerTitles}/>
               </div>
             </div>
+            <div className='tw-ml-20 tw-mt-4'>
+              <Button onClick={() => {router.push('/sales/add/invoice')}}color='blue'>Add Sales Invoice</Button>
+            </div>
       </div>
-      <div className='tw-ml-4 tw-mb-4'>
-        <Button onClick={() => {router.push('/sales/add/invoice')}}color='blue'>Add Sales Invoice</Button>
-      </div>
+      
     </div>
   )
 }

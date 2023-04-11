@@ -54,7 +54,7 @@ export default function index({ post, info }  : InferGetServerSidePropsType<type
             </div>
             <div className='tw-w-full tw-flex tw-justify-center '>
                 <div className='tw-w-[90%]'>
-                    <Itable allowDelete={false} headerTitles={headerTitles} data={data} editing={false} />
+                    <Itable allowDelete={false} headerTitles={headerTitles} data={data} />
                 </div>
             </div>
             <div className='tw-w-full tw-flex tw-justify-center tw-my-8'>

@@ -83,7 +83,7 @@ export default function home({ post, info } : any) {
                 <h1 className='tw-text-xl tw-ml-2 tw-font-bold'>January, 2023</h1>
               </div>
               <div className='tw-w-[95%] tw-p-4 tw-h-full'>
-                <Itable data={tableData} headerTitles={headerTitles} allowDelete={false} editing={false}/>
+                <Itable data={tableData} headerTitles={headerTitles} allowDelete={false}/>
               </div>
         </div>
       </div>

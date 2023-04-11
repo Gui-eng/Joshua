@@ -39,7 +39,6 @@ model EmployeeInfo {
   Stocks             Stocks[]          @relation(name: "pmrEmployee")
   User               User?
   ClientInfo         ClientInfo[]
-  PullOut            PullOut[]
 }
 
 model Employee {
@@ -306,12 +305,8 @@ model mainStocks {
 }
 
 model SOA {
-  id                String   @id @default(uuid())
-  statementNumber   Int      @default(0)
-  lastDateIssued    DateTime
-  amountDue         Decimal
-  outstandingAmount Decimal
-  remarks           String?
+  id         String   @id @default(uuid())
+  dateIssued DateTime
 
   client       ClientInfo @relation(fields: [clientInfoId], references: [id])
   clientInfoId String
@@ -365,13 +360,24 @@ model PullOutItem {
 model PullOut {
   id String @id @default(uuid())
 
-  pullOutNumber String
+  pullOutNumber String   @unique
   dateIssued    DateTime
 
-  requestedBy   EmployeeInfo @relation(fields: [requestedById], references: [id])
-  requestedById String
-  client        ClientInfo   @relation(fields: [clientInfoId], references: [id])
-  clientInfoId  String
+  documentNumber    String
+  quantity          Int
+  itemName          String
+  manufacturingDate DateTime
+  expirationData    DateTime
+  batchNumber       String
+  amount            Decimal
+  totalAmount       Decimal
+  remarks           String?
+
+  unit   UNITS
+  status String
+
+  client       ClientInfo @relation(fields: [clientInfoId], references: [id])
+  clientInfoId String
 }
 
 model MonthlyCollection {

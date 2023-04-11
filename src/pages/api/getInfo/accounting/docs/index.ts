@@ -24,11 +24,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             {
                 try {
                     const dr = await prisma.deliveryRecipt.findMany({
-                        where: { itemSummaryId: null },
+                        where: { salesItemSummaryId: null },
                         select: { id: true },
                     });
                     const si = await prisma.salesInvoice.findMany({
-                        where: { itemSummaryId: null },
+                        where: { salesItemSummaryId: null },
                         select: { id: true },
                     });
 

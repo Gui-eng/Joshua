@@ -22,7 +22,7 @@ interface Action {
 }
 
 
-const dataRow = ( data : any ) => {
+const dataRow = ( data : any, findItem: any ) => {
   return data.map((item : any) => (
     <Table.Row key={item.id}>
       {Object.values(item).map((item : any, index) => {
@@ -33,8 +33,9 @@ const dataRow = ( data : any ) => {
         }else{
           return null
         }
-
+        
       })}
+      <TableCell key={item.id}><Button onClick={(e) => {findItem(item.id)}} color="red">Delete</Button></TableCell>
     </Table.Row>
   ))
 }
@@ -81,7 +82,7 @@ const emptyTotal = {
 
 
 
-export default function IFlextable({ data, headerTitles, color, allowEditing, updateItem, extraData, otherDiscount} : TableProps) {
+export default function IFlextable({ data, headerTitles, color, allowEditing, allowDelete, updateItem, extraData, otherDiscount} : TableProps) {
 
   const [propsData, setPropsData] = useState(data)
   const [totalData, setTotalData] = useState<TotalData>(emptyTotal)
@@ -108,11 +109,13 @@ export default function IFlextable({ data, headerTitles, color, allowEditing, up
   const { column, datas, direction } = state
 
   function findItem(id : string){
-      updateItem(datas.find((item : any) => {
+      updateItem(propsData.find((item : any) => {
+        
       return item.id === id
     } ))
+    
+      
   }
-
   
 
   return (
@@ -143,13 +146,13 @@ export default function IFlextable({ data, headerTitles, color, allowEditing, up
             )
           })
           }
-          {allowEditing ? <Table.HeaderCell >
+          {allowDelete ? <Table.HeaderCell >
                   Actions
           </Table.HeaderCell> : null}
         </Table.Row>
       </Table.Header>
       <Table.Body>
-        {dataRow(propsData)}
+        {dataRow(propsData, findItem)}
       </Table.Body>
       {
         data.length > 0 ? <Table.Footer>

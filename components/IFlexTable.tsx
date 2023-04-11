@@ -56,7 +56,7 @@ function exampleReducer(state: State, action: Action): State {
 }
 
 
-export default function Itable({ data, headerTitles, color, allowEditing, updateItem, hasFooter, extraData} : TableProps) {
+export default function Itable({ data, headerTitles, color,allowDelete, allowEditing, updateItem, hasFooter, extraData} : TableProps) {
 
   const [deleting, setDeleting] = useState(false)
   const [propsData, setPropsData ] = useState(data)
@@ -72,7 +72,7 @@ export default function Itable({ data, headerTitles, color, allowEditing, update
   const { column, datas, direction } = state
 
   function findItem(id : string){
-      updateItem(datas.find((item : any) => {
+      updateItem(propsData.find((item : any) => {
       return item.id === id
     } ))
   } 
@@ -114,7 +114,7 @@ export default function Itable({ data, headerTitles, color, allowEditing, update
             )
           })
           }
-          {allowEditing ? <Table.HeaderCell >
+          {allowDelete ? <Table.HeaderCell >
                   Actions
           </Table.HeaderCell> : null}
         </Table.Row>
@@ -132,12 +132,7 @@ export default function Itable({ data, headerTitles, color, allowEditing, update
               }
 
             })}
-            {deleting ? <div>
-              <p>Are you Sure?</p>
-              <div className="tw-flex">
-                <Button color="red" onClick={() => {setDeleting(false)}}>No</Button>
-              </div>
-            </div> : allowEditing ? <div className="tw-flex"><Button color="blue" onClick={() => {findItem(item.id)}}>Edit</Button></div> : null}
+            {allowDelete ? <TableCell><Button color="red" onClick={() => {findItem(item.id)}}>Delete</Button></TableCell> : null}
           </Table.Row>
         ))}
       </Table.Body>

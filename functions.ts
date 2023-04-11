@@ -317,6 +317,17 @@ export function getDate(): string {
     return date.toISOString().substring(0, 10);
 }
 
+export function getFullISODate(): string {
+    // Create a new Date object using the current time
+    const date = new Date(Date.now());
+
+    // Adjust the time zone of the Date object to match the Philippines
+    date.setUTCHours(date.getUTCHours() + 8);
+
+    // Convert the date to an ISO string format and return the substring representing the date only
+    return date.toISOString();
+}
+
 /**
  * Removes duplicate objects from an array of objects, based on a specified key.
  * @param data An array of objects.
@@ -587,7 +598,7 @@ export function filterRecords(salesInvoiceData: any, rawData: any, router: any) 
         .filter((item: any) => {
             return (
                 item.client.clientInfo.id === rawData.companyId &&
-                !salesInvoiceData.isPaid &&
+                !item.isPaid &&
                 item.id !== rawData.salesInvoiceNumber
             );
         })
@@ -749,4 +760,32 @@ export function formatDateString(isoDateString: string): string {
         date,
     );
     return formattedDate;
+}
+
+/**
+ * Returns the year and month as a concatenated string, formatted as "YYYY-MM-DD" or "YYYY-MM" or "YYYY" depending on the value of `includeMonth` and `includeDay`.
+ *
+ * @param includeMonth - An optional boolean parameter that determines whether to include the month in the output. Defaults to `true`.
+ * @param includeDay - An optional boolean parameter that determines whether to include the day in the output. Defaults to `false`.
+ * @returns A string in the format "YYYY-MM-DD" if `includeMonth` and `includeDay` are both `true`, "YYYY-MM" if `includeMonth` is `true` and `includeDay` is `false`, or "YYYY" if `includeMonth` is `false`.
+ */
+export function getYearMonth(includeMonth = true, includeDay = false): string {
+    const date = new Date();
+    const year = date.getFullYear();
+
+    if (includeMonth) {
+        const month = `${date.getMonth() + 1}`.padStart(2, '0');
+        if (includeDay) {
+            const day = `${date.getDate()}`.padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        } else {
+            return `${year}-${month}`;
+        }
+    } else {
+        return `${year}`;
+    }
+}
+
+export function limit(data: any) {
+    return parseFloat(parseFloat(data).toFixed(2));
 }

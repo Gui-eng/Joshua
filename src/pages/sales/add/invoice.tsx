@@ -198,7 +198,8 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   }
 
   async function handleOnClick(){
-    if(hasEmptyFields(salesInvoiceData, ['remarks', 'nonVATSales', 'VATableSales'])){
+    if(hasEmptyFields(salesInvoiceData, ['remarks', 'nonVATSales', 'VATableSales', 'VAT'])){
+      console.log(salesInvoiceData)
       setEmptyFieldError(true)
       alert('There are Empty Fields')
       return
@@ -215,6 +216,14 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
     router.reload()
   }
 
+ function handleDelete(data : any){
+  const target = itemArray.find((item : any) => {
+    return item.id === data.id
+ })
+
+  setItemArray((prevItem)=> {return prevItem.filter((value) => {return value.id !== target.id} )})
+   
+ }
 
     
   return (
@@ -341,7 +350,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
       </div>
       <div className='tw-w-screen tw-flex tw-flex-col tw-pb-52 tw-items-center'>
           <div className='tw-w-[90%] '>
-            <IFlexTable color='blue' data={tableData} headerTitles={tableHeaders} extraData={sales} otherDiscount={0}/>
+            <IFlexTable color='blue' data={tableData} updateItem={handleDelete} headerTitles={tableHeaders} extraData={sales} allowDelete={true} otherDiscount={0}/>
           </div>
           <div className='tw-w-full tw-flex tw-justify-center tw-pt-4'>
             <div className='tw-w-[90%]'>

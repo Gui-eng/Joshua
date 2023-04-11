@@ -245,6 +245,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                 }
             }
             break;
+        case 'GET':
+            {
+                try {
+                    let info = await prisma.paymentInfo.findMany({
+                        include: {
+                            salesInvoice: {
+                                include: {
+                                    client: { include: { clientInfo: true } },
+                                    pmr: { include: { employeeInfo: true } },
+                                },
+                            },
+                            deliveryRecipt: {
+                                include: {
+                                    client: { include: { clientInfo: true } },
+                                    pmr: { include: { employeeInfo: true } },
+                                },
+                            },
+                        },
+                    });
+
+                    if (!info) {
+                        res.status(403).json({ success: false, data: info });
+                    }
+                    res.status(200).json({ success: true, data: info });
+                } catch (error) {
+                    console.log(error);
+                    res.status(403).json({ success: false, data: [] });
+                }
+            }
+            break;
         default:
             res.status(403).json({ success: false, data: [] });
             break;

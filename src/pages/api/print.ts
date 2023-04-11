@@ -162,7 +162,9 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                                     return parseFloat(parseFloat(data).toFixed(2));
                                 }
                                 const row = worksheet.addRow([
-                                    sales.salesInvoiceNumber,
+                                    sales.salesInvoiceNumber !== undefined
+                                        ? sales.salesInvoiceNumber
+                                        : sales.deliveryReciptNumber,
                                     sales.dateIssued.substring(10, 0),
                                     sales.client?.clientInfo.companyName,
                                     item.ItemInfo?.itemName,
@@ -224,7 +226,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                     const buff = Buffer.from(buffer);
 
                     // Save the file to the desktop
-                    const desktopFolderPath = path.join(os.homedir(), 'Desktop/Reports');
+                    const desktopFolderPath = path.join(os.homedir(), 'Desktop/Reports/Sales');
                     const filePath = path.join(desktopFolderPath, fileName);
                     fs.writeFile(filePath, buff, (err) => {
                         if (err) {
