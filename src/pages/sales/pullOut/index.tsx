@@ -3,6 +3,7 @@ import IFooter from 'components/IFooter'
 import ISideCard from 'components/ISideCard'
 import Inav from 'components/Inav'
 import Itable from 'components/Itable'
+import { HOSTADDRESS, PORT } from 'functions'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
@@ -23,9 +24,9 @@ const headerTitles = ["id", "PO #", "Date Issued", "Client", "Status", "Actions"
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
   const session = await getSession(context);
-  const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+  const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
 
-  const pullOutData = await axios.get('http://localhost:3000/api/pullOut')
+  const pullOutData = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/pullOut`)
   
   return {
     props : { post : res.data.data, pullOutData : pullOutData.data.data }

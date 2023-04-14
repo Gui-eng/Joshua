@@ -2,6 +2,7 @@ import axios from 'axios';
 import Itable from 'components/IFlexTable';
 import IFooter from 'components/IFooter'
 import Inav from 'components/Inav'
+import { HOSTADDRESS, PORT } from 'functions';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
@@ -11,11 +12,11 @@ import { Button, Header, Table } from 'semantic-ui-react';
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
     const { id } = context.query;
-    const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
     
-    const info = await axios.get(`http://localhost:3000/api/getInfo/item/stocks/${id}`)
+    const info = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item/stocks/${id}`)
 
-    const pmr = await axios.get(`http://localhost:3000/api/getInfo/employee/pmr/${id}`)
+    const pmr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/pmr/${id}`)
     return {
       props : { post : res.data.data, info : info.data, pmr : pmr.data.data }
     }

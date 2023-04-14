@@ -3,6 +3,7 @@ import IFooter from 'components/IFooter'
 import ISideCard from 'components/ISideCard'
 import Inav from 'components/Inav'
 import Itable from 'components/Itable'
+import { HOSTADDRESS, PORT } from 'functions'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
@@ -15,9 +16,9 @@ const headerTitles = ["id", "DR #", "Date Issued", "Med Rep", "Prepared By", "To
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
   const session = await getSession(context);
-  const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+  const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
 
-  const deliveryReciptData = await axios.get('http://localhost:3000/api/sales/viewDR')
+  const deliveryReciptData = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/viewDR`)
   
   return {
     props : { post : res.data.data, deliveryReciptData : deliveryReciptData.data.data }
@@ -39,7 +40,7 @@ export default function index({ post , deliveryReciptData } : InferGetServerSide
       preparedBy: item.preparedBy?.employeeInfo.firstName + " " + item.preparedBy?.employeeInfo.lastName,
       totalAmount: <Header as={'h5'}>{parseFloat(item.totalAmount.toString()).toLocaleString()}</Header>,
       remarks: item.remarks,
-      actions: <Button onClick={() => {router.push(`http://localhost:3000/sales/info/deliveryRecipt/${item.id}`)}} color='blue' >View</Button>
+      actions: <Button onClick={() => {router.push(`http://${HOSTADDRESS}:${PORT}/sales/info/deliveryRecipt/${item.id}`)}} color='blue' >View</Button>
     
   }})
 

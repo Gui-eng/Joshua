@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { HOSTADDRESS, PORT } from 'functions'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
@@ -26,7 +27,7 @@ const Role = [
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
   try {
-    const res = await axios.get('http://localhost:3000/api/getInfo/users/one')
+    const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/users/one`)
     return {props: { datum : res.data}}
   } catch (error) {
     return { props : { error : 'Something Went Wrong'}}
@@ -97,7 +98,7 @@ export default function register({ datum } : InferGetServerSidePropsType<typeof 
     setEmptyFieldsError(true)
     try {
 
-      const res = await axios.post("http://localhost:3000/api/register", data)
+      const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/register`, data)
       console.log(res)
     } catch (error) {
       console.log(error)

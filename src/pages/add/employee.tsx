@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { HOSTADDRESS, PORT } from 'functions'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
@@ -15,7 +16,7 @@ const DEPARTMENT = [
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
-    const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
 
     
     
@@ -76,7 +77,7 @@ export default function employee({ post } : InferGetServerSidePropsType<typeof g
         setSuccess(true)
 
         try {
-            const res = await axios.post('http://localhost:3000/api/getInfo/employee', Data)
+            const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee`, Data)
             
         } catch (error) {
             

@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import Itable from 'components/Itable'
 import IFlexTable from 'components/IFlexTable'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
@@ -9,6 +9,16 @@ import { Button, Form, Input, Message, Select } from 'semantic-ui-react'
 import {hasEmptyFields, handleOnChange, handleOptionsChange, find} from '../../../functions'
 import { Option, EmployeeInfo, ClientInfo } from '../../../types'
 
+async function postData(url = '', data = {}) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
 
 
 const headerTitles = ["id", "Company Name", "Company Address", "TIN", "PMR"]
@@ -139,13 +149,20 @@ export default function item({ clients, pmr } : InferGetServerSidePropsType<type
     }
     
     try {
-      const res = await axios.post('http://localhost:3000/api/getInfo/client', clientData)
-
+      // await postData('http://localhost:3000/api/getInfo/client', clientData)
+      const res = await axios.post('http://192.168.1.101:3000/api/getInfo/client', clientData
+      )
+      // router.reload()
+      setSuccess(true)
     } catch (error) {
-      console.log(error)
+      if(axios.isAxiosError(error)){
+      console.error(error)
+
+      }
+      
     }
-    setSuccess(true)
-    router.reload()
+
+
     }
     
 

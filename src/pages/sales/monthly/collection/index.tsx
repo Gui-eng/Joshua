@@ -7,7 +7,7 @@ import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import axios from 'axios';
 import IFooter from 'components/IFooter';
 import Itable from 'components/IFlexTable';
-import { formatCurrency, getDate, handleDateChangeToBeChecked } from 'functions';
+import { HOSTADDRESS, PORT, formatCurrency, getDate, handleDateChangeToBeChecked } from 'functions';
 import { SalesInvoiceData } from 'types';
 
 const Chart = (props : SVGProps<SVGSVGElement>) => (
@@ -19,9 +19,9 @@ const Chart = (props : SVGProps<SVGSVGElement>) => (
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
-    const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
     
-    const paymentInfo = await axios.get(`http://localhost:3000/api/collection`)
+    const paymentInfo = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/collection`)
 
 
 
@@ -60,23 +60,12 @@ export default function home({ post, paymentInfo} :  InferGetServerSidePropsType
 
   const generateExcel = async () => {
     try {
-      const res = await axios.post("http://localhost:3000/api/collection/print", rawData)
+      const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/collection/print`, rawData)
       alert('File created Successfully!')
-      // router.reload()
+      router.reload()
     } catch (error) {
       console.log(error)
     }
-  }
-
-  function updateRemarksById(id: string, remarks: string): void {
-    const newData = rawData.data.map((dataItem : any) => {
-        if (dataItem.id === id) {
-          return { ...dataItem, remarks };
-        }
-        return dataItem;
-      });
-      
-    setRawData({...rawData, data : newData})
   }
 
   
@@ -106,7 +95,7 @@ export default function home({ post, paymentInfo} :  InferGetServerSidePropsType
         modeOfPayment : item.modeOfPayment,
         dateIssued : item.dateIssued.substring(10, 0),
         totalAmount : formatCurrency(item.amount.toString()),
-        remarks : <Input type='text' onChange={(e) => {updateRemarksById(item.id, e.target.value)}}/>
+        
       }
     })
 

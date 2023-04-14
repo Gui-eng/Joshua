@@ -326,12 +326,14 @@ model PaymentInfo {
   id String @id @default(uuid())
 
   modeOfPayment      PAYMENT
-  checkNumber        String?        @unique @default(uuid())
+  CRARNo             String?        @unique
+  checkNumber        String?        @unique
   checkDate          DateTime?
   dateIssued         DateTime
   amount             Decimal
   fromBalance        Decimal        @default(0)
   depositDateAndTime DateTime
+  remarks            String?
   status             PAYMENT_STATUS
 
   client           ClientInfo      @relation(fields: [clientInfoId], references: [id])

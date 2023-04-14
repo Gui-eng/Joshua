@@ -9,7 +9,7 @@ import React, { useEffect, useState } from 'react'
 import { Button, Checkbox, Dropdown, Form, FormField, Header, Input, Label, Message, Table } from 'semantic-ui-react'
 import { Client, ClientInfo, EmployeeInfo, Item, ItemInfo, ItemPrice, ItemSalesDetails, Option, DeliveryReciptData, UNITS } from '../../../../types'
 
-import { getPrice, showAvailableUnits, handleUndefined, removeDuplicates ,find, getDate, makeOptions, handleOnChange, handleOptionsChange, handleDateChange, findMany, emptyOptions, emptyDeliveryRecipt, emptySalesItemData, quantityOptions, hasEmptyFields, emptyItemData, getTotal } from '../../../../functions'
+import { getPrice, showAvailableUnits, handleUndefined, removeDuplicates ,find, getDate, makeOptions, handleOnChange, handleOptionsChange, handleDateChange, findMany, emptyOptions, emptyDeliveryRecipt, emptySalesItemData, quantityOptions, hasEmptyFields, emptyItemData, getTotal, HOSTADDRESS, PORT } from '../../../../functions'
 
 const tableHeaders = ["id","Quanity", "Unit", "Articles","Batch No.", "Vatable", "U-Price", "Discount", "Amount"]
 
@@ -17,10 +17,10 @@ const tableHeaders = ["id","Quanity", "Unit", "Articles","Batch No.", "Vatable",
 export const getServerSideProps : GetServerSideProps = async (context) => {
   
     const session = await getSession(context);
-    const client = await axios.get("http://localhost:3000/api/getInfo/client")
-    const pmr = await axios.get("http://localhost:3000/api/getInfo/employee/pmr")
-    const item = await axios.get('http://localhost:3000/api/getInfo/item')
-    const preparedBy = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const client = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/client`)
+    const pmr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/pmr`)
+    const item = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item`)
+    const preparedBy = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
     
 
     return {
@@ -224,7 +224,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
 
     console.log(deliveryReciptData.isRemote)
 
-    const res = await axios.post('http://localhost:3000/api/sales/addDR', deliveryReciptData)
+    const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/addDR`, deliveryReciptData)
     
     if(!res.status){
       console.log(res.statusText)

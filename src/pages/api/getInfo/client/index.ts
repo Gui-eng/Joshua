@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import NextCors from 'nextjs-cors';
 
 const prisma = new PrismaClient();
 
@@ -35,13 +36,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             {
                 try {
                     const info = await prisma.clientInfo.create({ data: req.body });
-                    res.status(200).json({ success: true, data: info });
+                    res.status(200).json({ success: true, data: [] });
                 } catch (error) {
                     console.log(error);
                     res.status(403).json({ success: false, data: [] });
                 }
             }
             break;
+
         default:
             res.status(403).json({ success: false, data: [] });
             break;

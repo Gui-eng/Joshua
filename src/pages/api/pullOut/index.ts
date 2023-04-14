@@ -65,23 +65,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                             : handleUndefined(bal?.totalAmount) - item.amount,
                                 },
                             });
-
-                            const getQuantity = await prisma.item.findFirst({
-                                where: { id: item.itemId.toString() },
-                            });
-
-                            await prisma.item.update({
-                                where: { id: item.itemId },
-                                data: {
-                                    quantity:
-                                        parseFloat(handleUndefined(getQuantity?.quantity.toString())) - item.quantity,
-                                    isPullout: true,
-                                    totalAmount:
-                                        handleUndefined(bal?.totalAmount) - item.amount <= 0
-                                            ? 0
-                                            : handleUndefined(bal?.totalAmount) - item.amount,
-                                },
-                            });
                         } else {
                             const bal = await prisma.deliveryRecipt.findUnique({
                                 where: { deliveryReciptNumber: item.documentNumber },
@@ -96,23 +79,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                         handleUndefined(bal?.payables) - item.amount <= 0
                                             ? 0
                                             : handleUndefined(bal?.payables) - item.amount,
-                                    totalAmount:
-                                        handleUndefined(bal?.totalAmount) - item.amount <= 0
-                                            ? 0
-                                            : handleUndefined(bal?.totalAmount) - item.amount,
-                                },
-                            });
-
-                            const getQuantity = await prisma.item.findFirst({
-                                where: { id: item.itemId },
-                            });
-
-                            await prisma.item.update({
-                                where: { id: item.itemId },
-                                data: {
-                                    quantity:
-                                        parseFloat(handleUndefined(getQuantity?.quantity.toString())) - item.quantity,
-                                    isPullout: true,
                                     totalAmount:
                                         handleUndefined(bal?.totalAmount) - item.amount <= 0
                                             ? 0

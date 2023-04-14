@@ -114,7 +114,7 @@ export default function Itable({ data, headerTitles, color,allowDelete, allowEdi
             )
           })
           }
-          {allowDelete ? <Table.HeaderCell >
+          {allowDelete || allowEditing ? <Table.HeaderCell >
                   Actions
           </Table.HeaderCell> : null}
         </Table.Row>
@@ -133,6 +133,7 @@ export default function Itable({ data, headerTitles, color,allowDelete, allowEdi
 
             })}
             {allowDelete ? <TableCell><Button color="red" onClick={() => {findItem(item.id)}}>Delete</Button></TableCell> : null}
+            {allowEditing ? <TableCell><Button color="blue" onClick={() => {findItem(item.id)}}>Edit</Button></TableCell> : null}
           </Table.Row>
         ))}
       </Table.Body>

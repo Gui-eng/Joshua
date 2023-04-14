@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { HOSTADDRESS, PORT } from 'functions'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { useRouter } from 'next/router'
 import React, { useEffect } from 'react'
@@ -6,7 +7,7 @@ import { Button, Header } from 'semantic-ui-react'
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     try {
-      const res = await axios.get('http://localhost:3000/api/getInfo/users/one')
+      const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/users/one`)
       return {props: { data : res.data}}
     } catch (error) {
       return { props : { error : 'Something Went Wrong'}}

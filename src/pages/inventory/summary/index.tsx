@@ -9,6 +9,7 @@ import ICard from 'components/ICard';
 import IFooter from 'components/IFooter';
 import ISideCard from 'components/ISideCard'
 import ISidePanel from 'components/ISidePanel';
+import { HOSTADDRESS, PORT } from 'functions';
 
 const Chart = (props : SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" {...props}>
@@ -32,8 +33,8 @@ const Client = (props : SVGProps<SVGSVGElement>) => (
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
-    const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
-    const pmr = await axios.get("http://localhost:3000/api/getInfo/employee/pmr")
+    const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
+    const pmr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/pmr`)
     
     return {
       props : { post : res.data.data, pmr : pmr.data.data}

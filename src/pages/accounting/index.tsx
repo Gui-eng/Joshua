@@ -87,19 +87,13 @@ export default function index({ post , salesInvoiceData} : InferGetServerSidePro
            <div className='tw-w-full tw-p-16 tw-h-full'>
              <Grid>
                <Grid.Row columns={4} className='tw-gap-4'>
-                 <Grid.Column>
-                   <ICard Icon={<Chart fill='white' width={35}/>} name='Sales Invoice' link='sales/info/salesInvoice'/>
-                 </Grid.Column>
-                 <Grid.Column>
-                   <ICard Icon={<Chart fill='white' width={35}/>} name='Delivery Recipt' link='sales/info/deliveryRecipt'/>
-                 </Grid.Column>
-                 <Grid.Column>
-                      <ICard Icon={<Chart fill='white' width={35}/>} name='Monthly Sales' link='sales/monthly/sales'/>
-                  </Grid.Column>
                   <Grid.Column>
-                      <ICard Icon={<Chart fill='white' width={35}/>} name='Monthly Collection' link='/sales/monthly/collection'/>
+                      <ICard Icon={<Chart fill='white' width={35}/>} name='Collection' link='/sales/collection'/>
                   </Grid.Column>
-  
+
+                  <Grid.Column>
+                      <ICard Icon={<Chart fill='white' width={35}/>} name='Statment of Account' link='/sales/SOA'/>
+                  </Grid.Column>
                </Grid.Row>
              </Grid>
            </div>

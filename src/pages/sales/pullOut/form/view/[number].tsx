@@ -1,6 +1,6 @@
 import axios from 'axios';
 import Itable from 'components/Itable';
-import { formatCurrency, getPrice, handleUndefined } from 'functions';
+import { HOSTADDRESS, PORT, formatCurrency, getPrice, handleUndefined } from 'functions';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
 import React from 'react'
@@ -19,10 +19,10 @@ enum UNITS {
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     // const session = await getSession(context);
-    // const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    // const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
   
     try{
-        const pullOutData = await axios.get(`http://localhost:3000/api/pullOut/${context.query.number}`)
+        const pullOutData = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/pullOut/${context.query.number}`)
         
         return {
             props : { info : pullOutData.data.data }

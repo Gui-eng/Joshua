@@ -3,6 +3,7 @@ import IFooter from 'components/IFooter'
 import ISideCard from 'components/ISideCard'
 import Inav from 'components/Inav'
 import Itable from 'components/Itable'
+import { HOSTADDRESS, PORT } from 'functions'
 import { GetServerSideProps } from 'next'
 import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
@@ -22,9 +23,9 @@ const headerTitles = ["id", "ID", "Date Issued", "Med Rep", "Prepared By", "Tota
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
   const session = await getSession(context);
-  const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+  const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
 
-  const siArray = await axios.get('http://localhost:3000/api/sales/view')
+  const siArray = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/view`)
   
   return {
     props : { post : res.data.data, info : siArray.data.data }
@@ -54,7 +55,7 @@ export default function index({ post , info} : any) {
       preparedBy : item.preparedBy.employee.firstName + " " + item.preparedBy.employee.lastName,
       totalAmount : item.totalAmount,
       remarks : item.remarks,
-      actions : <Button color='blue' onClick={() => {router.push(`http://localhost:3000/sales/info/${item.id}`)}}>View</Button>
+      actions : <Button color='blue' onClick={() => {router.push(`http://${HOSTADDRESS}:${PORT}/sales/info/${item.id}`)}}>View</Button>
     }
   })
   

@@ -6,6 +6,7 @@ import fs from 'fs';
 import { ItemInfo, SalesInvoiceData } from 'types';
 import { getPrice, handleUndefined, getDate, limit } from 'functions';
 import { TableCell } from 'semantic-ui-react';
+import NextCors from 'nextjs-cors';
 
 const billStyle: Partial<ExcelJS.Style> = {
     border: {
@@ -17,6 +18,12 @@ const billStyle: Partial<ExcelJS.Style> = {
 };
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
+    await NextCors(req, res, {
+        // Options
+        methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+        origin: '*',
+        optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+    });
     const { method } = req;
 
     const { data, to, from, currentDate } = req.body;

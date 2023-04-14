@@ -4,10 +4,11 @@ import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import axios from 'axios'
+import { HOSTADDRESS, PORT } from 'functions'
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
   try {
-    const res = await axios.get('http://localhost:3000/api/getInfo/users/one')
+    const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/users/one`)
     return {props: { data : res.data}}
   } catch (error) {
     return { props : { error : 'Something Went Wrong'}}
@@ -16,6 +17,7 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
 
 const login : React.FC = ({ data } : InferGetServerSidePropsType<typeof getServerSideProps>) => {
+  
 
 
     useEffect(() => {

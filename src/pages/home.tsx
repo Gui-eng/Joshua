@@ -64,11 +64,14 @@ export default function home({ post } : any) {
               <div className='tw-w-full tw-p-16 tw-h-full'>
                 <Grid>
                   <Grid.Row columns={4}>
-                    {post.role === "ACCOUNTING" || post.isAdmin ? <Grid.Column>
-                      <ICard Icon={<Chart fill='white' width={35}/>} name='Accounting' link='sales'/>
+                    {post.role === "SALES" || post.isAdmin ? <Grid.Column>
+                      <ICard Icon={<Chart fill='white' width={35}/>} name='Sales' link='sales'/>
                     </Grid.Column> : null}
                     {post.role === "INVENTORY" || post.isAdmin ? <Grid.Column>
                       <ICard Icon={<Chart fill='white' width={35}/>} name='Inventory' link='inventory'/>
+                    </Grid.Column> : null}
+                    {post.role === "ACCOUNTING" || post.role === "SALES" || post.isAdmin ? <Grid.Column>
+                      <ICard Icon={<Chart fill='white' width={35}/>} name='Accounting' link='accounting'/>
                     </Grid.Column> : null}
       
                    

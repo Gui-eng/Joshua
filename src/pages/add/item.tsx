@@ -87,11 +87,11 @@ export default function item({ items, session} : InferGetServerSidePropsType<typ
       ...itemData,
       price : {
         ...price,
-        bottle : parseFloat(price.bottle.toString()),
-        box : parseFloat(price.box.toString()),
-        capsule : parseFloat(price.capsule.toString()),
-        tablet : parseFloat(price.tablet.toString()),
-        vial : parseFloat(price.vial.toString())
+        bottle : price.bottle ? parseFloat(price.bottle.toString()) : 0,
+        box :  price.box? parseFloat(price.box.toString()) : 0,
+        capsule :  price.capsule ? parseFloat(price.capsule.toString()) : 0,
+        tablet :  price.tablet ? parseFloat(price.tablet.toString()) : 0,
+        vial :  price.vial ? parseFloat(price.vial.toString()) : 0
       }
     })
   }, [price])

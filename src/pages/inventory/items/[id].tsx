@@ -2,6 +2,7 @@ import axios from 'axios';
 import Itable from 'components/IFlexTable';
 import IFooter from 'components/IFooter'
 import Inav from 'components/Inav'
+import { HOSTADDRESS, PORT } from 'functions';
 import _ from 'lodash';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
@@ -19,11 +20,11 @@ enum UNITS {
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
 
-    const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
     
 
-    const info = await axios.get(`http://localhost:3000/api/getInfo/item/info/${context.params !== undefined ? context.params.id : ""}`)
-    const stocks = await axios.get(`http://localhost:3000/api/getInfo/item/stocks/all/${info.data.data.id}`)
+    const info = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item/info/${context.params !== undefined ? context.params.id : ""}`)
+    const stocks = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item/stocks/all/${info.data.data.id}`)
     
     return {
       props : { post : res.data.data, info : info.data.data, items :  info.data.items, stocks : stocks.data.data}
@@ -44,7 +45,7 @@ export default function index({ post, info, items, stocks}  : InferGetServerSide
       clientName: doc.client.clientInfo.companyName,
       stockIn : doc.stockIn ? item.quantity : 0,
       stockOut : !doc.stockIn ? item.quantity : 0,
-      relatedDocument : <a href={`http://localhost:3000/sales/info/${doc.id}`}>{item.DR ? "DR: " + item.DR.deliveryReciptNumber : "SI : " + item.SI.salesInvoiceNumber}</a>
+      relatedDocument : <a href={`http://${HOSTADDRESS}:${PORT}/sales/info/${doc.id}`}>{item.DR ? "DR: " + item.DR.deliveryReciptNumber : "SI : " + item.SI.salesInvoiceNumber}</a>
     }
   })
   return (

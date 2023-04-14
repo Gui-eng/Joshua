@@ -88,7 +88,8 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                 depositTime : check.modeOfPayment === PAYMENT.CASH ? '-' : check.depositDateAndTime === "-" ? "-" : new Date(check.depositDateAndTime).toLocaleTimeString(),
                 amount : (Math.round(parseFloat(check.amount) * 100) / 100).toLocaleString(),
                 status : renderPaymentStatus(check.status),
-                fromBalance : check.fromBalance
+                fromBalance : check.fromBalance,
+                remarks : check.remarks
             }
 
          }))
@@ -184,13 +185,14 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                 <>
                 <Form.Group>
                     <Form.Field width={2}>
+                        <label htmlFor="ARCR">AR/CR No.</label>
+                        <Input id='ARCR' type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
+                    </Form.Field>
+                    <Form.Field width={2}>
                         <label htmlFor="checkNumber">Check No.</label>
                         <Input id='checkNumber' type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
                     </Form.Field>
-                    <Form.Field>
-                        <label htmlFor="checkDate">Check Date</label>
-                        <Input id='checkDate' type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
-                    </Form.Field>
+
                     <Form.Field>
                         <label htmlFor="dateOfDeposit">Deposit Date</label>
                         <Input id='dateOfDeposit' type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
@@ -207,6 +209,10 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                         <label htmlFor="amount">Amount</label>
                         <Input id='amount'  onChange={(e) => {handleOnChange(e, rawData, setRawData)}} type='number' label={{content : "₱", color : 'blue'}}/>
                     </Form.Field>
+                    <Form.Field >
+                        <label htmlFor="remarks">Remarks</label>
+                        <Input id='remarks' type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
+                    </Form.Field>
                    
                     
                 </Form.Group>
@@ -217,19 +223,28 @@ export default function add({ user, documentData, clients, paymentData} : InferG
 
                     <>
                         <div className='tw-flex tw-gap-8'>  
-                            <Form.Field width={2}>
-                                <label htmlFor="amount">Amount</label>
-                                <Input onChange={(e) => {handleOnChange(e, rawData, setRawData)}} id='amount' type='number' label={{content : "₱", color : 'blue'}}/>
-                            </Form.Field>
-                            <Form.Field>
-                                <label htmlFor="dateIssued">Date Issued</label>
-                                <Input id='dateIssued'type='date'  max={getDate()} onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
-                            </Form.Field>
-                            <Form.Field>
-                                <label htmlFor="dateOfDeposit">Deposit Date</label>
-                                <Input id='dateOfDeposit' type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
-                            </Form.Field>
-                            
+                                <Form.Group>
+                                    <Form.Field >
+                                        <label htmlFor="checkNumber">Recipt No.</label>
+                                        <Input id='checkNumber' type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
+                                    </Form.Field>
+                                    <Form.Field>
+                                        <label htmlFor="dateOfDeposit">Deposit Date</label>
+                                        <Input id='dateOfDeposit' type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
+                                    </Form.Field>
+                                    <Form.Field>
+                                        <label htmlFor="dateIssued">Date Issued</label>
+                                        <Input id='dateIssued' max={getDate()} type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
+                                    </Form.Field>
+                                    <Form.Field>
+                                        <label htmlFor="amount">Amount</label>
+                                        <Input id='amount'  onChange={(e) => {handleOnChange(e, rawData, setRawData)}} type='number' label={{content : "₱", color : 'blue'}}/>
+                                    </Form.Field>
+                                    <Form.Field >
+                                        <label htmlFor="remarks">Remarks</label>
+                                        <Input id='remarks' type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
+                                    </Form.Field>
+                            </Form.Group>
                         </div>
 
                         <Button onClick={(e) => {handleOnClick(e)}} color='blue'>Add Payment</Button>   

@@ -1,6 +1,7 @@
 import { PAYMENT, PAYMENT_STATUS, PaymentInfo, PrismaClient } from '@prisma/client';
 import { getDate, handleUndefined } from 'functions';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import NextCors from 'nextjs-cors';
 import { CheckInfo } from 'types';
 
 const prisma = new PrismaClient();
@@ -62,6 +63,13 @@ const deductFromSalesInvoiceBalance = async (
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+    await NextCors(req, res, {
+        // Options
+        methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+        origin: '*',
+        optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+    });
+
     const { method } = req;
 
     switch (method) {
@@ -78,12 +86,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     documentData,
                     dateIssued,
                     deductFromBalance,
+                    CRAR,
                 } = req.body;
                 try {
                     let collectionData: PaymentInfo;
                     if (modeOfPayment === PAYMENT.CHECK) {
                         collectionData = await prisma.paymentInfo.create({
                             data: {
+                                CRARNo: CRAR,
                                 amount: amount,
                                 checkDate: checkDate,
                                 depositDateAndTime: depositTime,
@@ -110,6 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         collectionData = await prisma.paymentInfo.create({
                             data: {
                                 amount: amount,
+                                checkNumber: checkNumber,
                                 depositDateAndTime: dateOfDeposit,
                                 modeOfPayment: modeOfPayment,
                                 salesInvoiceId:
@@ -138,6 +149,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         const getPayables = await prisma.salesInvoice.findUnique({
                             where: { salesInvoiceNumber: documentData.salesInvoiceNumber },
                         });
+
                         const salesInvoices = await prisma.salesInvoice.findMany({
                             where: {
                                 client: { clientInfoId: documentData.client.clientInfo.id.toString() },

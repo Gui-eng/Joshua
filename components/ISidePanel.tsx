@@ -26,7 +26,7 @@ export default function ISidePanel({ isAdmin } : Props) {
     <>
          {isAdmin ? <ISideCard Icon={<User fill='rgb(14 165 233)' width={30}/>} name='User' link='/user'/> : null}
          {isAdmin ? <ISideCard Icon={<User fill='rgb(14 165 233)' width={30}/>} name='Employee' link='/employee'/> : null}
-         <ISideCard Icon={<Client fill='rgb(14 165 233)' width={30}/>} name='Clients' link='/add/client'/>
+         <ISideCard Icon={<Client fill='rgb(14 165 233)' width={30}/>} name='Clients' link='add/client'/>
          <ISideCard Icon={<Item fill='rgb(14 165 233)' width={30}/>} name='Items' link='/add/item'/>
     </>
   )

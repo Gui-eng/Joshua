@@ -1,9 +1,10 @@
 import axios from 'axios';
 import Itable from 'components/Itable';
-import { formatCurrency, getPrice, handleUndefined } from 'functions';
+import { HOSTADDRESS, PORT, formatCurrency, getPrice, handleUndefined } from 'functions';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
 import React from 'react'
+import { Button } from 'semantic-ui-react';
 import { Item } from 'types';
 
 const headerTitle = ["id", "Quantity", "Unit", "Item Name" , "Vatable", "Price", "Batch Number" , "Man. Date", "Exp. Date", "Total Amount"]
@@ -22,7 +23,7 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     // const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
   
     try{
-        const info = await axios.get(`http://localhost:3000/api/getInfo/deliveryRecipt/${context.query.id}`)
+        const info = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/deliveryRecipt/${context.query.id}`)
         return {
             props : { info : info.data.data }
           }
@@ -38,7 +39,6 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
 export default function ID( {post, info} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
-    console.log(info)
    
 
     const tableData = info.items.map((item : any) => {
@@ -59,6 +59,10 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
           }
     })
     
+    async function handlePrint(){
+        await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/document/deliveryRecipt/old/print`, info)
+    }
+
   return (
     <div>{
     <>
@@ -85,8 +89,13 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
         <div className='tw-w-full tw-flex tw-justify-center'>
            <div className='tw-w-[90%]'>
                 <Itable color='blue' data={tableData} headerTitles={headerTitle}/>
+                <div className='tw-mt-4'>
+                    <Button onClick={() => {handlePrint()}}color='blue'>Print DR</Button>
+                </div>
            </div>
+           
         </div>
+        
     </>}</div>
   )
 }

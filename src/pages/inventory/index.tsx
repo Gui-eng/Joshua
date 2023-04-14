@@ -76,6 +76,9 @@ export default function home({ post } : any) {
               <div className='tw-w-full tw-p-16 tw-h-full'>
                 <Grid>
                   <Grid.Row columns={4}>
+                  <Grid.Column>
+                      <ICard Icon={<Chart fill='white' width={35}/>} name='Pull Out' link='/sales/pullOut'/>
+                  </Grid.Column>
                     <Grid.Column>
                         <ICard Icon={<Chart fill='white' width={35}/>} name='Item List' link='/inventory/items'/>
                     </Grid.Column>

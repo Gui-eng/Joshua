@@ -14,12 +14,15 @@ import {
     formatDateString,
     getYearMonth,
     getFullISODate,
+    HOSTADDRESS,
+    PORT,
 } from 'functions';
 import { TableCell } from 'semantic-ui-react';
 import _ from 'lodash';
 import axios from 'axios';
 import { PrismaClient } from '@prisma/client';
 import PDFDocument from 'pdfkit';
+import NextCors from 'nextjs-cors';
 
 const prisma = new PrismaClient();
 
@@ -427,10 +430,16 @@ function removeObjectWithYear(obj: ObjectWithYears, yearToRemove: string) {
 }
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
+    await NextCors(req, res, {
+        // Options
+        methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+        origin: '*',
+        optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+    });
     const { method } = req;
 
     const { data, to, from, currentDate, id } = req.body;
-    const numberOfDocs = await axios.get(`http://localhost:3000/api/collection/SOA/countDocs/${id}`);
+    const numberOfDocs = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/collection/SOA/countDocs/${id}`);
 
     switch (method) {
         case 'POST':
