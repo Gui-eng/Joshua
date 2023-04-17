@@ -12,16 +12,16 @@ import ISidePanel from 'components/ISidePanel';
 import Itable from 'components/IFlexTable';
 import { icon } from '@fortawesome/fontawesome-svg-core';
 import { SalesInvoiceData } from 'types';
-import { handleUndefined } from 'functions';
+import { HOSTADDRESS, PORT, handleUndefined } from 'functions';
 
 
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
-    const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
 
-    const salesInvoiceData = await axios.get(`http://localhost:3000/api/sales/view`)
-    const deliveryReciptData = await axios.get(`http://localhost:3000/api/sales/viewDR`)
+    const salesInvoiceData = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/view`)
+    const deliveryReciptData = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/viewDR`)
     
     
     return {

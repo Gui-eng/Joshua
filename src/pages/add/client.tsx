@@ -6,7 +6,7 @@ import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import { Button, Form, Input, Message, Select } from 'semantic-ui-react'
-import {hasEmptyFields, handleOnChange, handleOptionsChange, find} from '../../../functions'
+import {hasEmptyFields, handleOnChange, handleOptionsChange, find, HOSTADDRESS, PORT} from '../../../functions'
 import { Option, EmployeeInfo, ClientInfo } from '../../../types'
 
 async function postData(url = '', data = {}) {
@@ -32,9 +32,9 @@ const emptyClientData : ClientInfo = {
 
 export const getServerSideProps : GetServerSideProps = async () => {
 
-    const pmr = await axios.get(`http://localhost:3000/api/getInfo/employee/pmr`)
+    const pmr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/pmr`)
 
-    const clients = await axios.get("http://localhost:3000/api/getInfo/client")
+    const clients = await axios.get("http://${HOSTADDRESS}:${PORT}/api/getInfo/client")
 
 
     return {
@@ -121,7 +121,7 @@ export default function item({ clients, pmr } : InferGetServerSidePropsType<type
     }
 
     try {
-      const res = await axios.post(`http://localhost:3000/api/getInfo/client/update/${id}`, clientData)
+      const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/client/update/${id}`, clientData)
       console.log(res)
     } catch (error) {
       console.log(error)
@@ -149,7 +149,6 @@ export default function item({ clients, pmr } : InferGetServerSidePropsType<type
     }
     
     try {
-      // await postData('http://localhost:3000/api/getInfo/client', clientData)
       const res = await axios.post('http://192.168.1.101:3000/api/getInfo/client', clientData
       )
       // router.reload()

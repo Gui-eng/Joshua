@@ -39,7 +39,7 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
 export default function ID( {post, info} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
-    console.log(info)
+    console.log(info[0])
    
     // !info ? null
 

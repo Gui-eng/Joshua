@@ -7,7 +7,7 @@ import { useRouter } from 'next/router'
 import React, { useCallback, useEffect, useState } from 'react'
 import { Button, DropdownProps, Form, Input, Message, Select } from 'semantic-ui-react'
 import { ItemInfo, ItemPrice, Option } from '../../../types'
-import { find, handleDateChange, handleOnChange, handleOptionsChange, hasEmptyFields } from '../../../functions'
+import { HOSTADDRESS, PORT, find, handleDateChange, handleOnChange, handleOptionsChange, hasEmptyFields } from '../../../functions'
 
 const VAT : Option[] = [
   { id : 'VAT', key: 'vat', text: 'Vatable', value: true },
@@ -44,7 +44,7 @@ const emptyData : ItemInfo = {
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
   const session = await getSession(context)
-  const items = await axios.get("http://localhost:3000/api/getInfo/item")
+  const items = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item`)
   
   return {
     props : { items : items.data.data, session : JSON.stringify(session)}
@@ -144,7 +144,7 @@ export default function item({ items, session} : InferGetServerSidePropsType<typ
     }
 
     try {
-      const res = await axios.post(`http://localhost:3000/api/getInfo/item/update/${id}`, itemData)
+      const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item/update/${id}`, itemData)
       console.log(res)
     } catch (error) {
       console.log(error)
@@ -162,7 +162,7 @@ export default function item({ items, session} : InferGetServerSidePropsType<typ
       return;
     }
 
-    const res = await axios.post(`http://localhost:3000/api/getInfo/item`, itemData)
+    const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item`, itemData)
 
     router.reload()
   }

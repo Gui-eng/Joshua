@@ -59,8 +59,12 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
           }
     })
     
-    async function handlePrint(){
-        await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/document/deliveryRecipt/old/print`, info)
+    async function handlePrint(newDR : Boolean){
+        if(newDR){
+            await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/document/deliveryRecipt/new/print`, info)
+        }else{
+            await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/document/deliveryRecipt/old/print`, info)
+        }
     }
 
   return (
@@ -90,7 +94,8 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
            <div className='tw-w-[90%]'>
                 <Itable color='blue' data={tableData} headerTitles={headerTitle}/>
                 <div className='tw-mt-4'>
-                    <Button onClick={() => {handlePrint()}}color='blue'>Print DR</Button>
+                    <Button onClick={() => {handlePrint(true)}}color='blue'>Print DR &#40;New&#41;</Button>
+                    <Button onClick={() => {handlePrint(false)}}color='blue'>Print DR &#40;Old&#41;</Button>
                 </div>
            </div>
            

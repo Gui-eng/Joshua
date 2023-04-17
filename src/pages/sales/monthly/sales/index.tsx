@@ -89,6 +89,8 @@ export default function home({ post, documentData} :  InferGetServerSidePropsTyp
         }
       })
 
+
+
       setTableData(table)
     }
 

@@ -4,17 +4,29 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs';
 import { ItemInfo, SalesInvoiceData } from 'types';
-import { getPrice, handleUndefined, getDate, formatDateString, quantityOptions } from 'functions';
+import { getPrice, handleUndefined, getDate, formatDateString, quantityOptions, formatCurrency } from 'functions';
 import { TableCell } from 'semantic-ui-react';
 import NextCors from 'nextjs-cors';
+import _, { sumBy } from 'lodash';
 
 const style: Partial<ExcelJS.Style> = {
     font: {
-        bold: true,
         size: 9,
     },
 };
 
+const dataStyle: Partial<ExcelJS.Style> = {
+    border: {
+        bottom: { style: 'thin', color: { argb: '00000000' } },
+        left: { style: 'thin', color: { argb: '00000000' } },
+        right: { style: 'thin', color: { argb: '00000000' } },
+        top: { style: 'thin', color: { argb: '00000000' } },
+    },
+
+    font: {
+        size: 9,
+    },
+};
 export default async (req: NextApiRequest, res: NextApiResponse) => {
     await NextCors(req, res, {
         // Options
@@ -29,12 +41,12 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             {
                 try {
                     const generateExcel = async (): Promise<ExcelJS.Buffer> => {
-                        const filePath = path.join(process.cwd(), 'public', 'old.xlsx');
+                        const filePath = path.join(process.cwd(), 'public', 'pullout.xlsx');
 
                         const workbook = new ExcelJS.Workbook();
                         await workbook.xlsx.readFile(filePath);
 
-                        const worksheet = workbook.getWorksheet('DR OLD');
+                        const worksheet = workbook.getWorksheet('NEW SI');
                         //Page Setup
 
                         worksheet.pageSetup.paperSize = undefined; // 9 is the code for custom size
@@ -48,74 +60,66 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                             footer: 0.0,
                         }; // set margins in inches
 
-                        const C9 = worksheet.getCell('C9');
-                        C9.value = req.body.client.clientInfo.companyName;
+                        const C9 = worksheet.getCell('C8');
+                        C9.value = req.body[0].client.companyName;
                         C9.style = style;
                         // worksheet.mergeCells('C9:G9');
 
-                        const C10 = worksheet.getCell('C10');
-                        C10.value = req.body.client.clientInfo.address;
-                        C10.style = style;
+                        const C11 = worksheet.getCell('C9');
+                        C11.value = req.body[0].client.address;
+                        C11.style = style;
                         // worksheet.mergeCells('C10:G10');
 
-                        const H9 = worksheet.getCell('H9');
-                        H9.value = formatDateString(req.body.dateIssued);
-                        H9.style = style;
+                        const G9 = worksheet.getCell('F8');
+                        G9.value = formatDateString(req.body[0].dateIssued);
+                        G9.style = style;
                         // worksheet.mergeCells('H9:I9');
 
-                        const H10 = worksheet.getCell('H10');
-                        H10.value = req.body.term;
-                        H10.style = style;
+                        const G10 = worksheet.getCell('F9');
+                        G10.value = req.body[0].status;
+                        G10.style = {
+                            ...style,
+                            alignment: {
+                                horizontal: 'left',
+                            },
+                        };
                         // worksheet.mergeCells('C10:G10');
 
-                        const { items } = req.body;
-                        let startingCell = 13;
+                        // console.log(formatCurrency(_.sumBy(items, (item: any) => item.totalAmount).toString()));
+                        let startingCell = 14;
 
-                        items.map((item: any) => {
+                        req.body.map((item: any) => {
                             const B = worksheet.getCell(`B${startingCell}`);
-                            B.value = item.quantity;
-                            B.style = style;
-
-                            const C = worksheet.getCell(`C${startingCell}`);
-                            C.value = item.unit;
-                            C.style = style;
+                            B.value = item.quantity + ' ' + item.unit;
+                            B.style = {
+                                ...style,
+                                alignment: {
+                                    horizontal: 'center',
+                                },
+                            };
 
                             const D = worksheet.getCell(`D${startingCell}`);
                             D.value = item.ItemInfo.itemName;
                             D.style = style;
 
                             const D1 = worksheet.getCell(`D${startingCell + 1}`);
-                            D1.value = 'LOT/ BATCH NO.: ' + item.ItemInfo.batchNumber;
+                            D1.value = 'LOT/ BATCH NO.: ' + item.batchNumber;
                             D1.style = style;
 
                             const D2 = worksheet.getCell(`D${startingCell + 2}`);
-                            D2.value = 'MFG DATE: ' + formatDateString(item.ItemInfo.manufacturingDate);
+                            D2.value = 'MFG DATE: ' + formatDateString(item.manufacturingDate);
                             D2.style = style;
 
                             const D3 = worksheet.getCell(`D${startingCell + 3}`);
-                            D3.value = 'EXP DATE: ' + formatDateString(item.ItemInfo.expirationDate);
+                            D3.value = 'EXP DATE: ' + formatDateString(item.expirationDate);
                             D3.style = style;
+
+                            const totalAmount = worksheet.getCell(`G${startingCell}`);
+                            totalAmount.value = formatCurrency(item.totalAmount);
+                            totalAmount.style = style;
 
                             startingCell = startingCell + 4;
                         });
-                        const footer = worksheet.getCell(`C${startingCell}`);
-                        footer.value = '************NOTHING FOLLOWS************';
-                        footer.style = style;
-
-                        const remarks = worksheet.getCell(`C${startingCell + 1}`);
-                        remarks.value = 'Remarks: ' + req.body.remarks;
-                        remarks.style = style;
-
-                        const I35 = worksheet.getCell('I35');
-                        I35.value = req.body.totalAmount;
-                        I35.style = style;
-
-                        const H36 = worksheet.getCell('H36');
-                        H36.value =
-                            req.body.preparedBy.employeeInfo.firstName +
-                            ' ' +
-                            req.body.preparedBy.employeeInfo.lastName;
-                        H36.style = style;
 
                         const buffer = await workbook.xlsx.writeBuffer();
 
@@ -123,7 +127,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                     };
 
                     const buffer = await generateExcel();
-                    const fileName = `OLDDR.xlsx`;
+                    const fileName = `NEWSI.xlsx`;
 
                     const buff = Buffer.from(buffer);
 

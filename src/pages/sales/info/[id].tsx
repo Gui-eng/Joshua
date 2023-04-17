@@ -1,9 +1,10 @@
 import axios from 'axios';
 import Itable from 'components/Itable';
-import { getPrice, handleUndefined } from 'functions';
+import { HOSTADDRESS, PORT, getPrice, handleUndefined } from 'functions';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
 import React from 'react'
+import { Button } from 'semantic-ui-react';
 import { Item } from 'types';
 
 const headerTitle = ["id", "Quantity", "Unit", "Item Name" , "Vatable", "Price", "Batch Number" , "Man. Date", "Exp. Date", "Total Amount"]
@@ -22,7 +23,7 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     // const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
   
     try{
-        const info = await axios.get(`http://localhost:3000/api/getInfo/salesInvoice/${context.query.id}`)
+        const info = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/salesInvoice/${context.query.id}`)
         return {
             props : { info : info.data.data }
           }
@@ -36,11 +37,22 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     
   }
 
+ 
+
+
 export default function ID( {post, info} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
     console.log(info)
    
     // !info ? null
+
+    async function handlePrint(newSI : Boolean){
+        if(newSI){
+            await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/document/salesInvoice/new/print`, info)
+        }else{
+            await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/document/salesInvoice/old/print`, info)
+        }
+    }
 
     const tableData = info.items.map((item : any) => {
 
@@ -86,6 +98,10 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
         <div className='tw-w-full tw-flex tw-justify-center'>
            <div className='tw-w-[90%]'>
                 <Itable color='blue' data={tableData} headerTitles={headerTitle}/>
+                <div className='tw-mt-4'>
+                    <Button onClick={() => {handlePrint(true)}}color='blue'>Print SI &#40;New&#41;</Button>
+                    <Button onClick={() => {handlePrint(false)}}color='blue'>Print SI &#40;Old&#41;</Button>
+                </div>
            </div>
         </div>
     </>}</div>

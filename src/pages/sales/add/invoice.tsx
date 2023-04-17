@@ -205,10 +205,10 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
       return
     }
       const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/addInvoice`, salesInvoiceData)
-    
+      router.reload()
     if(!res.status){
       console.log(res.statusText)
-      router.reload()
+     
     
   }
 

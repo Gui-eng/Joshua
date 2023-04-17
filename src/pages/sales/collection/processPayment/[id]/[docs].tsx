@@ -6,7 +6,7 @@ import axios from 'axios'
 import { getSession } from 'next-auth/react'
 import { faChessBishop } from '@fortawesome/free-solid-svg-icons'
 import { CollectionData, ClientInfo, Option, CheckInfo, RawDataOfProcessPayment } from 'types'
-import { calculateDueDate, fetchBalance, formatCurrency, getDate, handleDateChange, handleOnChange, hasEmptyFields, renderPaymentStatus } from 'functions'
+import { HOSTADDRESS, PORT, calculateDueDate, fetchBalance, formatCurrency, getDate, handleDateChange, handleOnChange, hasEmptyFields, renderPaymentStatus } from 'functions'
 import { PAYMENT, PAYMENT_STATUS } from '@prisma/client'
 import { useRouter } from 'next/router'
 
@@ -16,13 +16,13 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     
 
     const session = await getSession(context);
-    const usr = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const usr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
 
-    const documentData = await axios.get(`http://localhost:3000/api/getInfo/accounting/docs/${context.query.id}/${context.query.docs}`)
-    const clients = await axios.get(`http://localhost:3000/api/getInfo/client`)
+    const documentData = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/accounting/docs/${context.query.id}/${context.query.docs}`)
+    const clients = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/client`)
 
 
-    const paymentData = await axios.get(`http://localhost:3000/api/collection/${documentData.data.data.client.clientInfo.id}/${documentData.data.data.id}`)
+    const paymentData = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/collection/${documentData.data.data.client.clientInfo.id}/${documentData.data.data.id}`)
 
     
     
@@ -137,7 +137,7 @@ export default function add({ user, documentData, clients, paymentData} : InferG
             }
         }
 
-        const res = await axios.post(`http://localhost:3000/api/collection`, rawData)
+        const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/collection`, rawData)
 
         router.reload()
     }

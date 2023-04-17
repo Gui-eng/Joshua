@@ -420,7 +420,7 @@ export function handleUnits(unit: string): UNITS {
  * @param status The string representation of the payment status to convert.
  * @returns The corresponding value of the PAYMENT_STATUS enum.
  */
-function handlePaymentStatus(status: string): PAYMENT_STATUS {
+export function handlePaymentStatus(status: string): PAYMENT_STATUS {
     switch (status) {
         case 'SUCCESS':
             return PAYMENT_STATUS.SUCCESS;

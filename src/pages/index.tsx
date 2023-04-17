@@ -5,6 +5,7 @@ import axios from 'axios'
 import { GetServerSideProps, InferGetServerSidePropsType } from "next"
 import Itable from "components/Itable"
 import { signIn } from "next-auth/react"
+import { HOSTADDRESS, PORT } from "functions"
 
 interface Data {
   id : string
@@ -21,7 +22,7 @@ interface Employees {
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
   try {
-    const res = await axios.get('http://localhost:3000/api/getInfo/users/one')
+    const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/users/one`)
     return {props: { data : res.data}}
   } catch (error) {
     return { props : { error : 'Something Went Wrong'}}

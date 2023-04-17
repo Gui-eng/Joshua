@@ -6,21 +6,21 @@ import axios, { AxiosResponse } from 'axios'
 import { getSession } from 'next-auth/react'
 import { CollectionData, ClientInfo, SalesInvoiceData, Option } from 'types'
 import { NextRouter, useRouter } from 'next/router'
-import { filterRecords, salesRecord, handleOptionsChange, handleUndefined, makeOptions, filterSalesInvoices, fetchBalance, formatCurrency, makeOptionsForFilter, handleFilteredOptionsChange } from 'functions'
+import { filterRecords, salesRecord, handleOptionsChange, handleUndefined, makeOptions, filterSalesInvoices, fetchBalance, formatCurrency, makeOptionsForFilter, handleFilteredOptionsChange, HOSTADDRESS, PORT } from 'functions'
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     
     let selectedDocument : AxiosResponse<any, any>;
     const session = await getSession(context);
-    const usr = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
-    const clients = await axios.get(`http://localhost:3000/api/getInfo/client`)
-    const salesInvoiceData = await axios.get(`http://localhost:3000/api/sales/view`)
-    const deliveryReciptData = await axios.get(`http://localhost:3000/api/sales/viewDR`)
+    const usr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
+    const clients = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/client`)
+    const salesInvoiceData = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/view`)
+    const deliveryReciptData = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/viewDR`)
     
     const documentData = [...salesInvoiceData.data.data, ...deliveryReciptData.data.data]
 
-    selectedDocument = await axios.get(`http://localhost:3000/api/getInfo/deliveryRecipt/${context.query.id}`).catch( async () => {
-      return selectedDocument = await axios.get(`http://localhost:3000/api/getInfo/salesInvoice/${context.query.id}`)
+    selectedDocument = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/deliveryRecipt/${context.query.id}`).catch( async () => {
+      return selectedDocument = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/salesInvoice/${context.query.id}`)
     })
   
     

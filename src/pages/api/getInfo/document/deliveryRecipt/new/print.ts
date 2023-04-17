@@ -3,10 +3,13 @@ import ExcelJS, { PageSetup } from 'exceljs';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
+import pdfToPrinter from 'pdf-to-printer';
+
 import { ItemInfo, SalesInvoiceData } from 'types';
 import { getPrice, handleUndefined, getDate, formatDateString, quantityOptions } from 'functions';
 import { TableCell } from 'semantic-ui-react';
 import NextCors from 'nextjs-cors';
+import { PDFDocument } from 'pdf-lib';
 
 const style: Partial<ExcelJS.Style> = {
     font: {
@@ -29,12 +32,9 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             {
                 try {
                     const generateExcel = async (): Promise<ExcelJS.Buffer> => {
-                        const filePath = path.join(process.cwd(), 'public', 'old.xlsx');
-
                         const workbook = new ExcelJS.Workbook();
-                        await workbook.xlsx.readFile(filePath);
 
-                        const worksheet = workbook.getWorksheet('DR OLD');
+                        const worksheet = workbook.addWorksheet('DR NEW');
                         //Page Setup
 
                         worksheet.pageSetup.paperSize = undefined; // 9 is the code for custom size
@@ -74,7 +74,12 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                         items.map((item: any) => {
                             const B = worksheet.getCell(`B${startingCell}`);
                             B.value = item.quantity;
-                            B.style = style;
+                            B.style = {
+                                ...style,
+                                alignment: {
+                                    horizontal: 'left',
+                                },
+                            };
 
                             const C = worksheet.getCell(`C${startingCell}`);
                             C.value = item.unit;
@@ -86,15 +91,30 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
                             const D1 = worksheet.getCell(`D${startingCell + 1}`);
                             D1.value = 'LOT/ BATCH NO.: ' + item.ItemInfo.batchNumber;
-                            D1.style = style;
+                            D1.style = {
+                                font: {
+                                    ...style.font,
+                                    color: { argb: '1762DB' },
+                                },
+                            };
 
                             const D2 = worksheet.getCell(`D${startingCell + 2}`);
                             D2.value = 'MFG DATE: ' + formatDateString(item.ItemInfo.manufacturingDate);
-                            D2.style = style;
+                            D2.style = {
+                                font: {
+                                    ...style.font,
+                                    color: { argb: '1762DB' },
+                                },
+                            };
 
                             const D3 = worksheet.getCell(`D${startingCell + 3}`);
                             D3.value = 'EXP DATE: ' + formatDateString(item.ItemInfo.expirationDate);
-                            D3.style = style;
+                            D3.style = {
+                                font: {
+                                    ...style.font,
+                                    color: { argb: '1762DB' },
+                                },
+                            };
 
                             startingCell = startingCell + 4;
                         });
@@ -106,12 +126,13 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                         remarks.value = 'Remarks: ' + req.body.remarks;
                         remarks.style = style;
 
-                        const I35 = worksheet.getCell('I35');
-                        I35.value = req.body.totalAmount;
+                        const I35 = worksheet.getCell('H35');
+                        I35.value = 'Total Due : ' + req.body.totalAmount;
                         I35.style = style;
 
-                        const H36 = worksheet.getCell('H36');
+                        const H36 = worksheet.getCell('G36');
                         H36.value =
+                            'Prepared By: ' +
                             req.body.preparedBy.employeeInfo.firstName +
                             ' ' +
                             req.body.preparedBy.employeeInfo.lastName;
@@ -123,8 +144,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                     };
 
                     const buffer = await generateExcel();
-                    const fileName = `OLDDR.xlsx`;
-
+                    const fileName = `NEWDR.xlsx`;
                     const buff = Buffer.from(buffer);
 
                     // Save the file to the desktop

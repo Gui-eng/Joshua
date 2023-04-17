@@ -14,7 +14,7 @@ enum PULLOUTSTATUS {
   NEAR_EXPIRY = "NEAR EXPIRY"
 }
 
-import { getDate, getPrice, handleDateChange, handleOnChange, handleOptionsChange, makeOptions } from '../../../../../functions'
+import { HOSTADDRESS, PORT, getDate, getPrice, handleDateChange, handleOnChange, handleOptionsChange, makeOptions } from '../../../../../functions'
 
 const tableHeaders = ["id","SI/DR No.","Quanity", "Product Name","MFG Date.", "EXP Date", "Batch #", "Amount", "Remarks"]
 
@@ -22,12 +22,12 @@ const tableHeaders = ["id","SI/DR No.","Quanity", "Product Name","MFG Date.", "E
 export const getServerSideProps : GetServerSideProps = async (context) => {
   
     const session = await getSession(context);
-    const client = await axios.get("http://localhost:3000/api/getInfo/client")
-    const pmr = await axios.get("http://localhost:3000/api/getInfo/employee/pmr")
-    const item = await axios.get('http://localhost:3000/api/getInfo/item')
-    const preparedBy = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const client = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/client`)
+    const pmr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/pmr`)
+    const item = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item`)
+    const preparedBy = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
 
-    const documents = await axios.get(`http://localhost:3000/api/getInfo/document/view`)
+    const documents = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/document/view`)
     
 
     return {
@@ -248,7 +248,7 @@ async function handleOnClick(e : React.MouseEvent<HTMLButtonElement, MouseEvent>
    }
 
    try {
-      const res = await axios.post(`http://localhost:3000/api/pullOut`, rawData)
+      const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/pullOut`, rawData)
       console.log(res.status)
 
       if(res.status === 200){
@@ -319,7 +319,7 @@ async function handleOnClick(e : React.MouseEvent<HTMLButtonElement, MouseEvent>
                             onChange={(e, item) => {handleOptionsChange(e, item, pullOutData, setPullOutData)}}
                         />
                   </Form.Field>
-                  <Form.Field width={3}>
+                  <Form.Field width={5}>
                       <label>Quantity</label>
                       <Input value={pullOutData.quantity > maxItems ? maxItems : pullOutData.quanity} disabled={!selectedItem} id={'quantity'} onChange={(e) => {handleOnChange(e, pullOutData, setPullOutData)}} min={0} max={maxItems} type='number' labelPosition='right' label={{content : <Header className='tw-text-zinc-50' as={'h6'}>{unit}</Header>,
                     color : 'blue'}}/>

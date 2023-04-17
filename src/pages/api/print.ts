@@ -4,9 +4,10 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs';
 import { ItemInfo, SalesInvoiceData } from 'types';
-import { getPrice, handleUndefined, getDate } from 'functions';
+import { getPrice, handleUndefined, getDate, formatCurrency } from 'functions';
 import { TableCell } from 'semantic-ui-react';
 import NextCors from 'nextjs-cors';
+import _ from 'lodash';
 
 const tableHeaders = [
     'SI No. / DR No.',
@@ -163,11 +164,24 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                             };
                         });
 
+                        let totalNetDisc = 0,
+                            totalVatable = 0,
+                            totalNonVatable = 0,
+                            totalVATAmount = 0,
+                            totalGrossSales = 0;
+
                         const arr = data.map((sales: any) => {
                             const items = sales.items.map((item: any) => {
                                 function limit(data: any) {
                                     return parseFloat(parseFloat(data).toFixed(2));
                                 }
+
+                                totalNetDisc += Number(item.ItemSalesDetails[0].netAmount);
+                                totalVatable += Number(item.vatable ? item.ItemSalesDetails[0].netAmount : 0);
+                                totalNonVatable += Number(!item.vatable ? item.ItemSalesDetails[0].netAmount : 0);
+                                totalVATAmount += Number(item.ItemSalesDetails[0].VATAmount);
+                                totalGrossSales = +Number(item.ItemSalesDetails[0].grossAmount);
+
                                 const row = worksheet.addRow([
                                     sales.salesInvoiceNumber !== undefined
                                         ? sales.salesInvoiceNumber
@@ -201,6 +215,39 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                                     };
                                 });
                             });
+                        });
+
+                        function limit(data: any) {
+                            return parseFloat(parseFloat(data).toFixed(2));
+                        }
+
+                        worksheet.addRow(['']);
+
+                        const row = worksheet.addRow([
+                            '-',
+                            '-',
+                            '-',
+                            '-',
+                            '-',
+                            '-',
+                            formatCurrency(totalNetDisc.toString()),
+                            formatCurrency(totalVatable.toString()),
+                            formatCurrency(totalNonVatable.toString()),
+                            formatCurrency(totalVATAmount.toString()),
+                            formatCurrency(totalGrossSales.toString()),
+                            '-',
+                            '-',
+                            '-',
+                        ]);
+
+                        row.eachCell((cell) => {
+                            cell.style = {
+                                font: {
+                                    color: { argb: 'FF0000' },
+                                    bold: true,
+                                    underline: true,
+                                },
+                            };
                         });
 
                         for (let index = 7; index <= worksheet.rowCount; index++) {
