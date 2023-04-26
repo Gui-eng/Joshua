@@ -11,15 +11,12 @@ import { Button, Header, Table } from 'semantic-ui-react';
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
-    const { id } = context.query;
-
     const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
-    
-    const info = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item/stocks/${id}`)
 
-    const pmr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/pmr/${id}`)
+
+    const info = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item/stocks/main`)
     return {
-      props : { post : res.data.data, info : info.data, pmr : pmr.data.data }
+      props : { post : res.data.data, info : info.data.data }
     }
     
 }
@@ -29,8 +26,9 @@ const headerTitles = ["id","Item Name", "Batch No.", "Man. Date", "Exp. Date", "
 export default function index({ post, info, pmr }  : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
   const router = useRouter()
+ 
 
-  const [data, setData] = useState(info.data.map((item : any) => {
+  const [data, setData] = useState(info.map((item : any) => {
     const { itemInfo } = item 
     return {
         id : item.id,
@@ -38,15 +36,18 @@ export default function index({ post, info, pmr }  : InferGetServerSidePropsType
         batchNumber : itemInfo.batchNumber,
         manufacturingDate : itemInfo.manufacturingDate.substring(10, 0),
         expirationDate : itemInfo.expirationDate.substring(10, 0),
-        remainingVial : item.vial,
-        remainingBottle : item.bottle,
-        remainingBox : item.box,
-        remainingCapsule : item.capsule,
-        remainingTablet : item.tablet,
+        remainingVial : item.Vial,
+        remainingBottle : item.Bottle,
+        remainingBox : item.Box,
+        remainingCapsule : item.Capsule,
+        remainingTablet : item.Tablet,
 
 
     }
 }))
+
+
+   
 
   return (
     <>
@@ -55,7 +56,7 @@ export default function index({ post, info, pmr }  : InferGetServerSidePropsType
       <div className='tw-w-full tw-flex tw-flex-col tw-mb-[400px]'>
            <div className='tw-w-full tw-flex tw-justify-center tw-my-8'>
                 <div className='tw-w-[90%]'>
-                    <h1 className='tw-text-2xl tw-font-bold'>{pmr.firstName + " " + pmr.lastName}</h1>
+                    <h1 className='tw-text-2xl tw-font-bold'>Main Stocks</h1>
                 </div>
             </div>
             <div className='tw-w-full tw-flex tw-justify-center '>

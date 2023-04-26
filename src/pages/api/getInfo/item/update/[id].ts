@@ -46,7 +46,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         },
                     });
 
-                    console.log(item);
+                    const stockUdate = await prisma.stocks.updateMany({
+                        where: { itemInfoId: item.id.toString() },
+                        data: {
+                            itemInfoId: item.id.toString(),
+                        },
+                    });
 
                     res.status(200).json({ success: true, data: item });
                 } catch (error) {

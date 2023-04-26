@@ -126,12 +126,13 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   useEffect(() => {
     const totalAmount = itemData.unitPrice * itemData.quantity
     const netTotalAmount = totalAmount - (totalAmount * handleUndefined(itemData.discount))
+
     setItemData({...itemData, totalAmount : totalAmount, itemSalesDetails : { ...itemData.itemSalesDetails,
       grossAmount : itemData.unitPrice * itemData.quantity,
       itemId : handleUndefined(itemData.id),
       netAmount : netTotalAmount,
       vatable : itemData.vatable,
-      VATAmount : netTotalAmount - (netTotalAmount * 0.12)
+      VATAmount : netTotalAmount  - ((netTotalAmount / 1.12) * 12)
     }})
   }, [itemData.unitPrice, itemData.quantity])
 
@@ -140,10 +141,10 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   useEffect(() => {
 
     const tableDataSales = itemArray.map((item : Item) => {
-      const VATAmountWithDiscount = Math.round(((item.totalAmount - (item.totalAmount * handleUndefined(item.discount))) * 0.12) * 100) / 100
+      const VATAmountWithDiscount = Math.round(((item.totalAmount - ((item.totalAmount * handleUndefined(item.discount))) / 1.12) * .12)  * 100) / 100
 
-      const VATAmountWithoutDiscount = Math.round((item.totalAmount * 0.12) * 100) / 100
-
+      const VATAmountWithoutDiscount = Math.round(((item.totalAmount / 1.12) * .12) * 100) / 100
+      console.log(VATAmountWithDiscount)
       const data = {
         itemId : handleUndefined(item.id),
         grossAmount : Math.round(item.totalAmount * 100) / 100,

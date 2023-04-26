@@ -49,26 +49,26 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                             footer: 0.0,
                         }; // set margins in inches
 
-                        const C9 = worksheet.getCell('C8');
+                        const C9 = worksheet.getCell('C7');
                         C9.value = req.body.client.clientInfo.companyName;
                         C9.style = style;
                         // worksheet.mergeCells('C9:G9');
 
-                        const C10 = worksheet.getCell('F10');
+                        const C10 = worksheet.getCell('F9');
                         C10.value = req.body.client.clientInfo.TIN;
                         C10.style = style;
 
-                        const C11 = worksheet.getCell('C9');
+                        const C11 = worksheet.getCell('C8');
                         C11.value = req.body.client.clientInfo.address;
                         C11.style = style;
                         // worksheet.mergeCells('C10:G10');
 
-                        const G9 = worksheet.getCell('F8');
+                        const G9 = worksheet.getCell('F7');
                         G9.value = formatDateString(req.body.dateIssued);
                         G9.style = style;
                         // worksheet.mergeCells('H9:I9');
 
-                        const G10 = worksheet.getCell('F9');
+                        const G10 = worksheet.getCell('F8');
                         G10.value = req.body.term;
                         G10.style = {
                             ...style,
@@ -87,7 +87,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                         });
 
                         // console.log(formatCurrency(_.sumBy(items, (item: any) => item.totalAmount).toString()));
-                        let startingCell = 14;
+                        let startingCell = 11;
 
                         items.map((item: any) => {
                             const B = worksheet.getCell(`B${startingCell}`);
@@ -121,7 +121,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
                             console.log(getPrice(item.ItemInfo.ItemPrice[0], item.unit));
                             const unitPrice = worksheet.getCell(`F${startingCell}`);
-                            unitPrice.value = getPrice(item.ItemInfo.ItemPrice[0], item.unit);
+                            unitPrice.value = getPrice(item.ItemInfo.ItemPrice[0], item.unit) + '     '+  (item.discount * 100).toString() + '%';
                             unitPrice.style = {
                                 ...style,
                                 alignment: {
@@ -129,9 +129,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                                 },
                             };
 
-                            const discount = worksheet.getCell(`F${startingCell + 1}`);
-                            discount.value = (item.discount * 100).toString() + '%';
-                            discount.style = style;
+                            
 
                             const totalAmount = worksheet.getCell(`G${startingCell}`);
                             totalAmount.value = formatCurrency(item.totalAmount);
@@ -148,7 +146,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                         remarks.style = style;
 
                         if (hasVatExempt) {
-                            const vatSales = worksheet.getCell('E30');
+                            const vatSales = worksheet.getCell('E29');
                             vatSales.value = formatCurrency(
                                 _.sumBy(
                                     items.filter((item: any) => item.vatable),
@@ -156,7 +154,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                                 ).toString(),
                             );
                             vatSales.style = style;
-                            const nonVat = worksheet.getCell('E31');
+                            const nonVat = worksheet.getCell('E30');
                             nonVat.value = formatCurrency(
                                 _.sumBy(
                                     items.filter((item: any) => !item.vatable),
@@ -165,41 +163,41 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                             );
                             nonVat.style = style;
 
-                            const VATAmount = worksheet.getCell('E33');
+                            const VATAmount = worksheet.getCell('E32');
                             VATAmount.value = formatCurrency(req.body.TotalDetails.VATAmount);
                             VATAmount.style = style;
 
-                            const amountTotal = worksheet.getCell('G36');
+                            const amountTotal = worksheet.getCell('G35');
                             amountTotal.value = formatCurrency(req.body.totalAmount);
                             amountTotal.style = style;
 
-                            const amountDue = worksheet.getCell('G34');
+                            const amountDue = worksheet.getCell('G33');
                             amountDue.value = formatCurrency(req.body.totalAmount);
                             amountDue.style = style;
                         } else {
-                            const amountTotal = worksheet.getCell('G30');
+                            const amountTotal = worksheet.getCell('G29');
                             amountTotal.value = formatCurrency(req.body.totalAmount);
                             amountTotal.style = style;
 
-                            const lessVATAmount = worksheet.getCell('G31');
+                            const lessVATAmount = worksheet.getCell('G30');
                             lessVATAmount.value = formatCurrency(req.body.TotalDetails.VATAmount);
                             lessVATAmount.style = style;
 
-                            const netVATAmount = worksheet.getCell('G32');
+                            const netVATAmount = worksheet.getCell('G31');
                             netVATAmount.value = formatCurrency(
                                 (Number(req.body.totalAmount) - Number(req.body.TotalDetails.VATAmount)).toString(),
                             );
                             netVATAmount.style = style;
 
-                            const amountDue = worksheet.getCell('G34');
+                            const amountDue = worksheet.getCell('G33');
                             amountDue.value = formatCurrency(req.body.totalAmount);
                             amountDue.style = style;
 
-                            const addVATAmount = worksheet.getCell('G31');
+                            const addVATAmount = worksheet.getCell('G30');
                             addVATAmount.value = formatCurrency(req.body.TotalDetails.VATAmount);
                             addVATAmount.style = style;
 
-                            const totalAmountDue = worksheet.getCell('G36');
+                            const totalAmountDue = worksheet.getCell('G35');
                             totalAmountDue.value = formatCurrency(req.body.totalAmount);
                             totalAmountDue.style = style;
                         }

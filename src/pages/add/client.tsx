@@ -34,7 +34,7 @@ export const getServerSideProps : GetServerSideProps = async () => {
 
     const pmr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/pmr`)
 
-    const clients = await axios.get("http://${HOSTADDRESS}:${PORT}/api/getInfo/client")
+    const clients = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/client`)
 
 
     return {
@@ -123,11 +123,12 @@ export default function item({ clients, pmr } : InferGetServerSidePropsType<type
     try {
       const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/client/update/${id}`, clientData)
       console.log(res)
+      setSuccess(true)
+    router.reload()
     } catch (error) {
       console.log(error)
     }
-    setSuccess(true)
-    router.reload()
+   
   }
 
   useEffect(() => {
@@ -149,9 +150,9 @@ export default function item({ clients, pmr } : InferGetServerSidePropsType<type
     }
     
     try {
-      const res = await axios.post('http://192.168.1.101:3000/api/getInfo/client', clientData
+      const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/client`, clientData
       )
-      // router.reload()
+       router.reload()
       setSuccess(true)
     } catch (error) {
       if(axios.isAxiosError(error)){

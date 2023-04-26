@@ -19,9 +19,9 @@ enum UNITS {
   }
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
-    // const session = await getSession(context);
-    // const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
-  
+    const session = await getSession(context);
+    const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+
     try{
         const info = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/salesInvoice/${context.query.id}`)
         return {

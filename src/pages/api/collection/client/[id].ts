@@ -36,7 +36,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         select: { balance: true },
                     });
 
-                    //This space is for delivery Recipt
                     const deliveryRecipt = await prisma.deliveryRecipt.findMany({
                         where: { client: { clientInfo: { id: req.query.id?.toString() } }, balance: { gt: 0 } },
                         select: { balance: true },

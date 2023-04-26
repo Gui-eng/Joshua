@@ -47,18 +47,18 @@ export default function home({ post, pmr } : any) {
   const { data } = useSession();
 
 
-  useEffect(() => {
-    if(!data){
-      alert("Invalid Access")
-      router.push('/')
-    }
-  }, [])
+  // useEffect(() => {
+  //   if(!data){
+  //     alert("Invalid Access")
+  //     router.push('/')
+  //   }
+  // }, [])
 
-  useEffect(() => {
-    if(post.employeeInfoId === null){
-      router.push('/newUser')
-    }
-  },[])
+  // useEffect(() => {
+  //   if(post.employeeInfoId === null){
+  //     router.push('/newUser')
+  //   }
+  // },[])
 
 
 
@@ -66,7 +66,7 @@ export default function home({ post, pmr } : any) {
     data && 
     <>
       <div className='tw-w-full tw-h-full'>
-        <Inav firstName={post.employeeInfo.firstName}/>
+        <Inav/>
         <div className='tw-w-full tw-flex tw-h-[80vh]'>
               <div className='tw-w-[300px] tw-items-center tw-h-full tw-flex'>
                 <div className=' tw-w-full tw-h-[98%] tw-border-x-2 tw-border-slate-300'>
@@ -80,6 +80,9 @@ export default function home({ post, pmr } : any) {
               <div className='tw-w-full tw-p-16 tw-h-full'>
                 <Grid>
                   <Grid.Row columns={4}>
+                    <Grid.Column>
+                        <ICard Icon={<User fill='white' width={35}/>} name={'Main'} link={`/inventory/summary/main`}/>
+                    </Grid.Column>
                     {pmr.map((item : any) => {
                         return (
                             <Grid.Column>

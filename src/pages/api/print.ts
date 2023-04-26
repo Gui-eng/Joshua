@@ -169,18 +169,19 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                             totalNonVatable = 0,
                             totalVATAmount = 0,
                             totalGrossSales = 0;
-
+                        const start = 7;
+                        let startingRow = 7;
                         const arr = data.map((sales: any) => {
                             const items = sales.items.map((item: any) => {
                                 function limit(data: any) {
                                     return parseFloat(parseFloat(data).toFixed(2));
                                 }
 
-                                totalNetDisc += Number(item.ItemSalesDetails[0].netAmount);
-                                totalVatable += Number(item.vatable ? item.ItemSalesDetails[0].netAmount : 0);
-                                totalNonVatable += Number(!item.vatable ? item.ItemSalesDetails[0].netAmount : 0);
-                                totalVATAmount += Number(item.ItemSalesDetails[0].VATAmount);
-                                totalGrossSales = +Number(item.ItemSalesDetails[0].grossAmount);
+                                // totalNetDisc += Number(item.ItemSalesDetails[0].netAmount);
+                                // totalVatable += Number(item.vatable ? item.ItemSalesDetails[0].netAmount : 0);
+                                // totalNonVatable += Number(!item.vatable ? item.ItemSalesDetails[0].netAmount : 0);
+                                // totalVATAmount += Number(item.ItemSalesDetails[0].VATAmount);
+                                // totalGrossSales = +Number(item.ItemSalesDetails[0].grossAmount);
 
                                 const row = worksheet.addRow([
                                     sales.salesInvoiceNumber !== undefined
@@ -194,12 +195,13 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                                     limit(item.ItemSalesDetails[0].netAmount),
                                     item.vatable ? limit(item.ItemSalesDetails[0].netAmount) : '-',
                                     !item.vatable ? limit(item.ItemSalesDetails[0].netAmount) : '-',
-                                    limit(item.ItemSalesDetails[0].VATAmount),
+                                    Number(item.ItemSalesDetails[0].VATAmount),
                                     limit(item.ItemSalesDetails[0].grossAmount),
                                     limit((handleUndefined(item.discount) * 100).toString()) + '%',
                                     sales.pmr?.employeeInfo.code,
                                     sales.client?.clientInfo.TIN,
                                 ]);
+                                startingRow++;
 
                                 row.eachCell((cell) => {
                                     const color = '00008B';
@@ -223,32 +225,118 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
                         worksheet.addRow(['']);
 
-                        const row = worksheet.addRow([
-                            '-',
-                            '-',
-                            '-',
-                            '-',
-                            '-',
-                            '-',
-                            formatCurrency(totalNetDisc.toString()),
-                            formatCurrency(totalVatable.toString()),
-                            formatCurrency(totalNonVatable.toString()),
-                            formatCurrency(totalVATAmount.toString()),
-                            formatCurrency(totalGrossSales.toString()),
-                            '-',
-                            '-',
-                            '-',
-                        ]);
+                        const total = worksheet.getCell(`F${startingRow + 1}`);
+                        total.value = 'Grand Total';
+                        total.style = {
+                            font: {
+                                color: { argb: 'FF0000' },
+                                bold: true,
+                                underline: true,
+                            },
+                        };
 
-                        row.eachCell((cell) => {
-                            cell.style = {
-                                font: {
-                                    color: { argb: 'FF0000' },
-                                    bold: true,
-                                    underline: true,
-                                },
-                            };
-                        });
+                        const totalNetDiscCell = worksheet.getCell(`G${startingRow + 1}`);
+                        totalNetDiscCell.value = {
+                            formula: `SUM(G${start}:G${startingRow - 1})`,
+                            result: 0,
+                            date1904: true,
+                        };
+                        totalNetDiscCell.style = {
+                            font: {
+                                color: { argb: 'FF0000' },
+                                bold: true,
+                                underline: true,
+                            },
+                        };
+                        totalNetDiscCell.numFmt = '₱#,##0.00';
+
+                        const totalVatableCell = worksheet.getCell(`H${startingRow + 1}`);
+                        totalVatableCell.value = {
+                            formula: `SUM(H${start}:H${startingRow - 1})`,
+                            result: 0,
+                            date1904: true,
+                        };
+
+                        totalVatableCell.style = {
+                            font: {
+                                color: { argb: 'FF0000' },
+                                bold: true,
+                                underline: true,
+                            },
+                        };
+                        totalVatableCell.numFmt = '₱#,##0.00';
+
+                        const totalNonVatableCell = worksheet.getCell(`I${startingRow + 1}`);
+                        totalNonVatableCell.value = {
+                            formula: `SUM(I${start}:I${startingRow - 1})`,
+                            result: 0,
+                            date1904: true,
+                        };
+                        totalNonVatableCell.style = {
+                            font: {
+                                color: { argb: 'FF0000' },
+                                bold: true,
+                                underline: true,
+                            },
+                        };
+                        totalNonVatableCell.numFmt = '₱#,##0.00';
+
+                        const totalVATAmountCell = worksheet.getCell(`J${startingRow + 1}`);
+                        totalVATAmountCell.value = {
+                            formula: `SUM(J${start}:J${startingRow - 1})`,
+                            result: 0,
+                            date1904: true,
+                        };
+                        totalVATAmountCell.style = {
+                            font: {
+                                color: { argb: 'FF0000' },
+                                bold: true,
+                                underline: true,
+                            },
+                        };
+                        totalVATAmountCell.numFmt = '₱#,##0.00';
+
+                        const totalGrossSalesCell = worksheet.getCell(`K${startingRow + 1}`);
+                        totalGrossSalesCell.value = {
+                            formula: `SUM(K${start}:K${startingRow - 1})`,
+                            result: 0,
+                            date1904: true,
+                        };
+                        totalGrossSalesCell.style = {
+                            font: {
+                                color: { argb: 'FF0000' },
+                                bold: true,
+                                underline: true,
+                            },
+                        };
+                        totalGrossSalesCell.numFmt = '₱#,##0.00';
+
+                        // const row = worksheet.addRow([
+                        //     '-',
+                        //     '-',
+                        //     '-',
+                        //     '-',
+                        //     '-',
+                        //     '-',
+                        //     '=Sum(G7:G26)',
+                        //     formatCurrency(totalVatable.toString()),
+                        //     formatCurrency(totalNonVatable.toString()),
+                        //     formatCurrency(totalVATAmount.toString()),
+                        //     formatCurrency(totalGrossSales.toString()),
+                        //     '-',
+                        //     '-',
+                        //     '-',
+                        // ]);
+
+                        // row.eachCell((cell) => {
+                        // cell.style = {
+                        //     font: {
+                        //         color: { argb: 'FF0000' },
+                        //         bold: true,
+                        //         underline: true,
+                        //     },
+                        // };
+                        // });
 
                         for (let index = 7; index <= worksheet.rowCount; index++) {
                             worksheet.getRow(index).alignment = { horizontal: 'left' };

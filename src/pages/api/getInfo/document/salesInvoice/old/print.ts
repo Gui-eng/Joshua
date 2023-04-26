@@ -120,8 +120,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                             D3.style = style;
 
                             console.log(getPrice(item.ItemInfo.ItemPrice[0], item.unit));
-                            const unitPrice = worksheet.getCell(`G${startingCell}`);
-                            unitPrice.value = getPrice(item.ItemInfo.ItemPrice[0], item.unit);
+                            const unitPrice = worksheet.getCell(`F${startingCell}`);
+                            unitPrice.value = getPrice(item.ItemInfo.ItemPrice[0], item.unit) + '     ' +  (item.discount * 100).toString() + '%';
                             unitPrice.style = {
                                 ...style,
                                 alignment: {
@@ -129,11 +129,9 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                                 },
                             };
 
-                            const discount = worksheet.getCell(`G${startingCell + 1}`);
-                            discount.value = (item.discount * 100).toString() + '%';
-                            discount.style = style;
+                           
 
-                            const totalAmount = worksheet.getCell(`H${startingCell}`);
+                            const totalAmount = worksheet.getCell(`G${startingCell}`);
                             totalAmount.value = formatCurrency(item.totalAmount);
                             totalAmount.style = style;
 
@@ -169,37 +167,37 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                             VATAmount.value = formatCurrency(req.body.TotalDetails.VATAmount);
                             VATAmount.style = style;
 
-                            const amountTotal = worksheet.getCell('H36');
+                            const amountTotal = worksheet.getCell('G36');
                             amountTotal.value = formatCurrency(req.body.totalAmount);
                             amountTotal.style = style;
 
-                            const amountDue = worksheet.getCell('H34');
+                            const amountDue = worksheet.getCell('G34');
                             amountDue.value = formatCurrency(req.body.totalAmount);
                             amountDue.style = style;
                         } else {
-                            const amountTotal = worksheet.getCell('H30');
+                            const amountTotal = worksheet.getCell('G30');
                             amountTotal.value = formatCurrency(req.body.totalAmount);
                             amountTotal.style = style;
 
-                            const lessVATAmount = worksheet.getCell('H31');
+                            const lessVATAmount = worksheet.getCell('G31');
                             lessVATAmount.value = formatCurrency(req.body.TotalDetails.VATAmount);
                             lessVATAmount.style = style;
 
-                            const netVATAmount = worksheet.getCell('H32');
+                            const netVATAmount = worksheet.getCell('G32');
                             netVATAmount.value = formatCurrency(
                                 (Number(req.body.totalAmount) - Number(req.body.TotalDetails.VATAmount)).toString(),
                             );
                             netVATAmount.style = style;
 
-                            const amountDue = worksheet.getCell('H34');
+                            const amountDue = worksheet.getCell('G34');
                             amountDue.value = formatCurrency(req.body.totalAmount);
                             amountDue.style = style;
 
-                            const addVATAmount = worksheet.getCell('H31');
+                            const addVATAmount = worksheet.getCell('G31');
                             addVATAmount.value = formatCurrency(req.body.TotalDetails.VATAmount);
                             addVATAmount.style = style;
 
-                            const totalAmountDue = worksheet.getCell('H36');
+                            const totalAmountDue = worksheet.getCell('G36');
                             totalAmountDue.value = formatCurrency(req.body.totalAmount);
                             totalAmountDue.style = style;
                         }

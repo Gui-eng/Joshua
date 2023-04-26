@@ -39,7 +39,7 @@ const modeOfPayementOptions : Option[] = [
  
 ]
 
-const headerTitles = ["id","Method", "CR No.", "SI/DR No.", "Date Issued","Check Date", "Date of Deposit", "Deposit Time", "Amount", "Status", "From Balance"]
+const headerTitles = ["id","Method","Check No.", "CR/AR No.", "SI/DR No.", "Date Issued","Check Date", "Date of Deposit", "Deposit Time", "Amount", "Status", "From Balance", "Remarks"]
 
 
 
@@ -81,6 +81,7 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                 id : check.id,
                 modeOfPayment : check.modeOfPayment,
                 checkNumber : check.modeOfPayment === 'CASH' ? "-" : check.checkNumber !== '' ? check.checkNumber : '-',
+                ARCRNo : check.CRARNo ? check.CRARNo : '-',
                 [`${number}`]: check.salesInvoice ? check.salesInvoice.salesInvoiceNumber : check.deliveryRecipt.deliveryReciptNumber,
                 dateIssued : check.dateIssued.substring(10, 0),
                 checkDate : check.checkDate ? check.checkDate.substring(10, 0): '-',
@@ -88,7 +89,7 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                 depositTime : check.modeOfPayment === PAYMENT.CASH ? '-' : check.depositDateAndTime === "-" ? "-" : new Date(check.depositDateAndTime).toLocaleTimeString(),
                 amount : (Math.round(parseFloat(check.amount) * 100) / 100).toLocaleString(),
                 status : renderPaymentStatus(check.status),
-                fromBalance : check.fromBalance,
+                fromBalance : formatCurrency(check.fromBalance),
                 remarks : check.remarks
             }
 
@@ -120,26 +121,32 @@ export default function add({ user, documentData, clients, paymentData} : InferG
         }
     }, [modeOfPayment])
 
+    console.log(paymentData)
 
     async function handleOnClick(e : React.MouseEvent<HTMLButtonElement, MouseEvent>){
         e.preventDefault()
 
         console.log(rawData)
         if(modeOfPayment === PAYMENT.CASH){
-            if(rawData.amount === 0 || rawData.dateOfDeposit === ''){
+            if( rawData.dateOfDeposit === ''){
                 alert('There are empty fields')
                 return
             }
         }else{
-            if(hasEmptyFields(rawData)){
+            if(hasEmptyFields(rawData, ['amount'])){
+                alert('There are empty fields')
+                return
+            }
+
+            if(rawData.amount <= 0 && !rawData.deductFromBalance){
                 alert('There are empty fields')
                 return
             }
         }
 
         const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/collection`, rawData)
-
-        router.reload()
+    
+        // router.reload()
     }
 
     
@@ -159,8 +166,10 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                     <div className='tw-flex tw-justify-between'>
                         <div>
                             <h1 className='tw-text-lg tw-flex tw-gap-2 tw-items-center'>Company Name: {<p className='tw-font-bold'>{documentData.client.clientInfo.companyName}</p>}</h1>
-                            <h1 className='tw-text-lg tw-flex tw-gap-2 tw-items-center'>SI#: {<p className='tw-font-bold'>{documentData.salesInvoiceNumber !== undefined ? documentData.salesInvoiceNumber : documentData.deliveryReciptNumber}</p>}</h1>
-                            <h1 className='tw-text-lg tw-flex tw-gap-2 tw-items-center'>Account Payables: {<p className='tw-text-green-700 tw-font-bold'>₱ {formatCurrency(documentData.payables)}</p>}</h1>
+                            <h1 className='tw-text-lg tw-flex tw-gap-2 tw-items-center'>SI/DR#: {<p className='tw-font-bold'>{documentData.salesInvoiceNumber !== undefined ? documentData.salesInvoiceNumber : documentData.deliveryReciptNumber}</p>}</h1>
+                            <h1 className='tw-text-lg tw-flex tw-gap-2 tw-items-center'>Total Amount Due: {<p className='tw-text-green-700 tw-font-bold'>₱ {formatCurrency(documentData.payables)}</p>}</h1>
+                            <h1 className='tw-text-lg tw-flex tw-gap-2 tw-items-center'>SI/DR Issued Amount: {<p className='tw-text-green-700 tw-font-bold'>₱ {formatCurrency(documentData.totalAmount)}</p>}</h1>
+
                         </div>
                         <div>
                             <h1 className='tw-text-lg tw-flex tw-gap-2 tw-items-center'>Date Issued: {<p className='tw-font-bold'>{documentData.dateIssued.substring(10, 0)}</p>}</h1>
@@ -192,19 +201,6 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                         <label htmlFor="checkNumber">Check No.</label>
                         <Input id='checkNumber' type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
                     </Form.Field>
-
-                    <Form.Field>
-                        <label htmlFor="dateOfDeposit">Deposit Date</label>
-                        <Input id='dateOfDeposit' type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
-                    </Form.Field>
-                    <Form.Field>
-                        <label htmlFor="checkDate">Deposit Time</label>
-                        <Input id='checkDate' type='time' onChange={(e) => {setRawData({...rawData, depositTime : `${rawData.dateOfDeposit.substring(10,0)}T${e.target.value}:00Z`})}}/>
-                    </Form.Field>
-                    <Form.Field>
-                        <label htmlFor="dateIssued">Date Issued</label>
-                        <Input id='dateIssued' max={getDate()} type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
-                    </Form.Field>
                     <Form.Field width={2}>
                         <label htmlFor="amount">Amount</label>
                         <Input id='amount'  onChange={(e) => {handleOnChange(e, rawData, setRawData)}} type='number' label={{content : "₱", color : 'blue'}}/>
@@ -213,9 +209,25 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                         <label htmlFor="remarks">Remarks</label>
                         <Input id='remarks' type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
                     </Form.Field>
-                   
-                    
                 </Form.Group>
+                <Form.Group>
+                        <Form.Field>
+                            <label htmlFor="checkDate">Check Date</label>
+                            <Input id='checkDate' type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
+                        </Form.Field>
+                        <Form.Field>
+                            <label htmlFor="dateOfDeposit">Deposit Date</label>
+                            <Input id='dateOfDeposit' type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
+                        </Form.Field>
+                        <Form.Field>
+                            <label htmlFor="checkDate">Deposit Time</label>
+                            <Input id='checkDate' type='time' onChange={(e) => {setRawData({...rawData, depositTime : `${rawData.dateOfDeposit.substring(10,0)}T${e.target.value}:00Z`})}}/>
+                        </Form.Field>
+                        <Form.Field>
+                            <label htmlFor="dateIssued">Date Issued</label>
+                            <Input id='dateIssued' max={getDate()} type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
+                        </Form.Field>
+                    </Form.Group>
                 <Button color='blue'  onClick={(e) => {handleOnClick(e)}}>Add Payment</Button>
                 </>
                 : 
@@ -238,7 +250,7 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                                     </Form.Field>
                                     <Form.Field>
                                         <label htmlFor="amount">Amount</label>
-                                        <Input id='amount'  onChange={(e) => {handleOnChange(e, rawData, setRawData)}} type='number' label={{content : "₱", color : 'blue'}}/>
+                                        <Input id='amount'  min='0' onChange={(e) => {handleOnChange(e, rawData, setRawData)}} type='number' label={{content : "₱", color : 'blue'}}/>
                                     </Form.Field>
                                     <Form.Field >
                                         <label htmlFor="remarks">Remarks</label>

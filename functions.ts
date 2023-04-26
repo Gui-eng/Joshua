@@ -18,7 +18,7 @@ import { PAYMENT_STATUS } from '@prisma/client';
 import axios from 'axios';
 import _ from 'lodash';
 
-export const HOSTADDRESS = '192.168.1.101';
+export const HOSTADDRESS = '192.168.1.194';
 export const PORT = '3000';
 
 export const emptyOptions: Option = {

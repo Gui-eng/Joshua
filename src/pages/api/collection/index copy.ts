@@ -19,95 +19,45 @@ const deductFromSalesInvoiceBalance = async (
     let remainingAmount: number = amount;
     let accumulatedBalance: number = 0;
 
-    const sum = objArr.map((item: any) => parseFloat(item.balance)).reduce((total, balance) => total + balance, 0);
-
-    await objArr.map(async (doc: any) => {
-        if (sum > totalAmount) {
-            if (doc.salesInvoiceNumber !== undefined) {
-                if (parseFloat(doc.balance) > totalAmount) {
-                    accumulatedBalance = totalAmount;
-
-                    await prisma.salesInvoice.update({
-                        where: { id: doc.id.toString() },
-                        data: {
-                            balance: parseFloat(doc.balance) - totalAmount,
-                        },
-                    });
-
-                    return accumulatedBalance;
-                } else {
-                    accumulatedBalance = parseFloat(doc.balance);
-
-                    await prisma.salesInvoice.update({
-                        where: { id: doc.id.toString() },
-                        data: {
-                            balance: 0,
-                        },
-                    });
-                }
-            } else {
-                if (parseFloat(doc.balance) > totalAmount) {
-                    accumulatedBalance = totalAmount;
-
-                    await prisma.deliveryRecipt.update({
-                        where: { id: doc.id.toString() },
-                        data: {
-                            balance: parseFloat(doc.balance) - totalAmount,
-                        },
-                    });
-
-                    return accumulatedBalance;
-                } else {
-                    accumulatedBalance = parseFloat(doc.balance);
-
-                    await prisma.deliveryRecipt.update({
-                        where: { id: doc.id.toString() },
-                        data: {
-                            balance: 0,
-                        },
-                    });
-                }
-            }
-        } else if (sum === totalAmount) {
-            await objArr.map(async (item: any) => {
-                if (doc.salesInvoiceNumber !== undefined) {
-                    await prisma.salesInvoice.update({
-                        where: { id: doc.id.toString() },
-                        data: {
-                            balance: 0,
-                        },
-                    });
-                } else {
-                    await prisma.deliveryRecipt.update({
-                        where: { id: doc.id.toString() },
-                        data: {
-                            balance: 0,
-                        },
-                    });
-                }
-            });
-            return (accumulatedBalance = totalAmount);
-        } else {
-            await objArr.map(async (item: any) => {
-                if (doc.salesInvoiceNumber !== undefined) {
-                    await prisma.salesInvoice.update({
-                        where: { id: doc.id.toString() },
-                        data: {
-                            balance: 0,
-                        },
-                    });
-                } else {
-                    await prisma.deliveryRecipt.update({
-                        where: { id: doc.id.toString() },
-                        data: {
-                            balance: 0,
-                        },
-                    });
-                }
-            });
-            accumulatedBalance = sum;
+    for (const obj of objArr) {
+        if (remainingAmount <= 0) {
+            break;
         }
-    });
+
+        if (obj.balance > totalAmount) {
+            const newBal = parseFloat(obj.balance) - totalAmount;
+            accumulatedBalance = totalAmount;
+
+            if (obj.salesInvoiceNumber !== undefined) {
+                await prisma.salesInvoice.update({
+                    where: { id: obj.id.toString() },
+                    data: { balance: newBal },
+                });
+            } else {
+                await prisma.deliveryRecipt.update({
+                    where: { id: obj.id.toString() },
+                    data: { balance: newBal },
+                });
+            }
+        } else {
+            accumulatedBalance += obj.balance;
+            obj.balance = 0;
+        }
+
+        if (obj.balance === 0) {
+            if (obj.salesInvoiceNumber !== undefined) {
+                await prisma.salesInvoice.update({
+                    where: { id: obj.id.toString() },
+                    data: { balance: 0 },
+                });
+            } else {
+                await prisma.deliveryRecipt.update({
+                    where: { id: obj.id.toString() },
+                    data: { balance: 0 },
+                });
+            }
+        }
+    }
 
     return accumulatedBalance;
 };
@@ -136,16 +86,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     documentData,
                     dateIssued,
                     deductFromBalance,
-                    ARCR,
-                    remarks,
+                    CRAR,
                 } = req.body;
                 try {
                     let collectionData: PaymentInfo;
                     if (modeOfPayment === PAYMENT.CHECK) {
                         collectionData = await prisma.paymentInfo.create({
                             data: {
-                                remarks: remarks,
-                                CRARNo: ARCR,
+                                CRARNo: CRAR,
                                 amount: amount,
                                 checkDate: checkDate,
                                 depositDateAndTime: depositTime,
@@ -191,14 +139,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                 dateIssued: dateIssued,
                                 clientInfoId: documentData !== undefined ? documentData.client.clientInfo.id : '',
                                 status: 'SUCCESS',
-                                remarks: remarks,
                             },
                         });
                     }
 
                     if (documentData.salesInvoiceNumber !== undefined) {
                         let remainingAmount: number = amount;
-                        let deductFromBalanceValue: number = 0;
 
                         const getPayables = await prisma.salesInvoice.findUnique({
                             where: { salesInvoiceNumber: documentData.salesInvoiceNumber },
@@ -222,20 +168,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         const documents = [...salesInvoices, ...deliveryReceipts];
 
                         if (deductFromBalance && amount < parseFloat(handleUndefined(getPayables?.payables))) {
-                            deductFromBalanceValue = await deductFromSalesInvoiceBalance(
+                            remainingAmount = await deductFromSalesInvoiceBalance(
                                 documents,
                                 amount,
-                                handleUndefined(getPayables?.payables),
+                                parseFloat(documentData.totalAmount),
                             );
-
-                            await prisma.paymentInfo.update({
-                                where: { id: collectionData.id },
-                                data: {
-                                    fromBalance: deductFromBalanceValue,
-                                },
-                            });
-
-                            remainingAmount = remainingAmount + deductFromBalanceValue;
                         }
 
                         const madePayment = await prisma.salesInvoice.update({
@@ -249,10 +186,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                     parseFloat(handleUndefined(getPayables?.payables)) - remainingAmount <= 0
                                         ? true
                                         : false,
-                                amountPaid: parseFloat(handleUndefined(getPayables?.amountPaid)) + remainingAmount,
+                                amountPaid:
+                                    parseFloat(handleUndefined(getPayables?.amountPaid)) +
+                                    remainingAmount +
+                                    (amount - remainingAmount),
                                 balance:
-                                    deductFromBalanceValue > parseFloat(handleUndefined(getPayables?.payables))
-                                        ? deductFromBalanceValue - parseFloat(handleUndefined(getPayables?.payables))
+                                    remainingAmount > parseFloat(handleUndefined(getPayables?.payables))
+                                        ? remainingAmount - parseFloat(handleUndefined(getPayables?.payables))
                                         : 0,
                             },
                         });

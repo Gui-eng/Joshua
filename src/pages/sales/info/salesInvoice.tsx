@@ -61,7 +61,7 @@ export default function index({ post , salesInvoiceData} : InferGetServerSidePro
   return (
    session.data && 
     <div>
-      <Inav firstName={post.employeeInfo.firstName}/>
+      <Inav/>
       <div className='tw-w-full tw-pb-60 tw-flex tw-flex-col'>
             <h1 className='tw-text-[3rem] tw-font-extrabold tw-mt-20 tw-ml-20 tw-mb-20'>Sales Invoice List</h1>
             <div className='tw-w-full tw-flex tw-justify-center'>

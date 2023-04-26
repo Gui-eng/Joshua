@@ -9,6 +9,7 @@ import ICard from 'components/ICard';
 import IFooter from 'components/IFooter';
 import ISideCard from 'components/ISideCard'
 import ISidePanel from 'components/ISidePanel';
+import { HOSTADDRESS, PORT } from 'functions';
 
 const Chart = (props : SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" {...props}>
@@ -32,7 +33,8 @@ const Client = (props : SVGProps<SVGSVGElement>) => (
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
-    const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
+    
     
     return {
       props : { post : res.data.data }
@@ -45,24 +47,24 @@ export default function home({ post } : any) {
   const { data } = useSession();
 
 
-  useEffect(() => {
-    if(!data){
-      alert("Invalid Access")
-      router.push('/')
-    }
-  }, [])
+  // useEffect(() => {
+  //   if(!data){
+  //     alert("Invalid Access")
+  //     router.push('/')
+  //   }
+  // }, [])
 
-  useEffect(() => {
-    if(post.employeeInfoId === null){
-      router.push('/newUser')
-    }
-  },[])
+  // useEffect(() => {
+  //   if(post.employeeInfoId === null){
+  //     router.push('/newUser')
+  //   }
+  // },[])
 
   return (
     data && 
     <>
       <div className='tw-w-full tw-h-full'>
-        <Inav firstName={post.employeeInfo.firstName}/>
+        <Inav/>
         <div className='tw-w-full tw-flex tw-h-[80vh]'>
               <div className='tw-w-[300px] tw-items-center tw-h-full tw-flex'>
                 <div className=' tw-w-full tw-h-[98%] tw-border-x-2 tw-border-slate-300'>
@@ -75,9 +77,9 @@ export default function home({ post } : any) {
               </div>
               <div className='tw-w-full tw-p-16 tw-h-full'>
                 <Grid>
-                  <Grid.Row columns={4}>
+                  <Grid.Row columns={3}>
                   <Grid.Column>
-                      <ICard Icon={<Chart fill='white' width={35}/>} name='Pull Out' link='/sales/pullOut'/>
+                      <ICard Icon={<Chart fill='white' width={35}/>} name='Pull Out' link='/inventory/pullOut'/>
                   </Grid.Column>
                     <Grid.Column>
                         <ICard Icon={<Chart fill='white' width={35}/>} name='Item List' link='/inventory/items'/>
@@ -85,8 +87,13 @@ export default function home({ post } : any) {
                     <Grid.Column>
                         <ICard Icon={<Chart fill='white' width={35}/>} name='Summary' link='/inventory/summary'/>
                     </Grid.Column>
+                  </Grid.Row>
+                  <Grid.Row columns={3}>
+                  <Grid.Column>
+                        <ICard Icon={<Chart fill='white' width={35}/>} name='Proof Of Delivery' link='/inventory/proofOfDelivery'/>
+                    </Grid.Column>
                     <Grid.Column>
-                        <ICard Icon={<Chart fill='white' width={35}/>} name='Proof Of Delivery' link='/inventory/summary'/>
+                        <ICard Icon={<Chart fill='white' width={35}/>} name='Stock Request' link='/inventory/stockRequest'/>
                     </Grid.Column>
                   </Grid.Row>
                 </Grid>

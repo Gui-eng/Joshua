@@ -51,7 +51,7 @@ export default function home({ post } : any) {
     data && 
     <>
       <div className='tw-w-full tw-h-full'>
-        <Inav firstName={post.employeeInfoId !== null ?post.employeeInfo.firstName : ""}/>
+        <Inav/>
         <div className='tw-w-full tw-flex tw-h-[80vh]'>
               <div className='tw-w-[300px] tw-items-center tw-h-full tw-flex'>
                 <div className=' tw-w-full tw-h-[98%] tw-border-x-2 tw-border-slate-300'>
@@ -65,13 +65,13 @@ export default function home({ post } : any) {
               <div className='tw-w-full tw-p-16 tw-h-full'>
                 <Grid>
                   <Grid.Row columns={4}>
-                    {post.role === "SALES" || post.isAdmin ? <Grid.Column>
+                    {post.role === "SALES" || post.role === "ACCOUNTING" || post.isAdmin ? <Grid.Column>
                       <ICard Icon={<Chart fill='white' width={35}/>} name='Sales' link='sales'/>
                     </Grid.Column> : null}
                     {post.role === "INVENTORY" || post.isAdmin ? <Grid.Column>
                       <ICard Icon={<Chart fill='white' width={35}/>} name='Inventory' link='inventory'/>
                     </Grid.Column> : null}
-                    {post.role === "ACCOUNTING" || post.role === "SALES" || post.isAdmin ? <Grid.Column>
+                    {post.role === "SALES" || post.isAdmin ? <Grid.Column>
                       <ICard Icon={<Chart fill='white' width={35}/>} name='Accounting' link='accounting'/>
                     </Grid.Column> : null}
       

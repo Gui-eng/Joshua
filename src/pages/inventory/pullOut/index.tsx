@@ -48,7 +48,7 @@ export default function index({ post , pullOutData} : InferGetServerSidePropsTyp
         dateIssued : item.dateIssued.substring(10,0),
         client : item.client.companyName,
         status : item.status,
-        actions : <Button color='blue' onClick={() => {router.push(`/sales/pullOut/form/view/${item.pullOutNumber}`)}} >View</Button>
+        actions : <Button color='blue' onClick={() => {router.push(`/inventory/pullOut/form/view/${item.pullOutNumber}`)}} >View</Button>
 
   }})
 
@@ -56,7 +56,7 @@ export default function index({ post , pullOutData} : InferGetServerSidePropsTyp
   return (
    session.data && 
     <div>
-      <Inav firstName={post.employeeInfo.firstName}/>
+      <Inav/>
       <div className='tw-w-full tw-pb-60 tw-flex tw-flex-col'>
             <h1 className='tw-text-[3rem] tw-font-extrabold tw-mt-20 tw-ml-20 tw-mb-20'>Pull Out List</h1>
             <div className='tw-w-full tw-flex tw-justify-center'>
@@ -65,7 +65,7 @@ export default function index({ post , pullOutData} : InferGetServerSidePropsTyp
               </div>
             </div>
             <div className='tw-ml-20 tw-mt-4'>
-              <Button onClick={() => {router.push('/sales/pullOut/form')}}color='blue'>Add Pull Out</Button>
+              <Button onClick={() => {router.push('/inventory/pullOut/form')}}color='blue'>Add Pull Out</Button>
             </div>
       </div>
       

@@ -49,8 +49,8 @@ export default function index({ post , deliveryReciptData } : InferGetServerSide
   return (
    session.data && 
     <div>
-      <Inav firstName={post.employeeInfo.firstName}/>
-      <div className='tw-w-full tw-h-[80vh] tw-flex tw-flex-col'>
+      <Inav/>
+      <div className='tw-w-full  tw-flex tw-flex-col'>
             <h1 className='tw-text-[3rem] tw-font-extrabold tw-mt-20 tw-ml-20 tw-mb-10'>Delivery Recipt List</h1>
             <div className='tw-w-full tw-flex tw-justify-center'>
               <div className='tw-w-[90%]'>

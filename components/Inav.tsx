@@ -1,8 +1,10 @@
 import { signOut } from 'next-auth/react'
-import React, { SVGProps } from 'react'
+import React, { SVGProps, useEffect, useState } from 'react'
 import { Button } from 'semantic-ui-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
+import axios from 'axios'
+import { HOSTADDRESS, PORT } from 'functions'
 
 
 interface Props {
@@ -15,12 +17,25 @@ const User = (props : SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
-export default function Inav({ firstName } : Props) {
-    const { data } = useSession()
+export default function Inav() {
+    const { data : session} = useSession()
     const router = useRouter()
+
+
+    const [firstName, setFirstName] = useState('')
     
+    useEffect(() => {
+      async function findUser(){
+        if(session !== undefined){
+          const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
+          setFirstName(res.data.data.employeeInfo.firstName)
+        }
+      }
+      findUser()
+    },[session])
+
   return (
-    data && 
+    session && 
     <div className='navbar'>
       <h1 onClick={() => {router.push('/home')}} className='hover:tw-cursor-pointer hover:tw-text-sky-800 tw-transition-all active:tw-text-sky-300 tw-flex tw-items-center tw-gap-4'><User fill='white' width={30}/>  {firstName}</h1>
       <button className='button' onClick={() => {signOut({ callbackUrl: 'http://localhost:3000/' })}}>Sign out</button>

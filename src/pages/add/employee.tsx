@@ -1,3 +1,4 @@
+import { DEPARTMENT } from '@prisma/client'
 import axios from 'axios'
 import { HOSTADDRESS, PORT } from 'functions'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
@@ -7,11 +8,17 @@ import React, { useEffect, useState } from 'react'
 import { Button, Form, Input, Message, Select } from 'semantic-ui-react'
 
 
-const DEPARTMENT = [
+const DEPARTMENTS = [
     { key: 'sales', text: 'Sales', value: 'SALES' },
     { key: 'inv', text: 'Inventory', value: 'INVENTORY'},
     { key: 'pmr', text: 'PMR', value: 'PMR'},
     { key: 'acc', text: 'Accounting', value: 'ACCOUNTING'},
+    { key: 'genMan', text: 'General Manager', value: DEPARTMENT.GENERAL_MANAGER},
+    { key: 'districtManager', text: 'District Manager', value: DEPARTMENT.DISTRICT_MANAGER},
+    { key: 'devman', text: 'Business Development Manager', value: DEPARTMENT.BUSINESS_DEVELOPMENT_MANAGER},
+
+
+    
   ]
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
@@ -130,7 +137,7 @@ export default function employee({ post } : InferGetServerSidePropsType<typeof g
                     </Form.Field>
                     <Form.Field required>
                         <label htmlFor="department">Department</label>
-                        <Select onChange={(e, item) => {setData({...Data, department : item.value === undefined ? '' : item.value.toString() })}}defaultValue='' placeholder='--Pick a Department--' id='department' options={DEPARTMENT}/>
+                        <Select onChange={(e, item) => {setData({...Data, department : item.value === undefined ? '' : item.value.toString() })}} defaultValue='' placeholder='--Pick a Department--' id='department' options={DEPARTMENTS}/>
                     </Form.Field>
                     <Form.Field required>
                         <label htmlFor="contactNo">Contact No.</label>

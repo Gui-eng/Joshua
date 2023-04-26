@@ -39,6 +39,7 @@ model EmployeeInfo {
   Stocks             Stocks[]          @relation(name: "pmrEmployee")
   User               User?
   ClientInfo         ClientInfo[]
+  stockRequest       stockRequest[]
 }
 
 model Employee {
@@ -97,12 +98,14 @@ model ItemInfo {
   expirationDate    DateTime
   VAT               Boolean
 
-  items       Item[]
-  ItemSummary ItemSummary[]
-  Stocks      Stocks[]
-  pullOutItem PullOutItem[]
-  mainStocks  mainStocks[]
-  ItemPrice   ItemPrice[]
+  items           Item[]
+  ItemSummary     ItemSummary[]
+  Stocks          Stocks[]
+  pullOutItem     PullOutItem[]
+  mainStocks      mainStocks[]
+  ItemPrice       ItemPrice[]
+  proofOfDelivery proofOfDelivery[]
+  stockRequest    stockRequest[]
 }
 
 model ItemPrice {
@@ -395,9 +398,15 @@ model MonthlyCollection {
 model proofOfDelivery {
   id String @id @default(uuid())
 
-  remarks       String
-  dateRequested DateTime
+  proofOfDeliveryNumber String
 
+  quantity      Int
+  remarks       String?
+  dateRequested DateTime
+  unit          String
+
+  itemInfo          ItemInfo     @relation(fields: [itemInfoId], references: [id])
+  itemInfoId        String
   deliveredClient   ClientInfo   @relation(name: "deliveredClient", fields: [deliveredClientId], references: [id])
   deliveredClientId String
   pmr               EmployeeInfo @relation(name: "pmr", fields: [pmrId], references: [id])
@@ -405,6 +414,24 @@ model proofOfDelivery {
 
   salesInvoice   SalesInvoice[]
   deliveryRecipt DeliveryRecipt[]
+}
+
+model stockRequest {
+  id String @id @default(uuid())
+
+  stockRequestNumber String
+
+  quantityRequested Int
+  quantityIssued    Int
+  remarks           String?
+  deliveredAddress  String
+  dateRequested     DateTime
+  unit              String
+
+  itemInfo      ItemInfo     @relation(fields: [itemInfoId], references: [id])
+  itemInfoId    String
+  requestedBy   EmployeeInfo @relation(fields: [requestedById], references: [id])
+  requestedById String
 }
 
 enum UNITS {
@@ -429,6 +456,10 @@ enum DEPARTMENT {
   INVENTORY
   ACCOUNTING
   IT
+  GENERAL_MANAGER              @map("GENERAL MANAGER")
+  DISTRICT_MANAGER             @map("DISTRICT MANAGER")
+  BUSINESS_DEVELOPMENT_MANAGER @map("BUSINESS DEVELOPMENT MANAGER")
+  ADMIN
 }
 
 enum STATUS {

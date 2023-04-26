@@ -60,7 +60,7 @@ export default function home({ post, documentData} :  InferGetServerSidePropsTyp
     try {
       const res = await axios.post("http://localhost:3000/api/print", rawData)
       alert('File created Successfully!')
-      router.reload()
+      // router.reload()
     } catch (error) {
       console.log(error)
     }
@@ -111,7 +111,7 @@ export default function home({ post, documentData} :  InferGetServerSidePropsTyp
     data && 
     <>
       <div className='tw-w-full tw-h-full'>
-        <Inav firstName={post.employeeInfoId !== null ?post.employeeInfo.firstName : ""}/>
+        <Inav/>
         <div className='tw-w-full tw-flex tw-items-center tw-flex-col tw-pb-96'>
               <div className='tw-w-[95%] tw-p-4 tw-flex tw-justify-between tw-h-full tw-items-center' >
                 <h1 className='tw-text-xl tw-ml-2 tw-font-bold'>Monthly Sales</h1>
