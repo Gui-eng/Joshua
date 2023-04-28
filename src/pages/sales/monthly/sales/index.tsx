@@ -60,7 +60,7 @@ export default function home({ post, documentData} :  InferGetServerSidePropsTyp
     try {
       const res = await axios.post("http://localhost:3000/api/print", rawData)
       alert('File created Successfully!')
-      // router.reload()
+      router.reload()
     } catch (error) {
       console.log(error)
     }
@@ -103,8 +103,6 @@ export default function home({ post, documentData} :  InferGetServerSidePropsTyp
       router.push('/newUser')
     }
   },[])
-
- 
 
 
   return (

@@ -164,11 +164,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                             };
                         });
 
-                        let totalNetDisc = 0,
-                            totalVatable = 0,
-                            totalNonVatable = 0,
-                            totalVATAmount = 0,
-                            totalGrossSales = 0;
                         const start = 7;
                         let startingRow = 7;
                         const arr = data.map((sales: any) => {
@@ -177,11 +172,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                                     return parseFloat(parseFloat(data).toFixed(2));
                                 }
 
-                                // totalNetDisc += Number(item.ItemSalesDetails[0].netAmount);
-                                // totalVatable += Number(item.vatable ? item.ItemSalesDetails[0].netAmount : 0);
-                                // totalNonVatable += Number(!item.vatable ? item.ItemSalesDetails[0].netAmount : 0);
-                                // totalVATAmount += Number(item.ItemSalesDetails[0].VATAmount);
-                                // totalGrossSales = +Number(item.ItemSalesDetails[0].grossAmount);
+                                const accountingFormat = '₱ #,##0.00';
 
                                 const row = worksheet.addRow([
                                     sales.salesInvoiceNumber !== undefined
@@ -195,15 +186,23 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                                     limit(item.ItemSalesDetails[0].netAmount),
                                     item.vatable ? limit(item.ItemSalesDetails[0].netAmount) : '-',
                                     !item.vatable ? limit(item.ItemSalesDetails[0].netAmount) : '-',
-                                    Number(item.ItemSalesDetails[0].VATAmount),
+                                    Number(handleUndefined(item.ItemSalesDetails[0].VATAmount)),
                                     limit(item.ItemSalesDetails[0].grossAmount),
-                                    limit((handleUndefined(item.discount) * 100).toString()) + '%',
+                                    limit(handleUndefined(item.discount)),
                                     sales.pmr?.employeeInfo.code,
                                     sales.client?.clientInfo.TIN,
                                 ]);
                                 startingRow++;
 
-                                row.eachCell((cell) => {
+                                row.eachCell((cell, colNumber) => {
+                                    if (colNumber > 5 && colNumber < 12) {
+                                        cell.numFmt = accountingFormat;
+                                    }
+
+                                    if (colNumber >= 12) {
+                                        cell.numFmt = '% 0';
+                                    }
+
                                     const color = '00008B';
                                     cell.border = {
                                         top: { style: 'thin', color: { argb: color } },
@@ -311,33 +310,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                         };
                         totalGrossSalesCell.numFmt = '₱#,##0.00';
 
-                        // const row = worksheet.addRow([
-                        //     '-',
-                        //     '-',
-                        //     '-',
-                        //     '-',
-                        //     '-',
-                        //     '-',
-                        //     '=Sum(G7:G26)',
-                        //     formatCurrency(totalVatable.toString()),
-                        //     formatCurrency(totalNonVatable.toString()),
-                        //     formatCurrency(totalVATAmount.toString()),
-                        //     formatCurrency(totalGrossSales.toString()),
-                        //     '-',
-                        //     '-',
-                        //     '-',
-                        // ]);
-
-                        // row.eachCell((cell) => {
-                        // cell.style = {
-                        //     font: {
-                        //         color: { argb: 'FF0000' },
-                        //         bold: true,
-                        //         underline: true,
-                        //     },
-                        // };
-                        // });
-
                         for (let index = 7; index <= worksheet.rowCount; index++) {
                             worksheet.getRow(index).alignment = { horizontal: 'left' };
                         }
@@ -378,6 +350,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                             res.status(200).json({ data: req.body });
                         }
                     });
+                    res.status(200).json({ data: req.body });
                 } catch (error) {
                     console.error(error);
                     res.status(500).send('Internal Server Error');

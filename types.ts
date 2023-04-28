@@ -146,7 +146,7 @@ export interface TableProps {
     headerTitles: Array<string>;
     color?: SemanticCOLORS;
     handleEditing?: any;
-    allowEditing?: Boolean;
+    allowEditing?: boolean;
     allowDelete?: Boolean;
     updateItem?: any;
     extraData?: any;

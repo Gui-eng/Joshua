@@ -1,15 +1,15 @@
 import axios from 'axios'
 import _, { floor, uniqueId } from 'lodash'
 import { v4 as uuidv4 } from 'uuid';
-import IFlexTable from '../../../../components/InvoiceTable'
+import IFlexTable from '../../../../../components/InvoiceTable'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import { Button, Checkbox, Dropdown, Form, FormField, Header, Input, Label, Message, TextArea } from 'semantic-ui-react'
-import { Client, ClientInfo, EmployeeInfo, Item, ItemInfo, ItemPrice, ItemSalesDetails, Option, SalesInvoiceData, UNITS } from '../../../../types'
+import { Client, ClientInfo, EmployeeInfo, Item, ItemInfo, ItemPrice, ItemSalesDetails, Option, SalesInvoiceData, UNITS } from '../../../../../types'
 
-import { getPrice, showAvailableUnits, handleUndefined, removeDuplicates ,find, getDate, makeOptions, handleOnChange, handleOptionsChange, handleDateChange, findMany, emptyOptions, emptySalesInvoiceData, emptySalesItemData, quantityOptions, hasEmptyFields, emptyItemData, getTotal, HOSTADDRESS, PORT } from '../../../../functions'
+import { getPrice, showAvailableUnits, handleUndefined, removeDuplicates ,find, getDate, makeOptions, handleOnChange, handleOptionsChange, handleDateChange, findMany, emptyOptions, emptySalesInvoiceData, emptySalesItemData, quantityOptions, hasEmptyFields, emptyItemData, getTotal, HOSTADDRESS, PORT, emptyItemSalesDetails } from '../../../../../functions'
 
 const tableHeaders = ["id","Quanity", "Unit", "Articles","Batch No.", "Vatable", "U-Price", "Discount", "Amount"]
 
@@ -19,22 +19,31 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
     const client = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/client`)
     const pmr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/pmr`)
+    const currentSI = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/salesInvoice/${context.query.id}`)
     const item = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item`)
     const preparedBy = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
 
 
     return {
-      props : { preparedBy: preparedBy.data.data, itemInfo : item.data.data, clientInfo : client.data.data, pmrInfo : pmr.data.data}
+      props : { preparedBy: preparedBy.data.data, itemInfo : item.data.data, clientInfo : client.data.data, pmrInfo : pmr.data.data, currentSI: currentSI.data.data}
     }
 }
 
 
-export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : InferGetServerSidePropsType<typeof getServerSideProps>) {
+export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
   const itemList = removeDuplicates(itemInfo, 'itemName')
   const router = useRouter()
 
   
+  const convertItemsToFit = currentSI.items.map((item : any) => {
+      return {
+        ...item,
+        totalAmount : Number(item.totalAmount),
+        unitPrice : getPrice(item.ItemInfo.ItemPrice[0], item.unit)
+      }
+  })
+
 
 
   //Options
@@ -44,7 +53,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   const [availableQuantityOptions, setAvailableQuantityOption] = useState(quantityOptions)
 
   //Data
-  const [salesInvoiceData, setSalesInvoiceData] = useState(emptySalesInvoiceData)
+  const [salesInvoiceData, setSalesInvoiceData] = useState<any>(emptySalesInvoiceData)
   const [itemData, setItemData] = useState<Item>(emptySalesItemData)
   const [selectedItemData, setSelectedItemData] = useState<ItemInfo>()
   const [selectedItemId, setSelectedItemId] = useState<string>('')
@@ -55,7 +64,9 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   //Temps
   const [batchOption, setBatchOption] = useState<Array<Option>>([emptyOptions])
   const [filteredItemList, setFilteredItemList] = useState<Array<ItemInfo>>()
-  const [itemArray, setItemArray] = useState<Array<any>>([])
+  const [itemArray, setItemArray] = useState<Array<any>>(convertItemsToFit)
+  const [dataTarget, setDataTarget] = useState<any>()
+  const [itemName, setItemName] = useState<any>('')
 
   //Booleans
   const [isRemote, setIsRemote] = useState(true)
@@ -63,9 +74,8 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   const [disabledStockIn, setDisabledStockIn] = useState(false)
   const [stockIn, setStockIn] = useState(false)
   const [emptyFieldsError, setEmptyFieldError] = useState(false)
-   
 
-
+  
 
   function handleDiscount(e : React.ChangeEvent<HTMLInputElement>){
     const discount = parseFloat(e.target.value) / 100
@@ -108,7 +118,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
 
       const client : ClientInfo = find(handleUndefined(salesInvoiceData.clientId), clientInfo)
     
-      setSalesInvoiceData({...salesInvoiceData, client : find(handleUndefined(salesInvoiceData.clientId), clientInfo), preparedById : preparedBy.employeeInfoId, pmrEmployeeId : client.pmrId})
+      setSalesInvoiceData({...salesInvoiceData, client : find(handleUndefined(salesInvoiceData.clientId), clientInfo), pmrEmployeeId : client.pmrId})
     }
   }, [salesInvoiceData.clientId])
 
@@ -132,7 +142,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
       itemId : handleUndefined(itemData.id),
       netAmount : netTotalAmount,
       vatable : itemData.vatable,
-      VATAmount : netTotalAmount  - ((netTotalAmount / 1.12) * 12)
+      VATAmount : netTotalAmount  - ((netTotalAmount / 1.12) * .12)
     }})
   }, [itemData.unitPrice, itemData.quantity])
 
@@ -144,7 +154,6 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
       const VATAmountWithDiscount = Math.round(((item.totalAmount - ((item.totalAmount * handleUndefined(item.discount))) / 1.12) * .12)  * 100) / 100
 
       const VATAmountWithoutDiscount = Math.round(((item.totalAmount / 1.12) * .12) * 100) / 100
-      console.log(VATAmountWithDiscount)
       const data = {
         itemId : handleUndefined(item.id),
         grossAmount : Math.round(item.totalAmount * 100) / 100,
@@ -182,6 +191,27 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
     setSalesInvoiceData({...salesInvoiceData, totalAmount : _.sumBy(sales, 'netAmount'), VAT : _.sumBy(sales, 'VATAmount'), total : getTotal(sales)})
   }, [sales])
 
+  useEffect(() => {
+    setSalesInvoiceData({
+      id : currentSI.id,
+      dateIssued : currentSI.dateIssued,
+      isRemote : currentSI.isRemote,
+      item : convertItemsToFit,
+      salesInvoiceNumber : currentSI.salesInvoiceNumber,
+      term : currentSI.term,
+      totalAmount : currentSI.totalAmount,
+      total : currentSI.TotalDetails,
+      VAT : Number(currentSI.VAT),
+      clientId : currentSI.client.clientInfo.id,
+      client : currentSI.client.clientInfo,
+      preparedById : currentSI.preparedBy.employeeInfo.id,
+      pmrEmployeeId : currentSI.pmr.employeeInfo.id,
+      remarks : currentSI.remarks,
+      lastItems : convertItemsToFit
+    }) 
+   },[])
+   console.log(currentSI)
+   console.log(pmrOptions)
 
   //Data Handling
 
@@ -205,13 +235,14 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
       alert('There are Empty Fields')
       return
     }
-      const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/addInvoice`, salesInvoiceData)
+      const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/editInvoice`, salesInvoiceData)
       router.reload()
     if(!res.status){
       console.log(res.statusText)
      
     
   }
+  console.log(salesInvoiceData)
 
 }
 
@@ -223,6 +254,29 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   setItemArray((prevItem)=> {return prevItem.filter((value) => {return value.id !== target.id} )})
    
  }
+
+//  function handleEdit(data : any){
+//   const target = itemArray.find((item : any) => {
+//     return item.id === data.id
+//  })
+
+
+//   setDataTarget(target)
+//   setFilteredItemList(findMany('itemName', itemInfo, target.ItemInfo.itemName))
+//   setItemArray((prevItem)=> {return prevItem.filter((value) => {return value.id !== target.id} )})
+//   setSelectedItemId(target.ItemInfo.id)
+//   setItemData({
+//     itemSalesDetails : emptyItemSalesDetails,
+//     quantity : target.quantity,
+//     totalAmount : target.totalAmount,
+//     unit : target.unit,
+//     unitPrice : target.unitPrice,
+//     vatable : target.vatable,
+//     discount : target.discount,
+//     ItemInfo : target.ItemInfo
+//   })
+  
+//  }
 
     
   return (
@@ -237,11 +291,11 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
               <Form.Group>
                   <Form.Field required error={(emptyFieldsError && salesInvoiceData.salesInvoiceNumber === '')}>
                       <label htmlFor="salesInvoiceNumber">SI No.</label>
-                      <Input size='mini' id="salesInvoiceNumber" placeholder="ie. 89901" onChange={(e) => {handleOnChange(e, salesInvoiceData, setSalesInvoiceData)}} />
+                      <Input value={salesInvoiceData.salesInvoiceNumber} size='mini' id="salesInvoiceNumber" placeholder="ie. 89901" onChange={(e) => {handleOnChange(e, salesInvoiceData, setSalesInvoiceData)}} />
                   </Form.Field>
                   <Form.Field required error={(emptyFieldsError && salesInvoiceData.dateIssued === '')}>
                       <label htmlFor="dateIssued">Date Issued</label>
-                      <Input size='mini' type='date' max={getDate()} id="dateIssued" onChange={(e) =>  {handleDateChange(e, salesInvoiceData, setSalesInvoiceData)}}/>
+                      <Input size='mini' type='date' value={salesInvoiceData.dateIssued.substring(10, 0)} max={getDate()} id="dateIssued" onChange={(e) =>  {handleDateChange(e, salesInvoiceData, setSalesInvoiceData)}}/>
                   </Form.Field>
               </Form.Group>
               <Form.Group >
@@ -251,6 +305,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                           placeholder='--Company Name--'
                           search
                           selection
+                          value={salesInvoiceData.clientId}
                           options={clientOptions}
                           onChange={(e, item) => {handleOptionsChange(e, item, salesInvoiceData, setSalesInvoiceData)}}
                       />
@@ -267,7 +322,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                   </Form.Field>
                   <Form.Field width={4} required error={(emptyFieldsError && salesInvoiceData.term === 0)}>
                     <label htmlFor="term">Terms</label>
-                    <Input  id="term"  onChange={(e) => {handleOnChange(e, salesInvoiceData, setSalesInvoiceData)}} type='number' min="0" label={{content : "Days", color : "blue"}} labelPosition='right'/>
+                    <Input  id="term" value={salesInvoiceData.term}  onChange={(e) => {handleOnChange(e, salesInvoiceData, setSalesInvoiceData)}} type='number' min="0" label={{content : "Days", color : "blue"}} labelPosition='right'/>
                   </Form.Field>
               </Form.Group>
               <Form.Group>
@@ -286,7 +341,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                   </Form.Field>
                   <Form.Field>
                       <label htmlFor="remarks">Remarks</label>
-                      <Input id="remarks" placeholder="Remarks" onChange={(e) => {handleOnChange(e, salesInvoiceData, setSalesInvoiceData)}} />
+                      <Input id="remarks" value={salesInvoiceData.remarks} placeholder="Remarks" onChange={(e) => {handleOnChange(e, salesInvoiceData, setSalesInvoiceData)}} />
                   </Form.Field>
               </Form.Group>
               <Form.Group>
@@ -312,8 +367,9 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                             id="itemName"
                             search
                             selection
+                            value={dataTarget ? dataTarget.ItemInfo.itemName : itemName}
                             options={itemOptions}
-                            onChange={(e, item) => {setFilteredItemList(findMany(e.currentTarget.id, itemInfo, item.value !== undefined ? item.value.toString() : ''))}}
+                            onChange={(e, item) => {setFilteredItemList(findMany(e.currentTarget.id, itemInfo, item.value !== undefined ? item.value.toString() : '')); setItemName(item.value)}}
                             />
                         </Form.Field>
                         <Form.Field required error={(emptyFieldsError && itemData.ItemInfo?.batchNumber === '')}>
@@ -323,6 +379,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                             disabled={filteredItemList !== undefined ? filteredItemList[0].itemName === '' : true}
                             search
                             selection
+                            value={selectedItemId}
                             options={batchOption}
                             onChange={(e, item) => {setSelectedItemId(handleUndefined(item.value))}}
                             />
@@ -365,7 +422,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
           </div>
           <div className='tw-w-full tw-flex tw-justify-center tw-pt-4'>
             <div className='tw-w-[90%]'>
-              {tableData.length > 0 ? <Button onClick={handleOnClick} color='blue'>Create Sales Invoice</Button> : null}  
+              {tableData.length > 0 ? <Button onClick={handleOnClick} color='blue'>Save Changes</Button> : null}  
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@ import Itable from 'components/Itable';
 import { HOSTADDRESS, PORT, getPrice, handleUndefined } from 'functions';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
+import { useRouter } from 'next/router';
 import React from 'react'
 import { Button } from 'semantic-ui-react';
 import { Item } from 'types';
@@ -45,6 +46,7 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
     console.log(info)
    
     // !info ? null
+    const router = useRouter()
 
     async function handlePrint(newSI : Boolean){
         if(newSI){
@@ -57,6 +59,8 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
     const tableData = info.items.map((item : any) => {
 
         const getThePrice = getPrice(handleUndefined(item.ItemInfo?.ItemPrice[0]), item.unit)
+
+        
 
         return {
             id: item.id,
@@ -101,6 +105,7 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
                 <div className='tw-mt-4'>
                     <Button onClick={() => {handlePrint(true)}}color='blue'>Print SI &#40;New&#41;</Button>
                     <Button onClick={() => {handlePrint(false)}}color='blue'>Print SI &#40;Old&#41;</Button>
+                    {/* <Button onClick={() => {router.push(`/sales/add/editSI/${info.id}`)}}color='blue'>Edit</Button> */}
                 </div>
            </div>
         </div>

@@ -2,13 +2,13 @@ import axios from 'axios'
 import IFooter from 'components/IFooter'
 import ISideCard from 'components/ISideCard'
 import Inav from 'components/Inav'
-import Itable from 'components/Itable'
+import Itable from 'components/IFlexTable'
 import { HOSTADDRESS, PORT } from 'functions'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import React, { useEffect } from 'react'
-import { Button, Header } from 'semantic-ui-react'
+import React, { useEffect, useState } from 'react'
+import { Button, Header, Input } from 'semantic-ui-react'
 import { SalesInvoiceData } from 'types'
 
 const tableData = [
@@ -39,23 +39,36 @@ export default function index({ post , salesInvoiceData} : InferGetServerSidePro
   const router = useRouter()
   const session = useSession();
 
-  const tableData = salesInvoiceData.map((item : SalesInvoiceData) => {
-    return {
-      id: item.id,
-      salesInvoiceNumber: item.salesInvoiceNumber,
-      dateIssued: item.dateIssued.substring(10, 0),
-      medRep: item.pmr?.employeeInfo.firstName + " " + item.pmr?.employeeInfo.lastName,
-      preparedBy: item.preparedBy?.employeeInfo.firstName + " " + item.preparedBy?.employeeInfo.lastName,
-      totalAmount: <Header as={'h5'}>{parseFloat(item.totalAmount.toString()).toLocaleString()}</Header>,
-      remarks: item.remarks,
-      actions: <Button onClick={() => {router.push(`http://${HOSTADDRESS}:${PORT}/sales/info/${item.id}`)}} color='blue' >View</Button>
-    
-  }})
+  const [rawData, setRawData] = useState<any>(salesInvoiceData)
+  const [tableData, setTableData] = useState<any>([])
+
+  useEffect(() => {
+
+      const data = rawData.map((item : SalesInvoiceData) => {
+        return {
+          id: item.id,
+          salesInvoiceNumber: item.salesInvoiceNumber,
+          dateIssued: item.dateIssued.substring(10, 0),
+          medRep: item.pmr?.employeeInfo.firstName + " " + item.pmr?.employeeInfo.lastName,
+          preparedBy: item.preparedBy?.employeeInfo.firstName + " " + item.preparedBy?.employeeInfo.lastName,
+          totalAmount: <Header as={'h5'}>{parseFloat(item.totalAmount.toString()).toLocaleString()}</Header>,
+          remarks: item.remarks,
+          actions: <Button onClick={() => {router.push(`http://${HOSTADDRESS}:${PORT}/sales/info/${item.id}`)}} color='blue' >View</Button>
+        
+      }})
+
+      setTableData(data)
+  },[rawData])
 
 
-  
-  
+  function filterData(str : string, array : Array<any>){
+      const arr = array.filter((item) => {
+        return item.salesInvoiceNumber.includes(str)
+      })
+      setRawData(arr)
+  }
 
+ 
 
  
   return (
@@ -64,16 +77,17 @@ export default function index({ post , salesInvoiceData} : InferGetServerSidePro
       <Inav/>
       <div className='tw-w-full tw-pb-60 tw-flex tw-flex-col'>
             <h1 className='tw-text-[3rem] tw-font-extrabold tw-mt-20 tw-ml-20 tw-mb-20'>Sales Invoice List</h1>
+            <div className='tw-ml-16 tw-mb-4'>
+              <Button onClick={() => {router.push('/sales/add/invoice')}}color='blue'>Add Sales Invoice</Button>
+              <Input onChange={(e) => {filterData(e.target.value, salesInvoiceData)}} type='text' placeholder='Search...' icon={'search'}/>
+
+            </div>
             <div className='tw-w-full tw-flex tw-justify-center'>
               <div className='tw-w-[90%]'>
                   <Itable data={tableData} headerTitles={headerTitles}/>
               </div>
             </div>
-            <div className='tw-ml-20 tw-mt-4'>
-              <Button onClick={() => {router.push('/sales/add/invoice')}}color='blue'>Add Sales Invoice</Button>
-            </div>
       </div>
-      
     </div>
   )
 }

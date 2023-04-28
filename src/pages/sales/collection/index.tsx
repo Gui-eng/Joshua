@@ -92,7 +92,7 @@ export default function home({ post, salesInvoiceData, deliveryReciptData } :  I
     data && 
     <>
       <div className='tw-w-full tw-h-full'>
-        <Inav firstName={post.employeeInfoId !== null ?post.employeeInfo.firstName : ""}/>
+        <Inav/>
         <div className='tw-w-full tw-flex tw-items-center tw-flex-col tw-pb-96'>
               
               <div className='tw-w-[95%] tw-p-4 tw-flex tw-justify-between tw-h-full tw-items-center' >
