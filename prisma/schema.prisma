@@ -93,10 +93,12 @@ model Client {
 model ItemInfo {
   id                String   @id @default(uuid())
   itemName          String
-  batchNumber       String   @unique
+  batchNumber       String
   manufacturingDate DateTime
   expirationDate    DateTime
   VAT               Boolean
+
+  isActive Boolean @default(true)
 
   items           Item[]
   ItemSummary     ItemSummary[]
@@ -414,6 +416,35 @@ model proofOfDelivery {
 
   salesInvoice   SalesInvoice[]
   deliveryRecipt DeliveryRecipt[]
+}
+
+model receivingReport {
+  id String @id @default(uuid())
+
+  supplier              String
+  address               String
+  TIN                   String   @unique
+  remarks               String?
+  term                  Int
+  dateIssued            DateTime
+  receivingReportNumber String   @unique
+
+  items receivingReportItems[]
+}
+
+model receivingReportItems {
+  id String @id @default(uuid())
+
+  itemName          String
+  batchNumber       String
+  quantity          Int
+  unit              String
+  manufacturingDate DateTime
+  expirationDate    DateTime
+  VAT               Boolean
+
+  receivingReport   receivingReport? @relation(fields: [receivingReportId], references: [id])
+  receivingReportId String?
 }
 
 model stockRequest {

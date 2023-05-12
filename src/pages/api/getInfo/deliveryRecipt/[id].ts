@@ -27,8 +27,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                             pmr: { include: { employeeInfo: true } },
                             preparedBy: { include: { employeeInfo: true } },
                             client: { include: { clientInfo: true } },
+                            TotalDetails: true,
                             items: {
                                 include: {
+                                    ItemSalesDetails: true,
                                     ItemInfo: {
                                         include: {
                                             ItemPrice: true,

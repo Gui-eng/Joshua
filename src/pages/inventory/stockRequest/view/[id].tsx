@@ -1,10 +1,15 @@
 import axios from 'axios';
 import Itable from 'components/Itable';
-import { HOSTADDRESS, PORT, formatCurrency, formatDateString, getPrice, handleUndefined } from 'functions';
+import Docxtemplater from 'docxtemplater';
+import { HOSTADDRESS, PORT, formatCurrency, formatDateString, getPrice, handleUndefined, hasEmptyFields } from 'functions';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
-import React from 'react'
+import { useRouter } from 'next/router';
+import PizZip from 'pizzip';
+import React, { useEffect, useState } from 'react'
+import { Button, Form, FormField, Input } from 'semantic-ui-react';
 import { Item } from 'types';
+import template from './../../../../../public/stockTemplate.docx'
 
 const headerTitle = ["id", "Quantity Requested", "Quantity Issued", "Prodcut Name", "MFG. Date", "EXP Date" , "Batch Number"]
 
@@ -16,6 +21,53 @@ enum UNITS {
     CAPSULES = "CAPSULES",
     TABLETS = "TABLETS"
   }
+
+  const data = {
+    stock_number : "",
+    requested_by : "",
+    address : "",
+    date : "",
+    prepared_by : "",
+    checked_by : "",
+
+
+    quantity1 : "",
+    name1: "",
+    issued1 : "",  
+    unit1: "",
+
+    quantity2 : "",
+    name2: "",
+    issued2: "",  
+    unit2: "",
+    
+    quantity3 : "",
+    name3: "",
+    issued3 : "",  
+    unit3: "",
+
+    quantity4 : "",
+    name4: "",
+    issued4 : "",  
+    unit4: "",
+
+    quantity5 : "",
+    name5: "",
+    issued5 : "",  
+    unit5: "",
+
+    quantity6 : "",
+    name6: "",
+    issued6 : "",  
+    unit6: "",
+
+    quantity7 : "",
+    name7: "",
+    issued7 : "",  
+    unit7: "",
+
+
+}
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     // const session = await getSession(context);
@@ -40,7 +92,48 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 export default function ID( {post, info} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
     
+    const router = useRouter()
+    console.log(info)
 
+    const [isPrinting, setIsPrinting] = useState(false)
+    const [extra, setExtra] = useState({
+      checked_by : "",
+      prepared_by : "",
+    })
+    const [templateData, setTemplateData] = useState(data)
+
+    useEffect(() => {
+
+      setTemplateData(prevTemplateData => {
+          let updatedTemplateData = { ...prevTemplateData };
+          info.map((item: any, index: number) => {
+            updatedTemplateData = {
+              ...updatedTemplateData,
+              [`quantity${index + 1}`]: item.quantityRequested,
+              [`name${index + 1}`]: item.itemInfo.itemName,
+              [`unit${index + 1}`]: item.unit,
+              [`issued${index + 1}`]: item.quantityIssued,
+
+
+
+            };
+            return null; // Suppressing the warning about map() needing a return value
+          });
+          return updatedTemplateData;
+        });
+        
+
+      setTemplateData((prevTemplateData : any) => ({
+          ...prevTemplateData,
+          stock_number: info[0].stockRequestNumber,
+          address: info[0].deliveredAddress,
+          date: formatDateString(info[0].dateRequested),
+          requested_by : info[0].requestedBy.firstName + " " + info[0].requestedBy.lastName
+          // prepared_by: info[0].,
+      }))
+
+    
+  }, [info])
     const tableData = info.map((item : any) => {
         return {
            id : item.id,
@@ -53,7 +146,49 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
         }
     })
 
-    
+    useEffect(() => {
+      setTemplateData((prevData : any) => ({
+        ...prevData,
+        checked_by : extra.checked_by,
+        prepared_by : extra.prepared_by
+      }))
+    }, [extra])
+
+    async function generateDocument(resume : any, templatePath : any) {
+      // load the document template into docxtemplater
+      try {
+          let response = await fetch(templatePath);
+          let data = await response.arrayBuffer();
+  
+          let zip = new PizZip(data);
+  
+          let templateDoc = new Docxtemplater(zip, {
+              paragraphLoop: true,
+              linebreaks: true
+          })
+  
+          templateDoc.render(resume);
+  
+          let generatedDoc = templateDoc.getZip().generate({
+              type: "base64",
+              mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              compression: "DEFLATE"
+          })
+
+          
+          
+          await axios.post(`http://${HOSTADDRESS}:${PORT}/api/inventory/stockRequest/convertToPdf`, {file : generatedDoc})
+          await axios.get(`http://${HOSTADDRESS}:${PORT}/api/inventory/stockRequest/savepdf`)
+          
+          
+      
+          router.reload()
+          alert("Saved Succuessfully See Reports/forms")
+      } catch (error) {
+          console.log('Error: ' + error);
+      }
+    }
+
   return (
     <div>{
     <>
@@ -76,6 +211,20 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
         <div className='tw-w-full tw-flex tw-justify-center'>
            <div className='tw-w-[90%]'>
                 <Itable color='blue' data={tableData} headerTitles={headerTitle}/>
+                <Button className='tw-mt-4' color="blue" onClick={() => {setIsPrinting(isPrinting ? false : true)}}>Print</Button>
+                {isPrinting ? 
+                  <Form className='tw-mt-4'>
+                    <FormField width={5}>
+                      <label>Prepared By:</label>
+                      <Input size='mini' value={extra.prepared_by} type='text' onChange={(e) => {setExtra({...extra, prepared_by : e.target.value})}} />
+                    </FormField>
+                    <FormField width={5}>
+                      <label>Checked By:</label>
+                      <Input size='mini' value={extra.checked_by} type='text' onChange={(e) => {setExtra({...extra, checked_by : e.target.value})}} />
+                    </FormField>
+                    <Button color='blue' onClick={(e) => {hasEmptyFields(extra) ? alert("There are empty Fields") : generateDocument(templateData, template)}}>Save</Button>
+                  </Form>
+                : null}
            </div>
         </div>
     </>

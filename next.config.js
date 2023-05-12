@@ -14,6 +14,24 @@ const nextConfig = {
     ]
 },
 
+  webpack: (config) => {
+    config.module.rules.push({
+      test: /\.docx$/,
+      use: [
+        {
+          loader: 'file-loader',
+          options: {
+            publicPath: '/_next/static/files',
+            outputPath: 'static/files',
+            name: '[name].[ext]',
+            esModule: false,
+          },
+        },
+      ],
+    });
+
+    return config;
+  },
   reactStrictMode: false,
 }
 

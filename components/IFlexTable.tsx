@@ -88,13 +88,13 @@ export default function Itable({ data, headerTitles, color,allowDelete, allowEdi
 
   return (
     <div>
-      <Table sortable celled color={color}>
+      <Table compact sortable celled color={color}>
       <Table.Header>
         <Table.Row >
           {datas[0] !== undefined ? Object.keys(datas[0]).map((item, index) => {
             if(index > 0){
               return (
-                <Table.HeaderCell key={item}
+                <Table.HeaderCell width={2} key={item}
               sorted={column === item ? direction : undefined}
               onClick={() => {dispatch({ type: 'CHANGE_SORT', column: item })}}
             >

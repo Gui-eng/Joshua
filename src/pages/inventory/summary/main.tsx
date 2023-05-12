@@ -30,12 +30,13 @@ export default function index({ post, info, pmr }  : InferGetServerSidePropsType
 
   const [data, setData] = useState(info.map((item : any) => {
     const { itemInfo } = item 
+ 
     return {
         id : item.id,
-        itemName : itemInfo.itemName,
-        batchNumber : itemInfo.batchNumber,
-        manufacturingDate : itemInfo.manufacturingDate.substring(10, 0),
-        expirationDate : itemInfo.expirationDate.substring(10, 0),
+        itemName : item.itemInfo.itemName,
+        batchNumber : item.itemInfo.batchNumber,
+        manufacturingDate : item.itemInfo.manufacturingDate.substring(10, 0),
+        expirationDate : item.itemInfo.expirationDate.substring(10, 0),
         remainingVial : item.Vial,
         remainingBottle : item.Bottle,
         remainingBox : item.Box,

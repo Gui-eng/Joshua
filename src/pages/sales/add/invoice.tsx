@@ -127,12 +127,12 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
     const totalAmount = itemData.unitPrice * itemData.quantity
     const netTotalAmount = totalAmount - (totalAmount * handleUndefined(itemData.discount))
 
-    setItemData({...itemData, totalAmount : totalAmount, itemSalesDetails : { ...itemData.itemSalesDetails,
+    setItemData({...itemData, totalAmount : netTotalAmount, itemSalesDetails : { ...itemData.itemSalesDetails,
       grossAmount : itemData.unitPrice * itemData.quantity,
       itemId : handleUndefined(itemData.id),
       netAmount : netTotalAmount,
       vatable : itemData.vatable,
-      VATAmount : netTotalAmount  - ((netTotalAmount / 1.12) * 12)
+      VATAmount : netTotalAmount  - ((netTotalAmount / 1.12) * .12)
     }})
   }, [itemData.unitPrice, itemData.quantity])
 
@@ -141,16 +141,16 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   useEffect(() => {
 
     const tableDataSales = itemArray.map((item : Item) => {
-      const VATAmountWithDiscount = Math.round(((item.totalAmount - ((item.totalAmount * handleUndefined(item.discount))) / 1.12) * .12)  * 100) / 100
+      const VATAmountWithDiscount = Math.round(((item.itemSalesDetails.grossAmount - (item.itemSalesDetails.grossAmount * handleUndefined(item.discount))) * 0.12) * 100) / 100
 
-      const VATAmountWithoutDiscount = Math.round(((item.totalAmount / 1.12) * .12) * 100) / 100
-      console.log(VATAmountWithDiscount)
+      const VATAmountWithoutDiscount = Math.round(((item.itemSalesDetails.grossAmount / 1.12) * 0.12) * 100) / 100
+      
       const data = {
         itemId : handleUndefined(item.id),
         grossAmount : Math.round(item.totalAmount * 100) / 100,
         discount : handleUndefined(item.discount),
         netAmount : (item.totalAmount - (item.totalAmount * handleUndefined(item.discount))),
-        VATAmount : item.vatable ? handleUndefined(item.discount) !== 0 ?  VATAmountWithDiscount : VATAmountWithoutDiscount  : 0,
+        VATAmount : VATAmountWithoutDiscount,
         vatable : item.vatable,
       }
 
@@ -182,7 +182,8 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
     setSalesInvoiceData({...salesInvoiceData, totalAmount : _.sumBy(sales, 'netAmount'), VAT : _.sumBy(sales, 'VATAmount'), total : getTotal(sales)})
   }, [sales])
 
-
+  console.log(itemArray)
+  console.log(salesInvoiceData)
   //Data Handling
 
   async function handleAddItem(){

@@ -95,6 +95,9 @@ export default function home({ post } : any) {
                     <Grid.Column>
                         <ICard Icon={<Chart fill='white' width={35}/>} name='Stock Request' link='/inventory/stockRequest'/>
                     </Grid.Column>
+                    <Grid.Column>
+                        <ICard Icon={<Chart fill='white' width={35}/>} name='Receiving Report' link='/inventory/receivingReport'/>
+                    </Grid.Column>
                   </Grid.Row>
                 </Grid>
               </div>

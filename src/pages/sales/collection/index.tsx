@@ -103,9 +103,8 @@ export default function home({ post, salesInvoiceData, deliveryReciptData } :  I
                     onChange={(e, item) => {setIsSINumber(handleUndefined(item.checked))}}
                     label={<label><Header>SI/DR Number</Header></label>}
                     />
-
                     <Input onChange={(e) => {filterData(e.target.value, salesInvoiceData, isSINumber)}} type='text' placeholder='Search...' icon={'search'}/>
-                    
+              
                 </div>
               </div>
               <div className='tw-w-[95%] tw-p-4 tw-h-full'>

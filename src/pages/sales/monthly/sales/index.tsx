@@ -7,7 +7,7 @@ import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import axios from 'axios';
 import IFooter from 'components/IFooter';
 import Itable from 'components/IFlexTable';
-import { getDate, handleDateChangeToBeChecked } from 'functions';
+import { HOSTADDRESS, PORT, getDate, handleDateChangeToBeChecked } from 'functions';
 import { SalesInvoiceData } from 'types';
 
 const Chart = (props : SVGProps<SVGSVGElement>) => (
@@ -19,9 +19,9 @@ const Chart = (props : SVGProps<SVGSVGElement>) => (
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
-    const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
     
-    const documentData = await axios.get(`http://localhost:3000/api/getInfo/document/view`)
+    const documentData = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/document/view`)
 
 
 
@@ -58,7 +58,7 @@ export default function home({ post, documentData} :  InferGetServerSidePropsTyp
 
   const generateExcel = async () => {
     try {
-      const res = await axios.post("http://localhost:3000/api/print", rawData)
+      const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/print`, rawData)
       alert('File created Successfully!')
       router.reload()
     } catch (error) {

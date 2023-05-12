@@ -11,13 +11,6 @@ import React, { useEffect } from 'react'
 import { Button, Header } from 'semantic-ui-react'
 import { SalesInvoiceData } from 'types'
 
-const tableData = [
-  { id: 1, name: 'John', age: 15, gender: 'Male' },
-  { id: 1, name: 'Amber', age: 40, gender: 'Female' },
-  { id: 1, name: 'Leslie', age: 25, gender: 'Other' },
-  { id: 1, name: 'Ben', age: 70, gender: 'Male' },
-]
-
 
 
 const headerTitles = ["id", "PO #", "Date Issued", "Client", "Status", "Actions"]

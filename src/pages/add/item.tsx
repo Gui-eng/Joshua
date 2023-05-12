@@ -58,7 +58,7 @@ export default function item({ items, session} : InferGetServerSidePropsType<typ
 
   const router = useRouter()
 
-  const itemList = items.map((item : any) => {
+  const [itemList, setItemList] = useState(items.map((item : any) => {
     const { ItemPrice }  = item
     return {
       id : item.id,
@@ -73,7 +73,7 @@ export default function item({ items, session} : InferGetServerSidePropsType<typ
       box : parseFloat(ItemPrice?.box) !== 0 ? parseFloat(ItemPrice?.box).toLocaleString() : "-",
       vat : item.VAT ? "Yes" : "No"
     }
-  })
+  }))
 
   const [itemData, setItemData] = useState<ItemInfo>(emptyData)
   const [price, setPrice] = useState<ItemPrice>(emptyPrice)
@@ -153,6 +153,31 @@ export default function item({ items, session} : InferGetServerSidePropsType<typ
     router.reload()
   }
 
+  function filterData(str : string, array : Array<any>){
+    const arr = array.filter((item) => {
+      return item.itemName.includes(str) || item.batchNumber.includes(str)
+    })
+
+    const itemsArray = arr.map((item : any) => {
+      const { ItemPrice }  = item
+      return {
+        id : item.id,
+        itemName : item.itemName,
+        batchNumber : item.batchNumber,
+        manufacturing : item.manufacturingDate.toString().substring(10, 0),
+        expiration: item.expirationDate.toString().substring(10, 0),
+        bottle : parseFloat(ItemPrice?.bottle) !== 0 ? parseFloat(ItemPrice?.bottle).toLocaleString() : "-",
+        vial : parseFloat(ItemPrice?.vial) !== 0 ? parseFloat(ItemPrice?.vial).toLocaleString() : "-",
+        capsule : parseFloat(ItemPrice?.capsule) !== 0 ?parseFloat(ItemPrice?.capsule).toLocaleString() : "-",
+        tablet : parseFloat(ItemPrice?.tablet) !== 0 ? parseFloat(ItemPrice?.tablet).toLocaleString() : "-",
+        box : parseFloat(ItemPrice?.box) !== 0 ? parseFloat(ItemPrice?.box).toLocaleString() : "-",
+        vat : item.VAT ? "Yes" : "No"
+      }
+    })
+
+    setItemList(itemsArray);
+  }
+
 
   async function handleOnClick(e : React.SyntheticEvent<HTMLElement>) {
     e.preventDefault()
@@ -173,8 +198,8 @@ export default function item({ items, session} : InferGetServerSidePropsType<typ
       <>
           <div className='tw-w-full tw-pb-60 tw-flex tw-flex-col tw-bg-blue-500 tw-bg-opacity-20'>
           <div className='tw-absolute tw-m-4'>
-           <Button onClick={() => {router.push('/home')}} color='blue' >Go Back</Button>
-         </div>
+            <Button onClick={() => {router.push('/home')}} color='blue' >Go Back</Button>
+          </div>
          <div className=' tw-w-full tw-flex tw-items-center tw-justify-center '>
            <div className='tw-flex '>
                <Form className='tw-w-full tw-pt-4'>
@@ -242,11 +267,12 @@ export default function item({ items, session} : InferGetServerSidePropsType<typ
              </div>
            </div>
            <div className='tw-w-full tw-h-full tw-flex tw-items-center tw-justify-center'>
-               <div className='tw-w-full tw-h-[80vh] tw-flex tw-flex-col'>
+               <div className='tw-w-full tw-flex tw-flex-col'>
                  <h1 className='tw-text-[3rem] tw-font-extrabold tw-mt-16 tw-ml-10 tw-mb-10'>Item List</h1>
                  <div className='tw-w-full tw-flex tw-flex-col tw-items-center'>
                  <div className='tw-w-[90%] tw-mb-4'>
                      {!editing ? <Button onClick={() => {setEditing(true)}} color='blue'>Edit Items</Button> : <Button onClick={() => {setEditing(false); setItemData(emptyData)}} color='blue' >+ Enter a New Item</Button>}
+                      <Input onChange={(e) => {filterData(e.target.value, items)}} type='text' placeholder='Search...' icon={'search'}/>
                  </div>
                    <div className='tw-w-[90%] '>
                      <IFlexTable allowDelete={false} data={itemList} headerTitles={headerTitles} color='blue' allowEditing={editing} updateItem={updateItem}/>

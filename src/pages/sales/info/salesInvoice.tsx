@@ -20,7 +20,7 @@ const tableData = [
 
 
 
-const headerTitles = ["id", "SI #", "Date Issued", "Med Rep", "Prepared By", "Total Amount", "Remarks", "Actions"]
+const headerTitles = ["id", "SI #", "Date Issued", "Client", "Prepared By", "Total Amount", "Remarks", "Actions"]
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
   const session = await getSession(context);
@@ -44,12 +44,13 @@ export default function index({ post , salesInvoiceData} : InferGetServerSidePro
 
   useEffect(() => {
 
-      const data = rawData.map((item : SalesInvoiceData) => {
+      
+      const data = rawData.map((item : any) => {
         return {
           id: item.id,
           salesInvoiceNumber: item.salesInvoiceNumber,
           dateIssued: item.dateIssued.substring(10, 0),
-          medRep: item.pmr?.employeeInfo.firstName + " " + item.pmr?.employeeInfo.lastName,
+          client : item.client !== null ? item.client.clientInfo.companyName : "-",
           preparedBy: item.preparedBy?.employeeInfo.firstName + " " + item.preparedBy?.employeeInfo.lastName,
           totalAmount: <Header as={'h5'}>{parseFloat(item.totalAmount.toString()).toLocaleString()}</Header>,
           remarks: item.remarks,
@@ -63,7 +64,7 @@ export default function index({ post , salesInvoiceData} : InferGetServerSidePro
 
   function filterData(str : string, array : Array<any>){
       const arr = array.filter((item) => {
-        return item.salesInvoiceNumber.includes(str)
+        return item.salesInvoiceNumber.includes(str) || item.client.clientInfo.companyName.includes(str)
       })
       setRawData(arr)
   }

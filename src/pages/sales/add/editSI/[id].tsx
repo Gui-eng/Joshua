@@ -37,15 +37,17 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
 
   
   const convertItemsToFit = currentSI.items.map((item : any) => {
+  
       return {
         ...item,
         totalAmount : Number(item.totalAmount),
-        unitPrice : getPrice(item.ItemInfo.ItemPrice[0], item.unit)
+        unitPrice : getPrice(item.ItemInfo.ItemPrice[0], item.unit),
+        itemSalesDetails : item.ItemSalesDetails[0]
       }
   })
 
 
-
+  
   //Options
   const itemOptions : Option[] = makeOptions(itemList, 'itemName', ['itemName'], 'itemName')
   const clientOptions : Option[] = makeOptions(clientInfo, 'clientId', ['companyName'])
@@ -75,7 +77,6 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
   const [stockIn, setStockIn] = useState(false)
   const [emptyFieldsError, setEmptyFieldError] = useState(false)
 
-  
 
   function handleDiscount(e : React.ChangeEvent<HTMLInputElement>){
     const discount = parseFloat(e.target.value) / 100
@@ -210,12 +211,10 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
       lastItems : convertItemsToFit
     }) 
    },[])
-   console.log(currentSI)
-   console.log(pmrOptions)
-
   //Data Handling
 
   async function handleAddItem(){
+  
     if(hasEmptyFields(itemData, ['discount'])){
       alert('There are empty Fields')
       setEmptyFieldError(true)
@@ -242,7 +241,7 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
      
     
   }
-  console.log(salesInvoiceData)
+
 
 }
 

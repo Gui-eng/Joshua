@@ -14,7 +14,7 @@ import { SalesInvoiceData } from 'types'
 
 
 
-const headerTitles = ["id", "POD #", "Date Issued", "Requested By", "Actions"]
+const headerTitles = ["id", "SR #", "Date Issued", "Requested By", "Actions"]
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
   const session = await getSession(context);

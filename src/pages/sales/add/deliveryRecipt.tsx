@@ -6,10 +6,10 @@ import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
-import { Button, Checkbox, Dropdown, Form, FormField, Header, Input, Label, Message, Table } from 'semantic-ui-react'
+import { Button, Checkbox, Dropdown, Form, FormField, Header, Input, Label, Message, Table, TextArea } from 'semantic-ui-react'
 import { Client, ClientInfo, EmployeeInfo, Item, ItemInfo, ItemPrice, ItemSalesDetails, Option, DeliveryReciptData, UNITS } from '../../../../types'
 
-import { getPrice, showAvailableUnits, handleUndefined, removeDuplicates ,find, getDate, makeOptions, handleOnChange, handleOptionsChange, handleDateChange, findMany, emptyOptions, emptyDeliveryRecipt, emptySalesItemData, quantityOptions, hasEmptyFields, emptyItemData, getTotal, HOSTADDRESS, PORT } from '../../../../functions'
+import { getPrice, showAvailableUnits, handleUndefined, removeDuplicates ,find, getDate, makeOptions, handleOnChange, handleOptionsChange, handleDateChange, findMany, emptyOptions, emptyDeliveryRecipt, emptySalesItemData, quantityOptions, hasEmptyFields, emptyItemData, getTotal, HOSTADDRESS, PORT, formatCurrency } from '../../../../functions'
 
 const tableHeaders = ["id","Quanity", "Unit", "Articles","Batch No.", "Vatable", "U-Price", "Discount", "Amount"]
 
@@ -135,38 +135,36 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
     
   }, [itemData.quantity, itemData.unit, itemData.discount]);
   
-  console.log({
-    id : itemArray.map(item => item.id),
-    quanity : itemData.quantity
-   })
+
  
 
   useEffect(() => {
     const totalAmount = itemData.unitPrice * itemData.quantity
     const netTotalAmount = totalAmount - (totalAmount * handleUndefined(itemData.discount))
-    setItemData({...itemData, totalAmount : totalAmount, itemSalesDetails : { ...itemData.itemSalesDetails,
+
+    setItemData({...itemData, totalAmount : netTotalAmount, itemSalesDetails : { ...itemData.itemSalesDetails,
       grossAmount : itemData.unitPrice * itemData.quantity,
       itemId : handleUndefined(itemData.id),
       netAmount : netTotalAmount,
       vatable : itemData.vatable,
-      VATAmount : netTotalAmount - (netTotalAmount * 0.12)
+      VATAmount : netTotalAmount - ((netTotalAmount / 1.12) * .12)
     }})
-  }, [itemData.unitPrice, itemData.quantity])
+  }, [itemData.unitPrice, itemData.quantity, itemData.discount])
 
 
   //temp
   useEffect(() => {
 
     const tableDataSales = itemArray.map((item : Item) => {
-      const VATAmountWithDiscount = Math.round(((item.totalAmount - (item.totalAmount * handleUndefined(item.discount))) * 0.12) * 100) / 100
+      const VATAmountWithDiscount = Math.round(((item.itemSalesDetails.grossAmount - (item.itemSalesDetails.grossAmount * handleUndefined(item.discount))) * 0.12) * 100) / 100
 
-      const VATAmountWithoutDiscount = Math.round((item.totalAmount * 0.12) * 100) / 100
+      const VATAmountWithoutDiscount = Math.round((item.itemSalesDetails.grossAmount * 0.12) * 100) / 100
 
       const data = {
         itemId : handleUndefined(item.id),
-        grossAmount : Math.round(item.totalAmount * 100) / 100,
+        grossAmount : Math.round(item.itemSalesDetails.grossAmount * 100) / 100,
         discount : handleUndefined(item.discount),
-        netAmount : (item.totalAmount - (item.totalAmount * handleUndefined(item.discount))),
+        netAmount : (item.itemSalesDetails.grossAmount - (item.itemSalesDetails.grossAmount * handleUndefined(item.discount))),
         VATAmount : item.vatable ? handleUndefined(item.discount) !== 0 ?  VATAmountWithDiscount : VATAmountWithoutDiscount  : 0,
         vatable : item.vatable,
       }
@@ -187,19 +185,29 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
         VAT : item.vatable ? <Header color='green' as='h5'>Yes</Header> : <Header color='red' as='h5'>No</Header>,
         unitPrice : item.unitPrice.toLocaleString(),
         discount : handleUndefined(item.discount) * 100 + "%",
-        totalAmount : (item.totalAmount - (item.totalAmount * handleUndefined(item.discount))).toLocaleString(),
+        totalAmount : formatCurrency(item.totalAmount.toString()),
       }
     })
 
     setTableData(tableDataItems)
-    setDeliveryReciptData({...deliveryReciptData, item : itemArray, })
+
+    const total = {
+      totalAmount : _.sum(itemArray.map((item : any) => item.itemSalesDetails.netAmount)),
+      VAT : _.sum(itemArray.map((item : any) => item.itemSalesDetails.VATAmount)),
+    }
+
+    console.log(total)
+    setDeliveryReciptData({...deliveryReciptData, item : itemArray, totalAmount : total.totalAmount, VAT : total.VAT })
+    
   },[itemArray])
+  console.log(itemArray)
+  
 
   useEffect(() => {
-    setDeliveryReciptData({...deliveryReciptData, totalAmount : _.sumBy(sales, 'netAmount'), VAT : _.sumBy(sales, 'VATAmount'), total : getTotal(sales)})
+    setDeliveryReciptData({...deliveryReciptData, total : getTotal(sales)})
   }, [sales])
 
-
+  console.log(deliveryReciptData)
   //Data Handling
 
   async function handleAddItem(){
@@ -216,13 +224,13 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   }
 
   async function handleOnClick(){
-    if(hasEmptyFields(deliveryReciptData, ['remarks', 'nonVATSales', 'VATableSales'])){
+    if(hasEmptyFields(deliveryReciptData, ['remarks', 'nonVATSales', 'VATableSales', 'VAT'])){
+      console.log(deliveryReciptData)
       setEmptyFieldError(true)
       alert('There are Empty Fields')
       return
     }
 
-    console.log(deliveryReciptData.isRemote)
 
     const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/addDR`, deliveryReciptData)
     
@@ -247,8 +255,9 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   return (
     <div className='tw-h-screen tw-w-full'>
       <div className='tw-w-screen tw-flex tw-justify-center'>
-        <div className='tw-w-[90%]  tw-flex tw-justify-center tw-bg-sky-600 tw-bg-opacity-30 tw-mt-4 tw-py-8'>
-            <div className='tw-w-[90%] tw-rounded-tl-lg tw-rounded-tr-lg'>
+        <div className='tw-w-[90%] tw-rounded-tl-lg tw-rounded-tr-lg tw-bg-sky-600 tw-bg-opacity-30 tw-mt-4 tw-py-8'>
+        <div className='tw-w-[100%] tw-flex tw-h-full tw-pl-4'>
+             <div className='tw-w-[50%] '>
              <Form>
               <Form.Field>
                 <h1 className='tw-font-bold tw-text-2xl'>Delivery Recipt</h1>
@@ -258,6 +267,12 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                       <label htmlFor="deliveryReciptNumber">DR No.</label>
                       <Input id="deliveryReciptNumber" placeholder="ie. 89901" onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} />
                   </Form.Field>
+                  <Form.Field required error={(emptyFieldsError && deliveryReciptData.dateIssued === '')}>
+                      <label htmlFor="dateIssued">Date Issued</label>
+                      <Input type='date' max={getDate()} id="dateIssued" onChange={(e) =>  {handleDateChange(e, deliveryReciptData, setDeliveryReciptData)}}/>
+                  </Form.Field>
+              </Form.Group>
+              <Form.Group>
                   <Form.Field required error={(emptyFieldsError && deliveryReciptData.clientId === '')} >
                       <label htmlFor="companyName">Company Name</label>
                       <Dropdown
@@ -269,24 +284,22 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                       />
                   </Form.Field>
                   <Form.Field>
-                      <label htmlFor="address" >Address</label>
-                      <Input id="address" value={handleUndefined(deliveryReciptData.client?.address)} readOnly/>
-                  </Form.Field>
-                  <Form.Field>
                       <label htmlFor="TIN">TIN</label>
                       <Input id="TIN" value={handleUndefined(deliveryReciptData.client?.TIN)} readOnly/>
                   </Form.Field>
-                  <Form.Field>
-                      <label htmlFor="remarks">Remarks</label>
-                      <Input id="remarks" placeholder="Remarks" onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} />
+              </Form.Group>
+              <Form.Group>
+                  <Form.Field width={10}>
+                      <label htmlFor="address" >Address</label>
+                      <TextArea id="address" value={handleUndefined(deliveryReciptData.client?.address)} readOnly/>
+                  </Form.Field>
+                  <Form.Field required error={(emptyFieldsError && deliveryReciptData.term === 0)}>
+                    <label htmlFor="term">Terms</label>
+                    <Input id="term"  onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} type='number' min="0" label={{content : "Days", color : "blue"}} labelPosition='right'/>
                   </Form.Field>
               </Form.Group>
               <Form.Group>
-                  <Form.Field required error={(emptyFieldsError && deliveryReciptData.dateIssued === '')}>
-                      <label htmlFor="dateIssued">Date Issued</label>
-                      <Input type='date' max={getDate()} id="dateIssued" onChange={(e) =>  {handleDateChange(e, deliveryReciptData, setDeliveryReciptData)}}/>
-                  </Form.Field>
-                  <Form.Field required error={(emptyFieldsError && deliveryReciptData.pmrEmployeeId === '')}>
+                  <Form.Field width={8}  required error={(emptyFieldsError && deliveryReciptData.pmrEmployeeId === '')}>
                       <label htmlFor="PMR">PMR</label>
                       <Dropdown
                         id = "PMR"
@@ -307,63 +320,69 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                   onChange={() => {setIsRemote(isRemote ? false : true)}}
                   toggle/>
                   </Form.Field>
-                  <Form.Field required error={(emptyFieldsError && deliveryReciptData.term === 0)}>
-                    <label htmlFor="term">Terms</label>
-                    <Input id="term"  onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} type='number' min="0" label={{content : "Days", color : "blue"}} labelPosition='right'/>
-                  </Form.Field>
+                  
               </Form.Group>
-              <Form.Field>
-                <h3 className='tw-font-bold tw-text-xl'>Add Item</h3>
-              </Form.Field>
-              <Form.Group>
-              <Form.Field required error={(emptyFieldsError && itemData.itemInfoId === '')} >
-                    <label htmlFor="itemName">Item Name</label>
-                    <Dropdown
-                    id="itemName"
-                    search
-                    selection
-                    options={itemOptions}
-                    onChange={(e, item) => {setFilteredItemList(findMany(e.currentTarget.id, itemInfo, item.value !== undefined ? item.value.toString() : ''))}}
-                    />
-                </Form.Field>
-                <Form.Field required error={(emptyFieldsError && itemData.ItemInfo?.batchNumber === '')}>
-                    <label htmlFor="BatchNumner">Batch Number</label>
-                    <Dropdown
-                    id="batchNumber"
-                    disabled={filteredItemList !== undefined ? filteredItemList[0].itemName === '' : true}
-                    search
-                    selection
-                    options={batchOption}
-                    onChange={(e, item) => {setSelectedItemId(handleUndefined(item.value))}}
-                    />
-                </Form.Field>
-                <Form.Field disabled={disabled}>
-                    <label htmlFor="manufacturingDate">Manufacturing Date</label>
-                    <Input id="manufacturingDate" type='date' value={selectedItemId !== '' ? (disabled ? "" : selectedItemData?.manufacturingDate.toString().substring(10, 0)) : ''} readOnly/>
-                </Form.Field>
-                <Form.Field disabled={disabled}>
-                    <label htmlFor="ExpirationDate">Expiration Date</label>
-                    <Input id="ExpirationDate" type='date' value={selectedItemId !== '' ? (disabled ? "" : selectedItemData?.expirationDate.toString().substring(10, 0)): ''} readOnly/>
-                </Form.Field>  
-              </Form.Group>
-              <Form.Group>
-                <Form.Field disabled={disabled}>
-                    <label htmlFor="quantity">VAT?</label>
-                    <Input value={deliveryReciptData.id != '' ? (disabled ? "" : (selectedItemData?.VAT ? "Yes" : "No")) : ""} readOnly/>
-                </Form.Field>
-                <Form.Field disabled={disabled} required error={(emptyFieldsError && itemData.quantity === 0)}>
-                    <label htmlFor="quantity">Quantity</label>
-                    <Input value={handleUndefined(itemData.quantity)} id='quantity' onChange={(e) => {handleQuantity(e)}} min="0" type="number" label={{content : <Dropdown color='blue' options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, itemData, setItemData)}}/>, color : "blue"}} labelPosition='right'/>
-                </Form.Field>
-                <Form.Field disabled={disabled}>
-                    <label htmlFor="discount">Discount</label>
-                    <Input onChange={(e) => { handleDiscount(e) }}  max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
-                </Form.Field>
-                <Button color='blue' onClick={handleAddItem}>Add Item</Button>
-              </Form.Group>
+              </Form>
+              </div>
               
-            </Form>
+              <div className='tw-w-[50%] tw-pl-4 tw-h-full'>
+                <Form>
+                    <Form.Field>
+                        <h3 className='tw-font-bold tw-text-xl'>Add Item</h3>
+                      </Form.Field>
+                      <Form.Group>
+                      <Form.Field required error={(emptyFieldsError && itemData.itemInfoId === '')} >
+                            <label htmlFor="itemName">Item Name</label>
+                            <Dropdown
+                            id="itemName"
+                            search
+                            selection
+                            options={itemOptions}
+                            onChange={(e, item) => {setFilteredItemList(findMany(e.currentTarget.id, itemInfo, item.value !== undefined ? item.value.toString() : ''))}}
+                            />
+                        </Form.Field>
+                        <Form.Field required error={(emptyFieldsError && itemData.ItemInfo?.batchNumber === '')}>
+                            <label htmlFor="BatchNumner">Batch Number</label>
+                            <Dropdown
+                            id="batchNumber"
+                            disabled={filteredItemList !== undefined ? filteredItemList[0].itemName === '' : true}
+                            search
+                            selection
+                            options={batchOption}
+                            onChange={(e, item) => {setSelectedItemId(handleUndefined(item.value))}}
+                            />
+                        </Form.Field>
+                      </Form.Group>
+                      <Form.Group>
+                        <Form.Field disabled={disabled}>
+                              <label htmlFor="manufacturingDate">Manufacturing Date</label>
+                              <Input id="manufacturingDate" type='date' value={selectedItemId !== '' ? (disabled ? "" : selectedItemData?.manufacturingDate.toString().substring(10, 0)) : ''} readOnly/>
+                          </Form.Field>
+                          <Form.Field disabled={disabled}>
+                              <label htmlFor="ExpirationDate">Expiration Date</label>
+                              <Input id="ExpirationDate" type='date' value={selectedItemId !== '' ? (disabled ? "" : selectedItemData?.expirationDate.toString().substring(10, 0)): ''} readOnly/>
+                          </Form.Field>  
+                      </Form.Group>
+                      <Form.Group>
+                        <Form.Field disabled={disabled}>
+                              <label htmlFor="quantity">VAT?</label>
+                              <Input value={deliveryReciptData.id != '' ? (disabled ? "" : (selectedItemData?.VAT ? "Yes" : "No")) : ""} readOnly/>
+                          </Form.Field>
+                          <Form.Field disabled={disabled} required error={(emptyFieldsError && itemData.quantity === 0)}>
+                              <label htmlFor="quantity">Quantity</label>
+                              <Input value={handleUndefined(itemData.quantity)} id='quantity' onChange={(e) => {handleQuantity(e)}} min="0" type="number" label={{content : <Dropdown color='blue' options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, itemData, setItemData)}}/>, color : "blue"}} labelPosition='right'/>
+                          </Form.Field>
+                      </Form.Group>
+                      <Form.Group>
+                        <Form.Field disabled={disabled}>
+                            <label htmlFor="discount">Discount</label>
+                            <Input onChange={(e) => { handleDiscount(e) }}  max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
+                        </Form.Field>
+                        <Button color='blue' onClick={handleAddItem}>Add Item</Button>
+                      </Form.Group>
+                    </Form>
             </div>
+          </div>
         </div>
       </div>
       <div className='tw-w-screen tw-flex tw-flex-col tw-pb-52 tw-items-center'>

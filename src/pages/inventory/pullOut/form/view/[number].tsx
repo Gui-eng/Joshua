@@ -1,10 +1,25 @@
 import axios from 'axios';
 import Itable from 'components/Itable';
-import { HOSTADDRESS, PORT, formatCurrency, getPrice, handleUndefined } from 'functions';
+import { HOSTADDRESS, PORT, formatCurrency, formatDateString, getPrice, handleUndefined } from 'functions';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { saveAs } from 'file-saver';
+import template from './../../../../../../public/pulloutTemplate.docx';
+
 import { Item } from 'types';
+import PizZip from 'pizzip';
+import Docxtemplater from 'docxtemplater';
+import { Button } from 'semantic-ui-react';
+import { isArrayBuffer, isBuffer } from 'lodash';
+import printJS from 'print-js';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+
+import  { Document, Page} from 'react-pdf'
+import path from 'path';
+
+
 
 const headerTitle = ["id", "SI #", "Quantity", "Prodcut Name", "MFG. Date", "EXP Date" , "Batch Number", "Amount"]
 
@@ -16,6 +31,75 @@ enum UNITS {
     CAPSULES = "CAPSULES",
     TABLETS = "TABLETS"
   }
+
+  const data = {
+    pullout_number : "",
+    company_name : "",
+    address : "",
+    date : "",
+
+    number1 : "",
+    quantity1 : "",
+    name1: "",
+    mfg1: "",
+    exp1: "",
+    batch1: "",
+    amount1 : "",  
+
+    number2 : "",
+    quantity2 : "",
+    name2: "",
+    mfg2: "",
+    exp2: "",
+    batch2: "",
+    amount2 : "",  
+
+    number3 : "",
+    quantity3 : "",
+    name3: "",
+    mfg3: "",
+    exp3: "",
+    batch3: "",
+    amount3 : "",  
+
+    number4 : "",
+    quantity4 : "",
+    name4: "",
+    mfg4: "",
+    exp4: "",
+    batch4: "",
+    amount4 : "", 
+
+    number5 : "",
+    quantity5 : "",
+    name5: "",
+    mfg5: "",
+    exp5: "",
+    batch5: "",
+    amount5 : "", 
+
+    number6 : "",
+    quantity6 : "",
+    name6: "",
+    mfg6: "",
+    exp6: "",
+    batch6: "",
+    amount6 : "", 
+
+    number7 : "",
+    quantity7 : "",
+    name7: "",
+    mfg7: "",
+    exp7: "",
+    batch7: "",
+    amount7 : "", 
+
+    e :"",
+    r : "",
+    n:"",
+
+    total: "",
+}
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     // const session = await getSession(context);
@@ -39,10 +123,90 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
 export default function ID( {post, info} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
-    console.log(info[0])
-   
-    // !info ? null
+    const router = useRouter();
 
+    // !info ? null
+    const [templateData, setTemplateData] = useState(data);
+    const [buffer, setBuffer] = useState<any>()
+    const [savePath, setSavePath] = useState<string | undefined>("");
+
+    useEffect(() => {
+        let total = 0;
+        setTemplateData(prevTemplateData => {
+            let updatedTemplateData = { ...prevTemplateData };
+            info.map((item: any, index: number) => {
+
+              total += Number(item.totalAmount);
+
+              updatedTemplateData = {
+                ...updatedTemplateData,
+                [`number${index + 1}`]: item.documentNumber,
+                [`quantity${index + 1}`]: item.quantity,
+                [`name${index + 1}`]: item.itemName,
+                [`mfg${index + 1}`]: formatDateString(item.manufacturingDate),
+                [`exp${index + 1}`]: formatDateString(item.expirationData),
+                [`batch${index + 1}`]: item.batchNumber,
+                [`amount${index + 1}`]: '₱ ' + formatCurrency(item.totalAmount),
+              };
+              return null; // Suppressing the warning about map() needing a return value
+            });
+            return updatedTemplateData;
+          });
+          
+
+        setTemplateData((prevTemplateData : any) => ({
+            ...prevTemplateData,
+            e : info[0].status === "EXPIRED" ? "✓" : "",
+            n : info[0].status === "NEAR EXPIRY" ? "✓" : "",
+            r : info[0].status === "FOR REPLACEMENT" ? "✓" : "",
+            pullout_number: info[0].pullOutNumber,
+            company_name: info[0].client.companyName,
+            address: info[0].client.address,
+            date: formatDateString(info[0].dateIssued),
+            total :  '₱ ' + formatCurrency(total.toString())
+            // prepared_by: info[0].,
+        }))
+      
+    }, [info])
+
+    
+    async function generateDocument(resume : any, templatePath : any) {
+        // load the document template into docxtemplater
+        try {
+            let response = await fetch(templatePath);
+            let data = await response.arrayBuffer();
+    
+            let zip = new PizZip(data);
+    
+            let templateDoc = new Docxtemplater(zip, {
+                paragraphLoop: true,
+                linebreaks: true
+            })
+    
+            templateDoc.render(resume);
+    
+            let generatedDoc = templateDoc.getZip().generate({
+                type: "base64",
+                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                compression: "DEFLATE"
+            })
+
+            
+            
+            await axios.post(`http://${HOSTADDRESS}:${PORT}/api/convertToPdf`, {file : generatedDoc})
+            await axios.get(`http://${HOSTADDRESS}:${PORT}/api/savepdf`)
+            
+            
+        
+            router.reload()
+            alert("Saved Succuessfully See Reports/forms")
+        } catch (error) {
+            console.log('Error: ' + error);
+        }
+      }
+
+    
+      
     
 
     const tableData = info.map((item : any) => {
@@ -57,7 +221,7 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
            amount : formatCurrency(item.totalAmount)
         }
     })
-
+    
     
   return (
     <div>{
@@ -86,7 +250,10 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
         <div className='tw-w-full tw-flex tw-justify-center'>
            <div className='tw-w-[90%]'>
                 <Itable color='blue' data={tableData} headerTitles={headerTitle}/>
+                <Button color='blue' onClick={() => {info.length <= 7 ? (generateDocument(templateData, template)) : alert('Item cannot be more than 7 please edir the file')}}>Print</Button>
+                
            </div>
+                
         </div>
     </>}</div>
   )

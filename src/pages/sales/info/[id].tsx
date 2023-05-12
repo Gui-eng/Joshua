@@ -1,14 +1,18 @@
 import axios from 'axios';
 import Itable from 'components/Itable';
-import { HOSTADDRESS, PORT, getPrice, handleUndefined } from 'functions';
+import { HOSTADDRESS, PORT, formatCurrency, formatDateString, getPrice, handleUndefined } from 'functions';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button } from 'semantic-ui-react';
 import { Item } from 'types';
+import template from './../../../../public/newsiTemplate.docx'
+import PizZip from 'pizzip';
+import Docxtemplater from 'docxtemplater';
 
-const headerTitle = ["id", "Quantity", "Unit", "Item Name" , "Vatable", "Price", "Batch Number" , "Man. Date", "Exp. Date", "Total Amount"]
+
+const headerTitle = ["id", "Quantity", "Unit", "Item Name" , "Vatable", "Price", "Batch Number" , "Man. Date", "Exp. Date", "Net Amount"]
 
 
 enum UNITS {
@@ -18,6 +22,74 @@ enum UNITS {
     CAPSULES = "CAPSULES",
     TABLETS = "TABLETS"
   }
+
+
+  const data = {
+    client : "",
+    term: "",
+    address : "",
+    date : "",
+    vatS : "",
+    vatE : "",
+    zsales : "",
+    vamount : "",
+    tsales : "",
+    lvat : "",
+    nvat : "",
+    disc : "",
+    adue : "",
+    avat : "",
+    tdue : "",
+    prepared_by : "",
+
+    unit1 : "",
+    qty1 : "",
+    name1: "",
+    mg1: "",
+    exp1: "",
+    batch1: "",
+    amount1 : "",  
+    d1 :"",
+    price1 : "",
+
+    unit2 : "",
+    qty2 : "",
+    name2: "",
+    mg2: "",
+    exp2: "",
+    batch2: "",
+    amount2 : "",  
+    d2 :"",
+    price2 : "",
+
+    unit3 : "",
+    qty3 : "",
+    name3: "",
+    mg3: "",
+    exp3: "",
+    batch3: "",
+    amount3 : "",  
+    d3 :"",
+    price3 : "",
+
+
+    unit4 : "",
+    qty4 : "",
+    name4: "",
+    mg4: "",
+    exp4: "",
+    batch4: "",
+    amount4 : "", 
+    d4 :"",
+    price4 : "",
+
+    n1 : "",
+    n2 : "",
+    n3 : "",
+    n4 : "",
+
+   
+}
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
@@ -38,6 +110,7 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     
   }
 
+  
  
 
 
@@ -47,6 +120,175 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
    
     // !info ? null
     const router = useRouter()
+
+    const [templateData, setTemplateData] = useState(data)
+
+
+    useEffect(() => {
+
+        let nonvat : any = {
+            vatS : 0,
+            vatE: 0,
+            zsales : 0,
+            vamount: 0,
+            tdue : 0,
+            adue : 0
+        }
+
+        let allvat : any = {
+            tsales : 0,
+            lvat : 0,
+            nvat : 0,
+            disc : 0,
+            adue : 0,
+            avat : 0,
+            tdue : 0,
+        }
+
+
+        setTemplateData(prevTemplateData => {
+            let updatedTemplateData = { ...prevTemplateData };
+            info.items.map((item: any, index: number) => {
+
+              if(info.items.some((item : any) => {
+                return item.vatable === false
+              })){
+
+                if(item.ItemSalesDetails[0].vatExempt){
+                    nonvat = {
+                        ...nonvat,
+                        tdue : nonvat.tdue + Number(item.ItemSalesDetails[0].netAmount),
+                        vatE : nonvat.vatE + Number(item.ItemSalesDetails[0].netAmount),
+                        adue : nonvat.adue + Number(item.ItemSalesDetails[0].netAmount),
+                        
+                    }
+                  }else{
+                    nonvat = {
+                        ...nonvat,
+                        tdue : nonvat.tdue + Number(item.ItemSalesDetails[0].netAmount),
+                        vatS : nonvat.vatS + Number(item.ItemSalesDetails[0].netAmount),
+                        vamount : nonvat.vamount + Number(item.ItemSalesDetails[0].VATAmount),
+                        adue : nonvat.adue + Number(item.ItemSalesDetails[0].netAmount),
+
+                    }
+                  }
+              }else{
+                    allvat = {
+                        tsales : allvat.tsales + Number(item.ItemSalesDetails[0].netAmount),
+                        lvat : allvat.tsales + Number(item.ItemSalesDetails[0].VATAmount),
+                        nvat : allvat.nvat + Number(item.ItemSalesDetails[0].netVATAmount),
+                        disc : 0,
+                        adue : allvat.adue + Number(item.ItemSalesDetails[0].netAmount),
+                        avat : allvat.avat + Number(item.ItemSalesDetails[0].VATAmount),
+                        tdue : allvat.tdue + Number(item.ItemSalesDetails[0].netAmount),
+                    }
+              }
+
+              const getThePrice = getPrice(handleUndefined(item.ItemInfo?.ItemPrice[0]), item.unit)
+            
+               if(item.ItemInfo !== undefined) {
+                updatedTemplateData = {
+                    ...updatedTemplateData,
+                    [`qty${index + 1}`]: item.quantity,
+                    [`unit${index + 1}`]: item.unit,
+                    [`name${index + 1}`]: item.ItemInfo?.itemName,
+                    [`mg${index + 1}`]: "MFG DATE: " + formatDateString(item.ItemInfo.manufacturingDate.toString()),
+                    [`exp${index + 1}`]: "EXP DATE: " + formatDateString(item.ItemInfo.expirationDate.toString()),
+                    [`batch${index + 1}`]: "LOT/BATCH NO. :" +  item.ItemInfo.batchNumber,
+                    [`d${index + 1}`]: (item.discount * 100) + "%",
+                    [`price${index + 1}`]:  getThePrice?.toLocaleString(),
+                    [`amount${index + 1}`]: '₱ ' + formatCurrency(item.ItemSalesDetails[0].netAmount.toString()),
+                  };
+               }
+              
+              return null; // Suppressing the warning about map() needing a return value
+            });
+            return updatedTemplateData;
+          });
+          
+  
+        setTemplateData((prevTemplateData : any) => ({
+            ...prevTemplateData,
+            client : info.client.clientInfo.companyName,
+            term: info.term,
+            address :  info.client.clientInfo.address,
+            date : formatDateString(info.dateIssued.toString()),
+            prepared_by : info.preparedBy.employeeInfo.firstName + " " + info.preparedBy.employeeInfo.lastName,
+        }))
+
+
+        setTemplateData((prevTemplateData : any) => {
+            nonvat = {
+                tdue : nonvat.tdue === 0 ? "" : formatCurrency(nonvat.tdue.toString()),
+                vamount : nonvat.vamount  === 0 ? "" : formatCurrency(nonvat.vamount.toString()),
+                vatE : nonvat.vatE === 0 ? "" : formatCurrency(nonvat.vatE.toString()),
+                vatS : nonvat.vatS  === 0 ? "" : formatCurrency(nonvat.vatS.toString()),
+                adue : nonvat.adue  === 0 ? "" : formatCurrency(nonvat.adue.toString()),
+                zsales : nonvat.zsales  === 0 ? "" : formatCurrency(nonvat.zsales.toString()),
+            }
+
+            allvat = {
+                adue : allvat.adue  === 0 ? "" : formatCurrency(nonvat.adue.toString()),
+                disc : allvat.disc  === 0 ? "" : formatCurrency(nonvat.disc.toString()),
+                avat : allvat.avat  === 0 ? "" : formatCurrency(nonvat.avat.toString()),
+                lvat : allvat.lvat  === 0 ? "" : formatCurrency(nonvat.lvat.toString()),
+                nvat : allvat.nvat  === 0 ? "" : formatCurrency(nonvat.nvat.toString()),
+                tdue : allvat.tdue  === 0 ? "" : formatCurrency(nonvat.tdue.toString()),
+                tsales : allvat.tsales  === 0 ? "" : formatCurrency(nonvat.tsales.toString()),
+     
+            }
+
+
+            const total = info.items.some((item : any) => {
+                return item.vatable === false
+              }) ? nonvat : allvat
+
+              
+            return {
+                ...prevTemplateData,
+                ...total,
+                [`n${info.items.length}`] : "*********NOTHING FOLLOWS**********"
+            }
+        })
+  
+      
+    }, [info])
+
+    async function generateDocument(resume : any, templatePath : any) {
+        // load the document template into docxtemplater
+        try {
+            let response = await fetch(templatePath);
+            let data = await response.arrayBuffer();
+    
+            let zip = new PizZip(data);
+    
+            let templateDoc = new Docxtemplater(zip, {
+                paragraphLoop: true,
+                linebreaks: true
+            })
+    
+            templateDoc.render(resume);
+    
+            let generatedDoc = templateDoc.getZip().generate({
+                type: "base64",
+                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                compression: "DEFLATE"
+            })
+  
+            
+            
+            await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/convertToPdf`, {file : generatedDoc})
+            await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/savepdf`)
+            
+            
+        
+            router.reload()
+            alert("Saved Succuessfully See Reports/forms")
+        } catch (error) {
+            console.log('Error: ' + error);
+        }
+      }
+
 
     async function handlePrint(newSI : Boolean){
         if(newSI){
@@ -70,9 +312,9 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
             vatable: item.vatable ? 'Yes' : 'No',
             price: getThePrice?.toLocaleString(),
             batchNumber: item.ItemInfo?.batchNumber,
-            manDate: item.ItemInfo?.manufacturingDate.toString().substring(10, 0),
-            expDate: item.ItemInfo?.expirationDate.toString().substring(10, 0),
-            totalAmount: parseFloat( item.totalAmount.toString()).toLocaleString()
+            manDate: formatDateString(item.ItemInfo?.manufacturingDate.toString()),
+            expDate: formatDateString(item.ItemInfo?.expirationDate.toString()),
+            totalAmount: formatCurrency(item.ItemSalesDetails[0].netAmount.toString())
           }
     })
     
@@ -104,8 +346,8 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
                 <Itable color='blue' data={tableData} headerTitles={headerTitle}/>
                 <div className='tw-mt-4'>
                     <Button onClick={() => {handlePrint(true)}}color='blue'>Print SI &#40;New&#41;</Button>
-                    <Button onClick={() => {handlePrint(false)}}color='blue'>Print SI &#40;Old&#41;</Button>
-                    {/* <Button onClick={() => {router.push(`/sales/add/editSI/${info.id}`)}}color='blue'>Edit</Button> */}
+                    <Button onClick={() => {generateDocument(templateData, template)}}color='blue'>Print SI &#40;Old&#41;</Button>
+                    <Button onClick={() => {router.push(`/sales/add/editSI/${info.id}`)}}color='blue'>Edit</Button>
                 </div>
            </div>
         </div>

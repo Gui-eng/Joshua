@@ -74,7 +74,7 @@ export default function index({ post , salesInvoiceData} : InferGetServerSidePro
    session.data && 
    <>
    <div className='tw-w-full tw-h-full'>
-   <Inav firstName={post.employeeInfo.firstName}/>
+   <Inav/>
      <div className='tw-w-full tw-flex tw-h-[80vh]'>
            <div className='tw-w-[300px] tw-items-center tw-h-full tw-flex'>
              <div className=' tw-w-full tw-h-[98%] tw-border-x-2 tw-border-slate-300'>

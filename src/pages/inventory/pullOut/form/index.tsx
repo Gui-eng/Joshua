@@ -15,6 +15,8 @@ enum PULLOUTSTATUS {
 }
 
 import { HOSTADDRESS, PORT, getDate, getPrice, handleDateChange, handleOnChange, handleOptionsChange, makeOptions } from '../../../../../functions'
+import Docxtemplater from 'docxtemplater';
+import PizZip from 'pizzip';
 
 const tableHeaders = ["id","SI/DR No.","Quanity", "Product Name","MFG Date.", "EXP Date", "Batch #", "Amount", "Remarks"]
 
@@ -38,7 +40,11 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
 export default function item({ itemInfo, documentData, clientData} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
+
+
+
   
+
   const router = useRouter()
 
 const [pullOutData, setPullOutData] = useState<any>({
