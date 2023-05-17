@@ -109,6 +109,8 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
     const [templateData, setTemplateData] = useState(data)
     const router = useRouter()
 
+    console.log(info)
+
     useEffect(() => {
 
         let tdue = 0;
@@ -130,9 +132,8 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
                     [`mg${index + 1}`]: "MFG DATE: " + formatDateString(item.ItemInfo.manufacturingDate.toString()),
                     [`exp${index + 1}`]: "EXP DATE: " + formatDateString(item.ItemInfo.expirationDate.toString()),
                     [`batch${index + 1}`]: "LOT/BATCH NO. :" +  item.ItemInfo.batchNumber,
-                    [`d${index + 1}`]: (item.discount * 100) + "%",
-                    [`price${index + 1}`]:  getThePrice?.toLocaleString(),
-                    [`amount${index + 1}`]: '₱ ' + formatCurrency(item.ItemSalesDetails[0].netAmount.toString()),
+                    [`d${index + 1}`]: item.ItemSalesDetails[0].netAmount > 0 ? (item.discount * 100) + "%" : "",
+                    [`amount${index + 1}`]: item.ItemSalesDetails[0].netAmount > 0 ? '₱ ' + formatCurrency(item.ItemSalesDetails[0].netAmount.toString()) : "-",
                   };
                }
               
@@ -155,7 +156,7 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
         setTemplateData((prevTemplateData : any) => { 
             return {
                 ...prevTemplateData,
-                tdue : '₱ ' + formatCurrency(info.totalAmount),
+                tdue : Number(info.totalAmount) > 0 ? '₱ ' + formatCurrency(info.totalAmount) : "-",
                 [`n${info.items.length}`] : "*********NOTHING FOLLOWS**********",
                 [`r${info.items.length}`] : info.remarks
 
@@ -258,6 +259,8 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
                 <div className='tw-mt-4'>
                     <Button onClick={() => {handlePrint(true)}}color='blue'>Print DR &#40;New&#41;</Button>
                     <Button onClick={() => {handlePrint(false)}}color='blue'>Print DR &#40;Old&#41;</Button>
+                    <Button onClick={() => {router.push(`/sales/add/editDR/${info.id}`)}}color='blue'>Edit</Button>
+
                 </div>
            </div>
            

@@ -18,32 +18,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     });
     const { method } = req;
     switch (method) {
-        case 'GET':
+        case 'POST':
             {
                 try {
-                    const info = await prisma.deliveryRecipt.findUnique({
-                        where: { id: req.query.id?.toString() },
+                    const { from, to } = req.body;
+
+                    const salesInvoice = await prisma.salesInvoice.findMany({
+                        where: {
+                            dateIssued: {
+                                gte: new Date(from).toISOString(),
+                                lte: new Date(to).toISOString(),
+                            },
+                        },
                         include: {
                             pmr: { include: { employeeInfo: true } },
                             preparedBy: { include: { employeeInfo: true } },
-                            client: { include: { clientInfo: true } },
-                            TotalDetails: true,
                             items: {
                                 include: {
-                                    ItemInfo: {
-                                        include: {
-                                            ItemPrice: true,
-                                        },
-                                    },
+                                    ItemInfo: { include: { ItemPrice: true } },
                                     ItemSalesDetails: true,
                                 },
                             },
+                            client: { include: { clientInfo: true } },
                         },
                     });
 
-                    if (!info) {
-                        res.status(403).json({ success: false, data: [] });
-                    }
+                    const deliveryRecipt = await prisma.deliveryRecipt.findMany({
+                        where: {
+                            dateIssued: {
+                                gte: new Date(from).toISOString(),
+                                lte: new Date(to).toISOString(),
+                            },
+                        },
+                        include: {
+                            pmr: { include: { employeeInfo: true } },
+                            preparedBy: { include: { employeeInfo: true } },
+                            items: {
+                                include: {
+                                    ItemInfo: { include: { ItemPrice: true } },
+                                    ItemSalesDetails: true,
+                                },
+                            },
+                            client: { include: { clientInfo: true } },
+                        },
+                    });
+
+                    const info = [...salesInvoice, ...deliveryRecipt];
+
                     res.status(200).json({ success: true, data: info });
                 } catch (error) {
                     console.log(error);

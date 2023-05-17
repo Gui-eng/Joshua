@@ -41,11 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         case 'GET':
             {
                 try {
-                    const info = await prisma.employeeInfo.findMany({
-                        where: {
-                            department: DEPARTMENT.PMR,
-                        },
-                    });
+                    const info = await prisma.employeeInfo.findMany({});
 
                     res.status(200).json({ success: true, data: info });
                 } catch (error) {

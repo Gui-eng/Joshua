@@ -242,6 +242,7 @@ model DeliveryRecipt {
   isRemote  Boolean @default(false)
   isPullout Boolean @default(false)
   isPaid    Boolean @default(false)
+  isBypass  Boolean @default(false)
 
   items        Item[]
   Client       Client[]

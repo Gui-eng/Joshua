@@ -56,7 +56,7 @@ export default function item({ clients, pmr } : InferGetServerSidePropsType<type
     }
   })
 
-  const clientList = clients.map((item : ClientInfo) => {
+  const list = clients.map((item : ClientInfo) => {
 
     const pmrData : EmployeeInfo = pmr.find((pmr : EmployeeInfo) => {
       return item.pmrId === pmr.id
@@ -71,6 +71,7 @@ export default function item({ clients, pmr } : InferGetServerSidePropsType<type
       pmr : pmrData !== undefined ? pmrData.code : "-"
     }
   })
+  
 
 
 
@@ -88,6 +89,7 @@ export default function item({ clients, pmr } : InferGetServerSidePropsType<type
   const [success, setSuccess] = useState(false)
   const [editing, setEditing] = useState(false)
   const [id, setId] = useState('')
+  const [clientList, setClientList] = useState(list)
 
   const [clientData, setClientData] = useState<ClientInfo>(emptyClientData)
 
@@ -165,16 +167,21 @@ export default function item({ clients, pmr } : InferGetServerSidePropsType<type
 
     }
     
-
+    function filterData(str : string, array : Array<any>){
+      const arr = array.filter((item) => {
+        return item.companyName.includes(str) || item.TIN.includes(str)
+      })
+      setClientList(arr)
+    }
 
 
   return (
     <>
-    <div className='tw-w-full tw-h-screen tw-flex tw-bg-blue-500 tw-bg-opacity-20'>
+    <div className='tw-w-full tw-flex tw-bg-blue-500 tw-bg-opacity-20'>
     <div className='tw-absolute tw-m-4'>
       <Button onClick={() => {router.push('/home')}} color='blue' >Go Back</Button>
     </div>
-    <div className='tw-h-full tw-w-[50%] tw-flex tw-items-center tw-justify-center '>
+    <div className='tw-h-full tw-w-[50%] tw-py-40 tw-flex tw-items-center tw-justify-center '>
       <div className='tw-w-[50%]'>
         
           <Form>
@@ -215,12 +222,13 @@ export default function item({ clients, pmr } : InferGetServerSidePropsType<type
         </div>
       </div>
       <div className='tw-w-[50%] tw-h-full tw-flex tw-items-center tw-justify-center'>
-          <div className='tw-w-full tw-h-[80vh] tw-flex tw-flex-col'>
+          <div className='tw-w-full  tw-flex tw-flex-col'>
             <h1 className='tw-text-[3rem] tw-font-extrabold tw-mt-16  tw-mb-10'>Client List</h1>
             
             <div className='tw-w-full tw-flex tw-flex-col tw-justify-center'>
             <div className='tw-mb-4'>
                  {editing ? <Button onClick={() => {setEditing(false)}} color='blue'>+ Add item</Button> : <Button onClick={() => {setEditing(true)}} color='blue'>Edit</Button>}
+                 <Input onChange={(e) => {filterData(e.target.value, list)}} type='text' placeholder='Search...' icon={'search'}/>
             </div>
               <div className='tw-w-[90%]'>
                   <IFlexTable data={clientList ? clientList : []} headerTitles={headerTitles} allowEditing={editing} updateItem={updateItem}/>

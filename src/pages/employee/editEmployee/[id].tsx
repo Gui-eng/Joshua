@@ -24,26 +24,27 @@ const DEPARTMENTS = [
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
     const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
-
+    const employeeInfo = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/${context.query.id}`)
     
     
     return {
-      props : { post : res.data.data}
+      props : { post : res.data.data, employeeInfo : employeeInfo.data.data}
     }
     
 }
 
-export default function employee({ post } : InferGetServerSidePropsType<typeof getServerSideProps>) {
+export default function employee({ post, employeeInfo } : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
 
     const { data } = useSession();
-    useEffect(() => {
-        if(!data){
-          alert("Invalid Access")
-          router.push('/')
-        }
-      }, [])
+    // useEffect(() => {
+    //     if(!data){
+    //       alert("Invalid Access")
+    //       router.push('/')
+    //     }
+    //   }, [])
 
+   
     const [Data, setData] = useState({
         firstName  : '',
         middleName : '',
@@ -53,8 +54,11 @@ export default function employee({ post } : InferGetServerSidePropsType<typeof g
         dateHired  : '',
         department : '',
         contactNo  : '',
-        email : '',
     })
+
+    useEffect(() => {
+        setData(employeeInfo)
+    }, [])
 
     const [emptyFieldsError, setEmptyFieldsError] = useState(true)
     const [success, setSuccess] = useState(false)
@@ -64,9 +68,7 @@ export default function employee({ post } : InferGetServerSidePropsType<typeof g
         setEmptyFieldsError(true)
       }, [Data])
 
-    useEffect(() => {
-        setData({...Data, email : post.email})
-    }, [])
+
 
     function handleChange(e : React.ChangeEvent<HTMLInputElement>, extra : string){
         setData({...Data, [e.target.id] : e.target.value + extra})
@@ -84,7 +86,7 @@ export default function employee({ post } : InferGetServerSidePropsType<typeof g
         setSuccess(true)
 
         try {
-            const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee`, Data)
+            const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/${employeeInfo.id}`, Data)
             
         } catch (error) {
             
@@ -109,39 +111,39 @@ export default function employee({ post } : InferGetServerSidePropsType<typeof g
                 <Form.Group >
                     <Form.Field required >
                         <label htmlFor="First Name">First Name</label>
-                        <Input onChange={(e) => {handleChange(e, '')}} id='firstName' type='text'/>
+                        <Input value={Data.firstName} onChange={(e) => {handleChange(e, '')}} id='firstName' type='text'/>
                     </Form.Field>
                     <Form.Field>
                         <label htmlFor="middleName">Middle Name</label>
-                        <Input onChange={(e) => {handleChange(e, '')}} id='middleName' type='text'/>
+                        <Input value={Data.middleName} onChange={(e) => {handleChange(e, '')}} id='middleName' type='text'/>
                     </Form.Field>
                     <Form.Field required>
                         <label htmlFor="lastName">Last Name</label>
-                        <Input onChange={(e) => {handleChange(e, '')}} id='lastName' type='text'/>
+                        <Input value={Data.lastName} onChange={(e) => {handleChange(e, '')}} id='lastName' type='text'/>
                     </Form.Field>
                 </Form.Group>
-        
+            
                     <Form.Field width={4}>
                         <label htmlFor="code">Code &#40;If PMR&#41;</label>
-                        <Input onChange={(e) => {handleChange(e, '')}} id='code' type='text'/>
-                    </Form.Field>
+                        <Input value={Data.code} onChange={(e) => {handleChange(e, '')}} id='code' type='text'/>
+                    </Form.Field> 
 
                 <Form.Field required>
                     <label htmlFor="address">Address</label>
-                    <Input onChange={(e) => {handleChange(e, '')}} id='address' type='text'/>
+                    <Input value={Data.address} onChange={(e) => {handleChange(e, '')}} id='address' type='text'/>
                 </Form.Field>
                 <Form.Group>
                     <Form.Field>
                         <label htmlFor="dateHired">Date Hired</label>
-                        <Input max={getDate()} onChange={(e) => {handleChange(e, "T00:00:00Z")}} id='dateHired' type='date'/>
+                        <Input value={Data.dateHired.substring(10,0)} max={getDate()} onChange={(e) => {handleChange(e, "T00:00:00Z")}} id='dateHired' type='date'/>
                     </Form.Field>
                     <Form.Field required>
                         <label htmlFor="department">Department</label>
-                        <Select onChange={(e, item) => {setData({...Data, department : item.value === undefined ? '' : item.value.toString() })}} defaultValue='' placeholder='--Pick a Department--' id='department' options={DEPARTMENTS}/>
+                        <Select value={Data.department} onChange={(e, item) => {setData({...Data, department : item.value === undefined ? '' : item.value.toString() })}} defaultValue='' placeholder='--Pick a Department--' id='department' options={DEPARTMENTS}/>
                     </Form.Field>
                     <Form.Field required>
                         <label htmlFor="contactNo">Contact No.</label>
-                        <Input onChange={(e) => {handleChange(e, '')}} id='contactNo' type='text'/>
+                        <Input value={Data.contactNo} onChange={(e) => {handleChange(e, '')}} id='contactNo' type='text'/>
                     </Form.Field>
                 </Form.Group>
                 <Message

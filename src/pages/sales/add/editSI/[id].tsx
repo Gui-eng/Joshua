@@ -152,15 +152,16 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
   useEffect(() => {
 
     const tableDataSales = itemArray.map((item : Item) => {
-      const VATAmountWithDiscount = Math.round(((item.totalAmount - ((item.totalAmount * handleUndefined(item.discount))) / 1.12) * .12)  * 100) / 100
+      const VATAmountWithDiscount = Math.round(((item.itemSalesDetails.netAmount - (item.itemSalesDetails.netAmount * handleUndefined(item.discount))) / 1.12 * 0.12) * 100) / 100
 
-      const VATAmountWithoutDiscount = Math.round(((item.totalAmount / 1.12) * .12) * 100) / 100
+      const VATAmountWithoutDiscount = Math.round(((item.itemSalesDetails.netAmount / 1.12) * 0.12) * 100) / 100
+      
       const data = {
         itemId : handleUndefined(item.id),
-        grossAmount : Math.round(item.totalAmount * 100) / 100,
+        grossAmount : Math.round(item.itemSalesDetails.netAmount * 100) / 100,
         discount : handleUndefined(item.discount),
-        netAmount : (item.totalAmount - (item.totalAmount * handleUndefined(item.discount))),
-        VATAmount : item.vatable ? handleUndefined(item.discount) !== 0 ?  VATAmountWithDiscount : VATAmountWithoutDiscount  : 0,
+        netAmount : (item.itemSalesDetails.netAmount - (item.itemSalesDetails.netAmount * handleUndefined(item.discount))),
+        VATAmount : VATAmountWithDiscount,
         vatable : item.vatable,
       }
 
@@ -200,7 +201,7 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
       item : convertItemsToFit,
       salesInvoiceNumber : currentSI.salesInvoiceNumber,
       term : currentSI.term,
-      totalAmount : currentSI.totalAmount,
+      totalAmount : Number(currentSI.totalAmount),
       total : currentSI.TotalDetails,
       VAT : Number(currentSI.VAT),
       clientId : currentSI.client.clientInfo.id,
@@ -242,7 +243,6 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
     
   }
 
-
 }
 
  function handleDelete(data : any){
@@ -254,28 +254,6 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
    
  }
 
-//  function handleEdit(data : any){
-//   const target = itemArray.find((item : any) => {
-//     return item.id === data.id
-//  })
-
-
-//   setDataTarget(target)
-//   setFilteredItemList(findMany('itemName', itemInfo, target.ItemInfo.itemName))
-//   setItemArray((prevItem)=> {return prevItem.filter((value) => {return value.id !== target.id} )})
-//   setSelectedItemId(target.ItemInfo.id)
-//   setItemData({
-//     itemSalesDetails : emptyItemSalesDetails,
-//     quantity : target.quantity,
-//     totalAmount : target.totalAmount,
-//     unit : target.unit,
-//     unitPrice : target.unitPrice,
-//     vatable : target.vatable,
-//     discount : target.discount,
-//     ItemInfo : target.ItemInfo
-//   })
-  
-//  }
 
     
   return (

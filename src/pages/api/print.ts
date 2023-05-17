@@ -186,7 +186,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                                     limit(item.ItemSalesDetails[0].netAmount),
                                     item.vatable ? limit(item.ItemSalesDetails[0].netAmount) : '-',
                                     !item.vatable ? limit(item.ItemSalesDetails[0].netAmount) : '-',
-                                    Number(handleUndefined(item.ItemSalesDetails[0].VATAmount)),
+                                    item.vatable ? Number(handleUndefined(item.ItemSalesDetails[0].VATAmount)) : '-',
                                     limit(item.ItemSalesDetails[0].grossAmount),
                                     limit(handleUndefined(item.discount)),
                                     sales.pmr?.employeeInfo.code,

@@ -63,7 +63,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   const [disabledStockIn, setDisabledStockIn] = useState(false)
   const [stockIn, setStockIn] = useState(false)
   const [emptyFieldsError, setEmptyFieldError] = useState(false)
- 
+  const [isBypass, setIsBypass] = useState(false);
 
 
 
@@ -142,30 +142,31 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
     const totalAmount = itemData.unitPrice * itemData.quantity
     const netTotalAmount = totalAmount - (totalAmount * handleUndefined(itemData.discount))
 
-    setItemData({...itemData, totalAmount : netTotalAmount, itemSalesDetails : { ...itemData.itemSalesDetails,
-      grossAmount : itemData.unitPrice * itemData.quantity,
+    setItemData({...itemData, totalAmount : !isBypass ? netTotalAmount : 0, itemSalesDetails : { ...itemData.itemSalesDetails,
+      grossAmount : !isBypass ? itemData.unitPrice * itemData.quantity : 0,
       itemId : handleUndefined(itemData.id),
-      netAmount : netTotalAmount,
+      netAmount : !isBypass ? netTotalAmount : 0,
       vatable : itemData.vatable,
-      VATAmount : netTotalAmount - ((netTotalAmount / 1.12) * .12)
+      VATAmount : !isBypass ? netTotalAmount - ((netTotalAmount / 1.12) * 0.12) : 0
     }})
-  }, [itemData.unitPrice, itemData.quantity, itemData.discount])
+  }, [itemData.unitPrice, itemData.quantity, itemData.discount, isBypass])
+
 
 
   //temp
   useEffect(() => {
 
     const tableDataSales = itemArray.map((item : Item) => {
-      const VATAmountWithDiscount = Math.round(((item.itemSalesDetails.grossAmount - (item.itemSalesDetails.grossAmount * handleUndefined(item.discount))) * 0.12) * 100) / 100
+      const VATAmountWithDiscount = Math.round(((item.itemSalesDetails.netAmount - (item.itemSalesDetails.netAmount * handleUndefined(item.discount))) * 0.12) * 100) / 100
 
-      const VATAmountWithoutDiscount = Math.round((item.itemSalesDetails.grossAmount * 0.12) * 100) / 100
+      const VATAmountWithoutDiscount = Math.round((item.itemSalesDetails.netAmount  * 0.12) * 100) / 100
 
       const data = {
-        itemId : handleUndefined(item.id),
-        grossAmount : Math.round(item.itemSalesDetails.grossAmount * 100) / 100,
-        discount : handleUndefined(item.discount),
-        netAmount : (item.itemSalesDetails.grossAmount - (item.itemSalesDetails.grossAmount * handleUndefined(item.discount))),
-        VATAmount : item.vatable ? handleUndefined(item.discount) !== 0 ?  VATAmountWithDiscount : VATAmountWithoutDiscount  : 0,
+        itemId : !isBypass ? handleUndefined(item.id) : 0,
+        grossAmount : !isBypass ? Math.round(item.itemSalesDetails.netAmount  * 100) / 100 : 0,
+        discount : !isBypass ? handleUndefined(item.discount) : 0,
+        netAmount : !isBypass ? (item.itemSalesDetails.netAmount  - (item.itemSalesDetails.netAmount  * handleUndefined(item.discount))) : 0,
+        VATAmount : !isBypass ? item.vatable ? handleUndefined(item.discount) !== 0 ?  VATAmountWithDiscount : VATAmountWithoutDiscount  : 0 : 0,
         vatable : item.vatable,
       }
 
@@ -192,26 +193,27 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
     setTableData(tableDataItems)
 
     const total = {
-      totalAmount : _.sum(itemArray.map((item : any) => item.itemSalesDetails.netAmount)),
-      VAT : _.sum(itemArray.map((item : any) => item.itemSalesDetails.VATAmount)),
+      totalAmount : !isBypass ? _.sum(itemArray.map((item : any) => item.itemSalesDetails.netAmount)) : 0,
+      VAT : !isBypass ? _.sum(itemArray.map((item : any) => item.itemSalesDetails.VATAmount)) : 0,
     }
 
-    console.log(total)
+
     setDeliveryReciptData({...deliveryReciptData, item : itemArray, totalAmount : total.totalAmount, VAT : total.VAT })
+
+ 
     
   },[itemArray])
-  console.log(itemArray)
   
 
   useEffect(() => {
     setDeliveryReciptData({...deliveryReciptData, total : getTotal(sales)})
   }, [sales])
 
-  console.log(deliveryReciptData)
+  console.log(deliveryReciptData.item)
   //Data Handling
 
   async function handleAddItem(){
-    if(hasEmptyFields(itemData, ['discount'])){
+    if(hasEmptyFields(itemData, ['discount']) && !isBypass){
       setEmptyFieldError(true)
       return
     }
@@ -224,7 +226,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   }
 
   async function handleOnClick(){
-    if(hasEmptyFields(deliveryReciptData, ['remarks', 'nonVATSales', 'VATableSales', 'VAT'])){
+    if(hasEmptyFields(deliveryReciptData, ['remarks', 'nonVATSales', 'VATableSales', 'VAT', 'total', 'totalAmount'])){
       console.log(deliveryReciptData)
       setEmptyFieldError(true)
       alert('There are Empty Fields')
@@ -265,11 +267,15 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
               <Form.Group>
                   <Form.Field required error={(emptyFieldsError && deliveryReciptData.deliveryReciptNumber === '')}>
                       <label htmlFor="deliveryReciptNumber">DR No.</label>
-                      <Input id="deliveryReciptNumber" placeholder="ie. 89901" onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} />
+                      <Input size='mini' id="deliveryReciptNumber" placeholder="ie. 89901" onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} />
                   </Form.Field>
                   <Form.Field required error={(emptyFieldsError && deliveryReciptData.dateIssued === '')}>
                       <label htmlFor="dateIssued">Date Issued</label>
-                      <Input type='date' max={getDate()} id="dateIssued" onChange={(e) =>  {handleDateChange(e, deliveryReciptData, setDeliveryReciptData)}}/>
+                      <Input size='mini' type='date' max={getDate()} id="dateIssued" onChange={(e) =>  {handleDateChange(e, deliveryReciptData, setDeliveryReciptData)}}/>
+                  </Form.Field>
+                  <Form.Field width={6}>
+                      <label htmlFor="remarks">Remarks</label>
+                      <Input size='mini' id="remarks" placeholder="Remarks" onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} />
                   </Form.Field>
               </Form.Group>
               <Form.Group>
@@ -312,6 +318,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                         onChange={(e, item) => {handleOptionsChange(e, item, deliveryReciptData, setDeliveryReciptData)}}
                       />
                   </Form.Field>
+                  
                   <Form.Field className={`tw-items-center tw-flex tw-flex-col ${!isRemote ? 'tw-py-4' : 'tw-py-8'}`}>
                     {!isRemote ? <p><small><small className='tw-flex'><p className='tw-text-red-600'>*</p>NOTE: Stocks will be deducted from the main inventory</small></small></p> : null}
                     <Checkbox
@@ -322,6 +329,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                   </Form.Field>
                   
               </Form.Group>
+              
               </Form>
               </div>
               
@@ -374,6 +382,10 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                           </Form.Field>
                       </Form.Group>
                       <Form.Group>
+                        <Form.Field>
+                          <label htmlFor="byPassAmount">Bypass Amount</label>
+                          <Checkbox id="byPassAmount" toggle onChange={() => {setIsBypass(isBypass ? false : true)}}/>
+                        </Form.Field>
                         <Form.Field disabled={disabled}>
                             <label htmlFor="discount">Discount</label>
                             <Input onChange={(e) => { handleDiscount(e) }}  max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>

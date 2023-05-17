@@ -47,7 +47,7 @@ export default function add({ user, clients, salesInvoiceData, selectedDocument}
 
     const router = useRouter()
 
-    
+    console.log(salesInvoiceData)
 
     const [salesInvoiceNumberOptions, setSalesInvoiceNumberOptions] = useState<any>([])
     const [totalBalance, setTotalBalance] = useState(0)
