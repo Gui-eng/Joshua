@@ -100,7 +100,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
     if(selectedItemId !== ''){
       setDisabled(false)
     }
-    
+    setItemData({...itemData, discount : 0, quantity : 0, unit : ""})
   },[selectedItemId])
 
   useEffect(() => {
@@ -378,7 +378,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                           </Form.Field>
                           <Form.Field disabled={disabled} required error={(emptyFieldsError && itemData.quantity === 0)}>
                               <label htmlFor="quantity">Quantity</label>
-                              <Input value={handleUndefined(itemData.quantity)} id='quantity' onChange={(e) => {handleQuantity(e)}} min="0" type="number" label={{content : <Dropdown color='blue' options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, itemData, setItemData)}}/>, color : "blue"}} labelPosition='right'/>
+                              <Input value={handleUndefined(itemData.quantity)} id='quantity' onChange={(e) => {handleQuantity(e)}} min="0" type="number" label={{content : <Dropdown color='blue' value={itemData.unit} options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, itemData, setItemData)}}/>, color : "blue"}} labelPosition='right'/>
                           </Form.Field>
                       </Form.Group>
                       <Form.Group>
