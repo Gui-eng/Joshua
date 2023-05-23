@@ -63,100 +63,93 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   const [disabledStockIn, setDisabledStockIn] = useState(false)
   const [stockIn, setStockIn] = useState(false)
   const [emptyFieldsError, setEmptyFieldError] = useState(false)
-   
-
-
-
-  function handleDiscount(e : React.ChangeEvent<HTMLInputElement>){
-    const discount = parseFloat(e.target.value) / 100
-    setItemData({...itemData, discount : discount, itemSalesDetails : {...itemData.itemSalesDetails, discount : discount} })
-  }
-
-  function handleQuantity(e : React.ChangeEvent<HTMLInputElement>){
-    setItemData({...itemData, quantity : parseFloat(e.target.value)})
-  }
-  
-  useEffect(() => {
-    setEmptyFieldError(false)
-  }, [salesInvoiceData])
-
-  useEffect(() => {
-    setSalesInvoiceData({...salesInvoiceData, isRemote : isRemote})
-  }, [isRemote])
-
-  useEffect(() => {
-    setBatchOption(makeOptions(filteredItemList !== undefined ? filteredItemList : [], 'id', ['batchNumber']))
-    if(selectedItemId !== ''){
-      setDisabled(true)
-    }
-  }, [filteredItemList])
-
-  useEffect(() => {
-    setSalesInvoiceData({...salesInvoiceData, stockIn : stockIn})
-  }, [stockIn])
-
-  useEffect(() => {
-    setSelectedItemData(find(selectedItemId, itemInfo))
-    if(selectedItemId !== ''){
-      setDisabled(false)
-    }
-    setItemData({...itemData, discount : 0, quantity : 0, unit : ""})
-    
-  },[selectedItemId])
-
-  useEffect(() => {
-    if(salesInvoiceData.clientId !== ''){
-
-      const client : ClientInfo = find(handleUndefined(salesInvoiceData.clientId), clientInfo)
-    
-      setSalesInvoiceData({...salesInvoiceData, client : find(handleUndefined(salesInvoiceData.clientId), clientInfo), preparedById : preparedBy.employeeInfoId, pmrEmployeeId : client.pmrId})
-    }
-  }, [salesInvoiceData.clientId])
-
-  useEffect(() => {
-    setItemData({...itemData, id : uuidv4(), ItemInfo : selectedItemData, itemInfoId : selectedItemData?.id, vatable : handleUndefined(selectedItemData?.VAT)})
-    showAvailableUnits(handleUndefined(selectedItemData?.ItemPrice), setAvailableQuantityOption)
-  }, [selectedItemData])
-
-
-
-  useEffect(() => {
-    setItemData({...itemData, unitPrice : handleUndefined(getPrice(handleUndefined(selectedItemData?.ItemPrice), itemData.unit))})
-  }, [itemData.quantity, itemData.unit, itemData.itemInfoId])
-
-
-  useEffect(() => {
-    const totalAmount = itemData.unitPrice * itemData.quantity
-    const netTotalAmount = totalAmount - (totalAmount * handleUndefined(itemData.discount))
-    setItemData({...itemData, totalAmount : netTotalAmount, itemSalesDetails : { ...itemData.itemSalesDetails,
-      grossAmount : totalAmount,
-      itemId : handleUndefined(itemData.id),
-      netAmount : netTotalAmount,
-      vatable : itemData.vatable,
-      VATAmount : netTotalAmount  - ((netTotalAmount / 1.12) * 0.12)
-    }})
-  }, [itemData.unitPrice, itemData.quantity, itemData.discount])
-
 
   //temp
+  const [itemNameValue, setItemNameValue] = useState<string>('');
+  const [batchNumberValue, setBatchNumberValue] = useState<string>('');
+  const [companyNameValue, setCompanyNameValue] = useState<string>('');
+
+
   useEffect(() => {
+    const fetchData = async () => {
+      const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/client/${companyNameValue}`)
+      const companyInfoData = res.data.data.length === undefined ? res.data.data : { id : '', pmrId : ''}
 
-    const tableDataSales = itemArray.map((item : Item) => {
-      const netTotal = item.itemSalesDetails.grossAmount - (handleUndefined(item.discount) * item.itemSalesDetails.grossAmount)
+      setSalesInvoiceData({...salesInvoiceData,pmrEmployeeId : companyInfoData.pmrId, client : companyInfoData, clientId : companyInfoData.id, preparedById : preparedBy.employeeInfo.id})
+    }
 
-      const VATAmountWithDiscount = Math.round((netTotal / 1.12 * 0.12) * 100) / 100
+    fetchData()
+  }, [companyNameValue])
+  
+  //Item Name and Batch Options
+  useEffect(() => {
+    const fetchData = async () => {
+      const batchItemArray = await findMany("itemName", itemInfo, itemNameValue);
+      setFilteredItemList(batchItemArray);
+      setItemData(emptySalesItemData)
+    };
+  
+    fetchData();
+    setDisabled(true);
+  }, [itemNameValue]);
+  
+  useEffect(() => {
+    const batchOption = makeOptions(filteredItemList || [], 'id', ['batchNumber']);
+    setBatchOption(batchOption);
+  }, [filteredItemList]);
 
-      const VATAmountWithoutDiscount = Math.round(((item.itemSalesDetails.netAmount / 1.12) * 0.12) * 100) / 100
+ 
+  useEffect(() => {
+    const getItemData = async () => {
+      const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item/getItem/${batchNumberValue}`)
+      const resData = res.data.data
+      const newId = uuidv4()
+
+      setItemData(prevItemData => ({
+        ...prevItemData,
+        id : newId,
+        itemInfoId: batchNumberValue,
+        ItemInfo: {
+          id : resData.id,
+          batchNumber: resData.batchNumber,
+          expirationDate: resData.expirationDate,
+          manufacturingDate: resData.manufacturingDate,
+          itemName: resData.itemName,
+          VAT: resData.VAT,
+          ItemPrice: resData.ItemPrice
+        },
+        unitPrice : getPrice(resData.ItemPrice, itemData.unit) || 0,
+        vatable : resData.VAT
+        
+      }));
+
+      showAvailableUnits(resData.ItemPrice, setAvailableQuantityOption)
+    }
+    
+    if(batchNumberValue !== ''){
+     getItemData()
      
+
+     setDisabled(false);
+    }
+  }, [batchNumberValue])
+
+  //Setting Table Data and Items in the Sales invoice Data
+  useEffect(() => {
+    const tableDataSales = itemArray.map((item : Item) => {
+      const discount = handleUndefined(item.discount) / 100
+      const grossAmount = item.totalAmount
+      const netAmount = grossAmount - (grossAmount * discount)
+      const VATAmount = netAmount / 1.12 * 0.12
+
       const data = {
-        itemId : handleUndefined(item.id),
-        grossAmount : Math.round(item.itemSalesDetails.grossAmount * 100) / 100,
-        discount : handleUndefined(item.discount),
-        netAmount : netTotal,
-        VATAmount : VATAmountWithDiscount,
+        itemId :  handleUndefined(item.id),
+        grossAmount :  Math.round(grossAmount  * 100) / 100 ,
+        discount : discount || 0,
+        netAmount : Math.round(netAmount * 100) / 100,
+        VATAmount : item.vatable ? Math.round(VATAmount * 100) / 100 : 0, 
         vatable : item.vatable,
       }
-
 
       return data
     })
@@ -164,6 +157,10 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
     setSales(tableDataSales)
 
     const tableDataItems = itemArray.map((item : Item) => {
+      const discount = handleUndefined(item.discount) / 100
+      const grossAmount = item.totalAmount
+      const netAmount = grossAmount - (grossAmount * discount)
+
       return {
         id : item.id,
         quantity : item.quantity,
@@ -172,18 +169,29 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
         batchNumber : item.ItemInfo?.batchNumber,
         VAT : item.vatable ? <Header color='green' as='h5'>Yes</Header> : <Header color='red' as='h5'>No</Header>,
         unitPrice : item.unitPrice.toLocaleString(),
-        discount : handleUndefined(item.discount) * 100 + "%",
-        totalAmount : formatCurrency(item.totalAmount.toString()),
+        discount : handleUndefined(item.discount) + "%",
+        totalAmount : formatCurrency(netAmount.toString()),
       }
     })
 
     setTableData(tableDataItems)
-    setSalesInvoiceData({...salesInvoiceData, item : itemArray, })
-  },[itemArray])
+    setSalesInvoiceData({...salesInvoiceData, item : itemArray})
+  }, [itemArray])
 
+
+
+  //Getting the Unit Price
   useEffect(() => {
-    setSalesInvoiceData({...salesInvoiceData, totalAmount : _.sumBy(sales, 'netAmount'), VAT : _.sumBy(sales, 'VATAmount'), total : getTotal(sales)})
-  }, [sales])
+    const getUnitPrice = getPrice(handleUndefined(itemData.ItemInfo?.ItemPrice), itemData.unit) || 0
+
+    if(getUnitPrice > 0) {
+      const getTotalGrossAmount = getUnitPrice * itemData.quantity
+      setItemData({...itemData, unitPrice : getUnitPrice, totalAmount : getTotalGrossAmount})
+
+    }else{
+      setItemData({...itemData, unitPrice : getUnitPrice})
+    }
+  }, [itemData.unit, itemData.quantity])
 
   //Data Handling
 
@@ -194,26 +202,28 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
       return
     }
 
+  
+  
     const newId = uuidv4()
-
     setItemData({...itemData, id: newId})
 
     setItemArray(prevItemArray => [...prevItemArray, itemData])
   }
 
+
   async function handleOnClick(){
-    if(hasEmptyFields(salesInvoiceData, ['remarks', 'nonVATSales', 'VATableSales', 'VAT'])){
+    if(hasEmptyFields(salesInvoiceData, ['remarks', 'nonVATSales', 'VATableSales', 'VAT', 'totalAmount'])){
       setEmptyFieldError(true)
       alert('There are Empty Fields')
       return
     }
+
+
       const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/addInvoice`, salesInvoiceData)
       router.reload()
     if(!res.status){
       console.log(res.statusText)
-     
-    
-  }
+    }
 
 }
 
@@ -254,7 +264,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                           search
                           selection
                           options={clientOptions}
-                          onChange={(e, item) => {handleOptionsChange(e, item, salesInvoiceData, setSalesInvoiceData)}}
+                          onChange={(e, item) => { setCompanyNameValue(item.value?.toString() || '')}}
                       />
                   </Form.Field>
                   <Form.Field>
@@ -293,7 +303,6 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
               </Form.Group>
               <Form.Group>
                   <Form.Field className={`tw-items-center tw-flex tw-flex-col ${!isRemote ? 'tw-py-2' : 'tw-py-4'}`}>
-                    {!isRemote ? <p><small><small className='tw-flex'><p className='tw-text-red-600'>*</p>NOTE: Stocks will be deducted from the main inventory</small></small></p> : null}
                     <Checkbox
                   label = {<label>{isRemote? <Header color='grey'>Remote Inventory</Header> : <Header>Main Inventory</Header>}</label>}
                   onChange={() => {setIsRemote(isRemote ? false : true)}}
@@ -315,45 +324,45 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                             search
                             selection
                             options={itemOptions}
-                            onChange={(e, item) => {setFilteredItemList(findMany(e.currentTarget.id, itemInfo, item.value !== undefined ? item.value.toString() : ''))}}
+                            onChange={(e, item) => { setItemNameValue(item.value?.toString() || '')}}
                             />
                         </Form.Field>
                         <Form.Field required error={(emptyFieldsError && itemData.ItemInfo?.batchNumber === '')}>
                             <label htmlFor="BatchNumner">Batch Number</label>
                             <Dropdown
                             id="batchNumber"
-                            disabled={filteredItemList !== undefined ? filteredItemList[0].itemName === '' : true}
+                            disabled={itemNameValue === ''}
                             search
                             selection
                             options={batchOption}
-                            onChange={(e, item) => {setSelectedItemId(handleUndefined(item.value))}}
+                            onChange={(e, item) => { setBatchNumberValue(item.value?.toString() || '')}}
                             />
                         </Form.Field>
                       </Form.Group>
                       <Form.Group>
                         <Form.Field disabled={disabled}>
                               <label htmlFor="manufacturingDate">Manufacturing Date</label>
-                              <Input id="manufacturingDate" type='date' value={selectedItemId !== '' ? (disabled ? "" : selectedItemData?.manufacturingDate.toString().substring(10, 0)) : ''} readOnly/>
+                              <Input id="manufacturingDate" type='date' value={itemData.ItemInfo?.manufacturingDate.toString().substring(10,0) || ''} readOnly/>
                           </Form.Field>
                           <Form.Field disabled={disabled}>
                               <label htmlFor="ExpirationDate">Expiration Date</label>
-                              <Input id="ExpirationDate" type='date' value={selectedItemId !== '' ? (disabled ? "" : selectedItemData?.expirationDate.toString().substring(10, 0)): ''} readOnly/>
+                              <Input id="ExpirationDate" type='date' value={itemData.ItemInfo?.expirationDate.toString().substring(10,0) || ''} readOnly/>
                           </Form.Field>  
                       </Form.Group>
                       <Form.Group>
                         <Form.Field disabled={disabled}>
                               <label htmlFor="quantity">VAT?</label>
-                              <Input value={salesInvoiceData.id != '' ? (disabled ? "" : (selectedItemData?.VAT ? "Yes" : "No")) : ""} readOnly/>
+                              <Input value={itemData.ItemInfo?.VAT ? 'Yes' : 'No' || ''} readOnly/>
                           </Form.Field>
                           <Form.Field disabled={disabled} required error={(emptyFieldsError && itemData.quantity === 0)}>
                               <label htmlFor="quantity">Quantity</label>
-                              <Input value={handleUndefined(itemData.quantity)} id='quantity' onChange={(e) => {handleQuantity(e)}} min="0" type="number" label={{content : <Dropdown color='blue' value={itemData.unit} options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, itemData, setItemData)}}/>, color : "blue"}} labelPosition='right'/>
+                              <Input min={1} value={handleUndefined(itemData.quantity)} id='quantity' onChange={(e) => { handleOnChange(e, itemData, setItemData)}} type="number" label={{content : <Dropdown color='blue' value={itemData.unit} options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, itemData, setItemData)}}/>, color : "blue"}} labelPosition='right'/>
                           </Form.Field>
                       </Form.Group>
                       <Form.Group>
                         <Form.Field disabled={disabled}>
                             <label htmlFor="discount">Discount</label>
-                            <Input value={handleUndefined(itemData.discount) * 100} onChange={(e) => { handleDiscount(e) }}  max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
+                            <Input  value={itemData.discount} onChange={(e) => {handleOnChange(e, itemData, setItemData)}}  max={100.00} id="discount" min={0.00} step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
                         </Form.Field>
                         <Button color='blue' onClick={handleAddItem}>Add Item</Button>
                       </Form.Group>

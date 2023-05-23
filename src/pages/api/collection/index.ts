@@ -253,6 +253,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                 balance:
                                     deductFromBalanceValue > parseFloat(handleUndefined(getPayables?.payables))
                                         ? deductFromBalanceValue - parseFloat(handleUndefined(getPayables?.payables))
+                                        : amount > handleUndefined(getPayables?.payables)
+                                        ? amount - handleUndefined(getPayables?.payables)
                                         : 0,
                             },
                         });

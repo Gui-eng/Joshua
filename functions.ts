@@ -49,7 +49,6 @@ export const emptySalesInvoiceData: SalesInvoiceData = {
     remarks: '',
     item: [],
     isRemote: false,
-    total: emptyTotalData,
 };
 
 export const emptyDeliveryRecipt: DeliveryReciptData = {

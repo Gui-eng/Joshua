@@ -1,9 +1,10 @@
 import { ItemSalesDetails, PrismaClient } from '@prisma/client';
 import { handleUndefined, handleUnits } from 'functions';
-import { create } from 'lodash';
+import _, { create } from 'lodash';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import NextCors from 'nextjs-cors';
 import { Item } from 'types';
+import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
 console.log('TEST');
@@ -55,45 +56,76 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     dateIssued,
                     salesInvoiceNumber,
                     term,
-                    totalAmount,
                     pmrEmployeeId,
                     clientId,
-                    VAT,
                     remarks,
                     item,
                     isRemote,
                     client,
-                    stockIn,
                     preparedById,
-                    total,
                 } = req.body;
 
-                const { grossAmount, netAmount, vatExempt, VATAmount, netVATAmount, VATableSales, nonVATSales } = total;
+                const totalSalesAmount = _.sumBy(
+                    item,
+                    (item: any) => item.totalAmount - (item.totalAmount * handleUndefined(item.discount)) / 100,
+                );
 
-                console.log(isRemote);
-                const salesInvoice = await prisma.salesInvoice.create({
-                    data: {
-                        dateIssued: dateIssued,
-                        salesInvoiceNumber: salesInvoiceNumber,
-                        term: term,
-                        totalAmount: totalAmount,
-                        remarks: remarks,
-                        VAT: VAT,
-                        isRemote: !isRemote,
-                        stockIn: stockIn,
-                        payables: totalAmount,
-                    },
+                const VAT = (totalSalesAmount / 1.12) * 0.12;
+
+                const newID = uuidv4();
+                let salesInfo: any = {
+                    id: newID,
+                    dateIssued: dateIssued,
+                    salesInvoiceNumber: salesInvoiceNumber,
+                    term: term,
+                    totalAmount: totalSalesAmount,
+                    remarks: remarks,
+                    VAT: VAT,
+                    isRemote: !isRemote,
+                    payables: totalSalesAmount,
+                };
+
+                const itemData = item.map((item: any) => {
+                    const { id, quantity, vatable, discount, totalAmount, itemInfoId, unit } = item;
+
+                    const disc = handleUndefined(discount) / 100;
+                    const grossAmount = totalAmount;
+                    const netAmount = totalAmount - grossAmount * disc;
+                    const VATAmount = vatable ? (netAmount / 1.12) * 0.12 : 0;
+
+                    return {
+                        id: id,
+                        quantity: quantity,
+                        totalAmount: netAmount,
+                        unit: handleUnits(unit),
+                        vatable: vatable,
+                        discount: disc,
+                        itemInfoId: handleUndefined(itemInfoId),
+                        sIId: salesInfo.id,
+                    };
                 });
 
-                const totalDetails = await prisma.totalDetails.create({
-                    data: {
+                const itemSalesData = item.map((item: any) => {
+                    const { id, quantity, vatable, discount, totalAmount, itemInfoId, unit } = item;
+
+                    const disc = handleUndefined(discount) / 100;
+                    const grossAmount = totalAmount;
+                    const netAmount = totalAmount - grossAmount * disc;
+                    const VATAmount = vatable ? (netAmount / 1.12) * 0.12 : 0;
+
+                    return {
+                        discount: disc,
                         grossAmount: grossAmount,
                         netAmount: netAmount,
-                        vatable: vatExempt,
+                        netVATAmount: netAmount - netAmount * 0.12,
                         VATAmount: VATAmount,
-                        discount: 0,
-                        salesInvoiceId: salesInvoice.id,
-                    },
+                        vatExempt: !vatable,
+                        itemId: id,
+                    };
+                });
+
+                const salesInvoice = await prisma.salesInvoice.create({
+                    data: salesInfo,
                 });
 
                 const preparedBy = await prisma.employee.create({
@@ -117,56 +149,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     },
                 });
 
-                const itemDetails: Array<any> = item.map((obj: any) => {
-                    const {
-                        itemSalesDetails,
-                        id,
-                        quantity,
-                        totalAmount,
-                        unit,
-                        unitPrice,
-                        vatable,
-                        ItemInfo,
-                        discount,
-                        itemInfoId,
-                    } = obj;
-
-                    return {
-                        id: id,
-                        quantity: quantity,
-                        totalAmount: totalAmount,
-                        unit: handleUnits(unit),
-                        vatable: vatable,
-                        discount: discount,
-                        itemInfoId: handleUndefined(itemInfoId),
-                        sIId: salesInvoice.id,
-                    };
-                });
-
-                const salesDetails = item.map((obj: any) => {
-                    const { itemSalesDetails, id } = obj;
-
-                    const { VATAmount, grossAmount, itemId, netAmount } = itemSalesDetails;
-
-                    const sales = {
-                        discount: handleUndefined(itemSalesDetails.discount),
-                        grossAmount: grossAmount,
-                        netAmount: netAmount,
-                        netVATAmount: netAmount - netAmount * 0.12,
-                        VATAmount: VATAmount,
-                        vatExempt: !itemSalesDetails.vatable,
-                        itemId: itemId,
-                    };
-
-                    return sales;
-                });
-
                 const handleItems = await prisma.item.createMany({
-                    data: itemDetails,
+                    data: itemData,
                 });
 
                 const handleSales = await prisma.itemSalesDetails.createMany({
-                    data: salesDetails,
+                    data: itemSalesData,
                 });
 
                 const updateSalesInvoice = await prisma.salesInvoice.update({

@@ -163,7 +163,6 @@ export interface SalesInvoiceData {
     discount?: number;
     VAT: number;
     remarks?: string;
-    total: TotalData;
 
     isRemote: boolean;
     stockIn?: boolean;

@@ -196,7 +196,7 @@ export default function IFlextable({ data, headerTitles, color, allowEditing, ha
                   <Header as='h4' content={"VAT Amount"}/>
           </Table.HeaderCell>
           <Table.HeaderCell>
-                 <Header as='h6' className="tw-text-sky-600">{totalData.vatExempt ? totalData.netVATAmount.toLocaleString() : '-'}<Label color="blue" >₱</Label></Header>
+                 <Header as='h6' className="tw-text-sky-600">{totalData.vatExempt ? totalData.VATAmount.toLocaleString() : '-'}<Label color="blue" >₱</Label></Header>
           </Table.HeaderCell>
           <Table.HeaderCell>
                   <Header as='h4' content={"Less: SC/PWD-Discount"}/>

@@ -77,8 +77,10 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
   const [stockIn, setStockIn] = useState(false)
   const [emptyFieldsError, setEmptyFieldError] = useState(false)
 
-
+  console.log(salesInvoiceData)
   function handleDiscount(e : React.ChangeEvent<HTMLInputElement>){
+
+
     const discount = parseFloat(e.target.value) / 100
     setItemData({...itemData, discount : discount, itemSalesDetails : {...itemData.itemSalesDetails, discount : discount} })
   }

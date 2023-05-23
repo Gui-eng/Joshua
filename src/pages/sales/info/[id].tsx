@@ -228,13 +228,13 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
             }
 
             allvat = {
-                adue : allvat.adue  === 0 ? "" : formatCurrency(nonvat.adue.toString()),
-                disc : allvat.disc  === 0 ? "" : formatCurrency(nonvat.disc.toString()),
-                avat : allvat.avat  === 0 ? "" : formatCurrency(nonvat.avat.toString()),
-                lvat : allvat.lvat  === 0 ? "" : formatCurrency(nonvat.lvat.toString()),
-                nvat : allvat.nvat  === 0 ? "" : formatCurrency(nonvat.nvat.toString()),
-                tdue : allvat.tdue  === 0 ? "" : formatCurrency(nonvat.tdue.toString()),
-                tsales : allvat.tsales  === 0 ? "" : formatCurrency(nonvat.tsales.toString()),
+                adue : allvat.adue  === 0 ? "" : formatCurrency(allvat.adue.toString()),
+                disc : allvat.disc  === 0 ? "" : formatCurrency(allvat.disc.toString()),
+                avat : allvat.avat  === 0 ? "" : formatCurrency(allvat.avat.toString()),
+                lvat : allvat.lvat  === 0 ? "" : formatCurrency(allvat.lvat.toString()),
+                nvat : allvat.nvat  === 0 ? "" : formatCurrency(allvat.nvat.toString()),
+                tdue : allvat.tdue  === 0 ? "" : formatCurrency(allvat.tdue.toString()),
+                tsales : allvat.tsales  === 0 ? "" : formatCurrency(allvat.tsales.toString()),
      
             }
 
