@@ -9,7 +9,7 @@ import React, { useEffect, useState } from 'react'
 import { Button, Checkbox, Dropdown, Form, FormField, Header, Input, Label, Message, TextArea } from 'semantic-ui-react'
 import { Client, ClientInfo, EmployeeInfo, Item, ItemInfo, ItemPrice, ItemSalesDetails, Option, SalesInvoiceData, UNITS } from '../../../../../types'
 
-import { getPrice, showAvailableUnits, handleUndefined, removeDuplicates ,find, getDate, makeOptions, handleOnChange, handleOptionsChange, handleDateChange, findMany, emptyOptions, emptySalesInvoiceData, emptySalesItemData, quantityOptions, hasEmptyFields, emptyItemData, getTotal, HOSTADDRESS, PORT, emptyItemSalesDetails } from '../../../../../functions'
+import { getPrice, showAvailableUnits, handleUndefined, removeDuplicates ,find, getDate, makeOptions, handleOnChange, handleOptionsChange, handleDateChange, findMany, emptyOptions, emptySalesInvoiceData, emptySalesItemData, quantityOptions, hasEmptyFields, emptyItemData, getTotal, HOSTADDRESS, PORT, emptyItemSalesDetails, formatCurrency } from '../../../../../functions'
 
 const tableHeaders = ["id","Quanity", "Unit", "Articles","Batch No.", "Vatable", "U-Price", "Discount", "Amount"]
 
@@ -77,10 +77,8 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
   const [stockIn, setStockIn] = useState(false)
   const [emptyFieldsError, setEmptyFieldError] = useState(false)
 
-  console.log(salesInvoiceData)
+  console.log(sales)
   function handleDiscount(e : React.ChangeEvent<HTMLInputElement>){
-
-
     const discount = parseFloat(e.target.value) / 100
     setItemData({...itemData, discount : discount, itemSalesDetails : {...itemData.itemSalesDetails, discount : discount} })
   }
@@ -153,27 +151,29 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
   //temp
   useEffect(() => {
 
-    const tableDataSales = itemArray.map((item : Item) => {
-      const VATAmountWithDiscount = Math.round(((item.itemSalesDetails.netAmount - (item.itemSalesDetails.netAmount * handleUndefined(item.discount))) / 1.12 * 0.12) * 100) / 100
+    const tableDataSales = itemArray.map((item : any) => {
+      const discount = handleUndefined(item.discount)
+      const grossAmount = item.ItemSalesDetails[0].grossAmount
+      const netAmount = grossAmount - (grossAmount * discount)
+      const VATAmount = netAmount / 1.12 * 0.12
 
-      const VATAmountWithoutDiscount = Math.round(((item.itemSalesDetails.netAmount / 1.12) * 0.12) * 100) / 100
-      
       const data = {
-        itemId : handleUndefined(item.id),
-        grossAmount : Math.round(item.itemSalesDetails.netAmount * 100) / 100,
-        discount : handleUndefined(item.discount),
-        netAmount : (item.itemSalesDetails.netAmount - (item.itemSalesDetails.netAmount * handleUndefined(item.discount))),
-        VATAmount : VATAmountWithDiscount,
+        itemId :  handleUndefined(item.id),
+        grossAmount :  Math.round(grossAmount  * 100) / 100 ,
+        discount : discount || 0,
+        netAmount : Math.round(netAmount * 100) / 100,
+        VATAmount : item.vatable ? Math.round(VATAmount * 100) / 100 : 0, 
         vatable : item.vatable,
       }
-
 
       return data
     })
 
     setSales(tableDataSales)
 
-    const tableDataItems = itemArray.map((item : Item) => {
+    const tableDataItems = itemArray.map((item : any) => {
+      const netAmount = formatCurrency(item.itemSalesDetails.netAmount)
+
       return {
         id : item.id,
         quantity : item.quantity,
@@ -183,7 +183,7 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
         VAT : item.vatable ? <Header color='green' as='h5'>Yes</Header> : <Header color='red' as='h5'>No</Header>,
         unitPrice : item.unitPrice.toLocaleString(),
         discount : handleUndefined(item.discount) * 100 + "%",
-        totalAmount : (item.totalAmount - (item.totalAmount * handleUndefined(item.discount))).toLocaleString(),
+        totalAmount : netAmount,
       }
     })
 

@@ -67,7 +67,7 @@ export default function home({ post, pmr } : any) {
     <>
       <div className='tw-w-full tw-h-full'>
         <Inav/>
-        <div className='tw-w-full tw-flex tw-h-[80vh]'>
+        <div className='tw-w-full tw-flex'>
               <div className='tw-w-[300px] tw-items-center tw-h-full tw-flex'>
                 <div className=' tw-w-full tw-h-[98%] tw-border-x-2 tw-border-slate-300'>
                   <div className='tw-w-full tw-pl-4 tw-h-full  tw-flex tw-flex-col tw-items-start tw-py-20 '>
