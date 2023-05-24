@@ -3,7 +3,7 @@ import IFooter from 'components/IFooter'
 import ISideCard from 'components/ISideCard'
 import Inav from 'components/Inav'
 import Itable from 'components/IFlexTable'
-import { HOSTADDRESS, PORT } from 'functions'
+import { HOSTADDRESS, PORT, handleUndefined } from 'functions'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
@@ -46,11 +46,12 @@ export default function index({ post , salesInvoiceData} : InferGetServerSidePro
 
       
       const data = rawData.map((item : any) => {
+        // console.log(item.client)
         return {
           id: item.id,
           salesInvoiceNumber: item.salesInvoiceNumber,
           dateIssued: item.dateIssued.substring(10, 0),
-          client : item.client !== null ? item.client.clientInfo.companyName : "-",
+          client : item.client !== null ? handleUndefined(item.client.clientInfo.companyName)  : "-",
           preparedBy: item.preparedBy?.employeeInfo.firstName + " " + item.preparedBy?.employeeInfo.lastName,
           totalAmount: <Header as={'h5'}>{parseFloat(item.totalAmount.toString()).toLocaleString()}</Header>,
           remarks: item.remarks,

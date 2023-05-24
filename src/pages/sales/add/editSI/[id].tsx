@@ -153,7 +153,7 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
 
     const tableDataSales = itemArray.map((item : any) => {
       const discount = handleUndefined(item.discount)
-      const grossAmount = item.ItemSalesDetails[0].grossAmount
+      const grossAmount = item.itemSalesDetails.grossAmount
       const netAmount = grossAmount - (grossAmount * discount)
       const VATAmount = netAmount / 1.12 * 0.12
 

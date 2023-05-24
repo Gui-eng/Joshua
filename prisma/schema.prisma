@@ -61,7 +61,7 @@ model ClientInfo {
   id          String @id @default(uuid())
   companyName String @unique
   address     String
-  TIN         String @unique
+  TIN         String
 
   pmr   EmployeeInfo? @relation(fields: [pmrId], references: [id])
   pmrId String?
