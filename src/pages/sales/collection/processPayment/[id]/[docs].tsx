@@ -128,7 +128,7 @@ export default function add({ user, documentData, clients, paymentData} : InferG
 
         console.log(rawData)
         if(modeOfPayment === PAYMENT.CASH){
-            if( rawData.dateOfDeposit === ''){
+            if(  rawData.dateOfDeposit === ''){
                 alert('There are empty fields')
                 return
             }

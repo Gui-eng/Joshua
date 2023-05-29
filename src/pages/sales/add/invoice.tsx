@@ -64,7 +64,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   const [stockIn, setStockIn] = useState(false)
   const [emptyFieldsError, setEmptyFieldError] = useState(false)
 
-  //temp
+  //Option Change
   const [itemNameValue, setItemNameValue] = useState<string>('');
   const [batchNumberValue, setBatchNumberValue] = useState<string>('');
   const [companyNameValue, setCompanyNameValue] = useState<string>('');
@@ -128,11 +128,15 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
     
     if(batchNumberValue !== ''){
      getItemData()
-     
-
      setDisabled(false);
     }
   }, [batchNumberValue])
+
+  console.log(salesInvoiceData)
+
+  useEffect(() => {
+    setSalesInvoiceData({...salesInvoiceData, isRemote : isRemote})
+  }, [isRemote])
 
   //Setting Table Data and Items in the Sales invoice Data
   useEffect(() => {
@@ -201,8 +205,6 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
       setEmptyFieldError(true)
       return
     }
-
-  
   
     const newId = uuidv4()
     setItemData({...itemData, id: newId})

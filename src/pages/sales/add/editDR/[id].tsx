@@ -42,7 +42,11 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo, curren
       ...item,
       totalAmount : Number(item.totalAmount),
       unitPrice : getPrice(item.ItemInfo.ItemPrice[0], item.unit),
-      itemSalesDetails : item.ItemSalesDetails[0]
+      itemSalesDetails : {...item.ItemSalesDetails[0],
+        VATAmount : Number(item.ItemSalesDetails[0].VATAmount),
+        netAmount : Number(item.ItemSalesDetails[0].netAmount),
+        grossAmount : Number(item.ItemSalesDetails[0].grossAmount)
+      }
     }
 })
   
@@ -62,6 +66,8 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo, curren
   const [tableData, setTableData] = useState<Array<any>>([])
   const [sales, setSales] = useState<Array<ItemSalesDetails>>([])
   const [total, setTotal] = useState({})
+  const [itemName, setItemName] = useState<any>('')
+
 
   //Temps
   const [batchOption, setBatchOption] = useState<Array<Option>>([emptyOptions])
@@ -87,6 +93,10 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo, curren
     setItemData({...itemData, quantity : parseFloat(e.target.value)})
   }
   
+  useEffect(() => {
+
+  }, [disabled])
+
   useEffect(() => {
     setEmptyFieldError(false)
   }, [deliveryReciptData])
@@ -154,7 +164,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo, curren
     const netTotalAmount = totalAmount - (totalAmount * handleUndefined(itemData.discount))
 
     setItemData({...itemData, totalAmount : !isBypass ? netTotalAmount : 0, itemSalesDetails : { ...itemData.itemSalesDetails,
-      grossAmount : !isBypass ? itemData.unitPrice * itemData.quantity : 0,
+      grossAmount : itemData.unitPrice * itemData.quantity,
       itemId : handleUndefined(itemData.id),
       netAmount : !isBypass ? netTotalAmount : 0,
       vatable : itemData.vatable,
@@ -174,7 +184,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo, curren
 
       const data = {
         itemId : !isBypass ? handleUndefined(item.id) : 0,
-        grossAmount : !isBypass ? Math.round(item.itemSalesDetails.netAmount  * 100) / 100 : 0,
+        grossAmount :Math.round(item.itemSalesDetails.netAmount  * 100) / 100,
         discount : !isBypass ? handleUndefined(item.discount) : 0,
         netAmount : !isBypass ? (item.itemSalesDetails.netAmount  - (item.itemSalesDetails.netAmount  * handleUndefined(item.discount))) : 0,
         VATAmount : !isBypass ? item.vatable ? handleUndefined(item.discount) !== 0 ?  VATAmountWithDiscount : VATAmountWithoutDiscount  : 0 : 0,
@@ -251,11 +261,16 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo, curren
       return
     }
 
-    const newId = uuidv4()
+    const newId = await uuidv4()
 
     setItemData({...itemData, id: newId})
 
     setItemArray(prevItemArray => [...prevItemArray, itemData])
+    setItemData({...emptySalesItemData, id: newId, unit : ''});
+    setSelectedItemId("")
+    setItemName("")
+    setDisabled(true)
+    
   }
 
   async function handleOnClick(){
@@ -378,7 +393,8 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo, curren
                             search
                             selection
                             options={itemOptions}
-                            onChange={(e, item) => {setFilteredItemList(findMany(e.currentTarget.id, itemInfo, item.value !== undefined ? item.value.toString() : ''))}}
+                            value={itemName}
+                            onChange={(e, item) => {setFilteredItemList(findMany(e.currentTarget.id, itemInfo, item.value !== undefined ? item.value.toString() : '')), setItemName(item.value?.toString())}}
                             />
                         </Form.Field>
                         <Form.Field required error={(emptyFieldsError && itemData.ItemInfo?.batchNumber === '')}>
@@ -388,6 +404,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo, curren
                             disabled={filteredItemList !== undefined ? filteredItemList[0].itemName === '' : true}
                             search
                             selection
+                            value={itemData.ItemInfo?.id}
                             options={batchOption}
                             onChange={(e, item) => {setSelectedItemId(handleUndefined(item.value))}}
                             />
@@ -410,17 +427,17 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo, curren
                           </Form.Field>
                           <Form.Field disabled={disabled} required error={(emptyFieldsError && itemData.quantity === 0)}>
                               <label htmlFor="quantity">Quantity</label>
-                              <Input value={handleUndefined(itemData.quantity)} id='quantity' onChange={(e) => {handleQuantity(e)}} min="0" type="number" label={{content : <Dropdown color='blue' options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, itemData, setItemData)}}/>, color : "blue"}} labelPosition='right'/>
+                              <Input value={handleUndefined(itemData.quantity)} id='quantity' onChange={(e) => {handleQuantity(e)}} min="0" type="number" label={{content : <Dropdown color='blue' value={itemData.unit} options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, itemData, setItemData)}}/>, color : "blue"}} labelPosition='right'/>
                           </Form.Field>
                       </Form.Group>
                       <Form.Group>
-                        <Form.Field>
+                        <Form.Field disabled={disabled}>
                           <label htmlFor="byPassAmount">Bypass Amount</label>
                           <Checkbox id="byPassAmount" toggle onChange={() => {setIsBypass(isBypass ? false : true)}}/>
                         </Form.Field>
                         <Form.Field disabled={disabled}>
                             <label htmlFor="discount">Discount</label>
-                            <Input onChange={(e) => { handleDiscount(e) }}  max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
+                            <Input value={handleUndefined(itemData.discount) * 100} onChange={(e) => { handleDiscount(e) }}  max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
                         </Form.Field>
                         <Button color='blue' onClick={handleAddItem}>Add Item</Button>
                       </Form.Group>

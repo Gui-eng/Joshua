@@ -34,7 +34,7 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
 
   const itemList = removeDuplicates(itemInfo, 'itemName')
   const router = useRouter()
-
+ 
   
   const convertItemsToFit = currentSI.items.map((item : any) => {
   
@@ -45,8 +45,6 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
         itemSalesDetails : item.ItemSalesDetails[0]
       }
   })
-
-
   
   //Options
   const itemOptions : Option[] = makeOptions(itemList, 'itemName', ['itemName'], 'itemName')
@@ -77,7 +75,6 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
   const [stockIn, setStockIn] = useState(false)
   const [emptyFieldsError, setEmptyFieldError] = useState(false)
 
-  console.log(sales)
   function handleDiscount(e : React.ChangeEvent<HTMLInputElement>){
     const discount = parseFloat(e.target.value) / 100
     setItemData({...itemData, discount : discount, itemSalesDetails : {...itemData.itemSalesDetails, discount : discount} })
@@ -130,7 +127,7 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
 
   useEffect(() => {
     setItemData({...itemData, unitPrice : handleUndefined(getPrice(handleUndefined(selectedItemData?.ItemPrice), itemData.unit))})
-  }, [itemData.quantity, itemData.unit])
+  }, [itemData.quantity, itemData.unit, itemData.discount])
   
  
 
@@ -145,7 +142,7 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
       vatable : itemData.vatable,
       VATAmount : netTotalAmount  - ((netTotalAmount / 1.12) * .12)
     }})
-  }, [itemData.unitPrice, itemData.quantity])
+  }, [itemData.unitPrice, itemData.quantity, itemData.discount])
 
 
   //temp
@@ -156,6 +153,7 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
       const grossAmount = item.itemSalesDetails.grossAmount
       const netAmount = grossAmount - (grossAmount * discount)
       const VATAmount = netAmount / 1.12 * 0.12
+
 
       const data = {
         itemId :  handleUndefined(item.id),
@@ -229,8 +227,13 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
     setItemData({...itemData, id: newId})
 
     setItemArray(prevItemArray => [...prevItemArray, itemData])
-  }
 
+    setItemData({...emptySalesItemData, unit : ''});
+    setSelectedItemId("")
+    setItemName("")
+    setDisabled(true)
+  }
+  console.log(salesInvoiceData)
   async function handleOnClick(){
     if(hasEmptyFields(salesInvoiceData, ['remarks', 'nonVATSales', 'VATableSales', 'VAT'])){
       setEmptyFieldError(true)
@@ -368,7 +371,7 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
                         <Form.Field disabled={disabled}>
                               <label htmlFor="manufacturingDate">Manufacturing Date</label>
                               <Input id="manufacturingDate" type='date' value={selectedItemId !== '' ? (disabled ? "" : selectedItemData?.manufacturingDate.toString().substring(10, 0)) : ''} readOnly/>
-                          </Form.Field>
+                          </Form.Field> 
                           <Form.Field disabled={disabled}>
                               <label htmlFor="ExpirationDate">Expiration Date</label>
                               <Input id="ExpirationDate" type='date' value={selectedItemId !== '' ? (disabled ? "" : selectedItemData?.expirationDate.toString().substring(10, 0)): ''} readOnly/>
@@ -381,13 +384,13 @@ export default function item({ itemInfo, clientInfo, pmrInfo, currentSI } : Infe
                           </Form.Field>
                           <Form.Field disabled={disabled} required error={(emptyFieldsError && itemData.quantity === 0)}>
                               <label htmlFor="quantity">Quantity</label>
-                              <Input value={handleUndefined(itemData.quantity)} id='quantity' onChange={(e) => {handleQuantity(e)}} min="0" type="number" label={{content : <Dropdown color='blue' options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, itemData, setItemData)}}/>, color : "blue"}} labelPosition='right'/>
+                              <Input value={handleUndefined(itemData.quantity)} id='quantity' onChange={(e) => {handleQuantity(e)}} min="0" type="number" label={{content : <Dropdown color='blue' value={itemData.unit} options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, itemData, setItemData)}}/>, color : "blue"}} labelPosition='right'/>
                           </Form.Field>
                       </Form.Group>
                       <Form.Group>
                         <Form.Field disabled={disabled}>
                             <label htmlFor="discount">Discount</label>
-                            <Input onChange={(e) => { handleDiscount(e) }}  max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
+                            <Input value={handleUndefined(itemData.discount) * 100} onChange={(e) => { handleDiscount(e) }}  max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
                         </Form.Field>
                         <Button color='blue' onClick={handleAddItem}>Add Item</Button>
                       </Form.Group>
