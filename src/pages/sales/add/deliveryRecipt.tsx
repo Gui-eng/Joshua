@@ -164,7 +164,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
       const grossAmount = item.totalAmount 
       const netAmount = grossAmount - (grossAmount * discount)
 
-      console.log()
+
       return {
         id : item.id,
         quantity : item.quantity,

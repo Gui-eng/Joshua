@@ -40,6 +40,7 @@ model EmployeeInfo {
   User               User?
   ClientInfo         ClientInfo[]
   stockRequest       stockRequest[]
+  ChangeStock        ChangeStock[]
 }
 
 model Employee {
@@ -75,6 +76,20 @@ model ClientInfo {
   proofOfDeliveryClient proofOfDelivery[] @relation(name: "deliveredClient")
 }
 
+model ChangeStock {
+  id String @id @default(uuid())
+
+  quantity   Int
+  unit       String
+  remarks    String?
+  dateIssued DateTime
+
+  pmr        EmployeeInfo? @relation(fields: [pmrId], references: [id])
+  pmrId      String?
+  itemInfo   ItemInfo      @relation(fields: [itemInfoId], references: [id])
+  itemInfoId String
+}
+
 model Client {
   id String @id @default(uuid())
 
@@ -108,6 +123,7 @@ model ItemInfo {
   ItemPrice       ItemPrice[]
   proofOfDelivery proofOfDelivery[]
   stockRequest    stockRequest[]
+  ChangeStock     ChangeStock[]
 }
 
 model ItemPrice {
