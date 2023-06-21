@@ -44,7 +44,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   const [availableQuantityOptions, setAvailableQuantityOption] = useState(quantityOptions)
 
   //Data
-  const [salesInvoiceData, setSalesInvoiceData] = useState(emptySalesInvoiceData)
+  const [salesInvoiceData, setSalesInvoiceData] = useState <any>(emptySalesInvoiceData)
   const [itemData, setItemData] = useState<Item>(emptySalesItemData)
   const [selectedItemData, setSelectedItemData] = useState<ItemInfo>()
   const [selectedItemId, setSelectedItemId] = useState<string>('')
@@ -63,6 +63,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   const [disabledStockIn, setDisabledStockIn] = useState(false)
   const [stockIn, setStockIn] = useState(false)
   const [emptyFieldsError, setEmptyFieldError] = useState(false)
+  const [isBypass, setIsBypass] = useState(true)
 
   //Option Change
   const [itemNameValue, setItemNameValue] = useState<string>('');
@@ -99,7 +100,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   }, [filteredItemList]);
 
  
-  useEffect(() => {
+  useEffect(() => { 
     const getItemData = async () => {
       const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item/getItem/${batchNumberValue}`)
       const resData = res.data.data
@@ -132,11 +133,9 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
     }
   }, [batchNumberValue])
 
-  console.log(salesInvoiceData)
-
   useEffect(() => {
-    setSalesInvoiceData({...salesInvoiceData, isRemote : isRemote})
-  }, [isRemote])
+    setSalesInvoiceData({...salesInvoiceData, isRemote : isRemote, deductFromInventory : isBypass})
+  }, [isRemote, isBypass])
 
   //Setting Table Data and Items in the Sales invoice Data
   useEffect(() => {
@@ -221,11 +220,16 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
     }
 
 
+    try{
       const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/addInvoice`, salesInvoiceData)
       router.reload()
-    if(!res.status){
-      console.log(res.statusText)
+    }catch(e : any){
+      if(e.response.status === 403){
+        alert("There is already an existing Sales Invoice Number!")
+      }
     }
+     
+   
 
 }
 
@@ -308,6 +312,12 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                     <Checkbox
                   label = {<label>{isRemote? <Header color='grey'>Remote Inventory</Header> : <Header>Main Inventory</Header>}</label>}
                   onChange={() => {setIsRemote(isRemote ? false : true)}}
+                  toggle/>
+                  </Form.Field>
+                  <Form.Field className={`tw-items-center tw-flex tw-flex-col ${!isRemote ? 'tw-py-2' : 'tw-py-4'}`}>
+                  <Checkbox
+                  label = {<label>{isBypass? <Header color='grey'>Deduct From Iventory?</Header> : <Header>Deducting From Inventory</Header>}</label>}
+                  onChange={() => {setIsBypass(isBypass ? false : true)}}
                   toggle/>
                   </Form.Field>
               </Form.Group>

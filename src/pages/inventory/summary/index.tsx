@@ -10,6 +10,7 @@ import IFooter from 'components/IFooter';
 import ISideCard from 'components/ISideCard'
 import ISidePanel from 'components/ISidePanel';
 import { HOSTADDRESS, PORT } from 'functions';
+import IFlextable from 'components/IFlexTable';
 
 const Chart = (props : SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" {...props}>
@@ -60,7 +61,17 @@ export default function home({ post, pmr } : any) {
   //   }
   // },[])
 
+  console.log(pmr)
 
+  const tableData = pmr.map((item : any) => {
+    return {
+      id : item.id,
+      name : item.firstName + " " + item.lastName,
+      code : item.code !== ""? item.code: "-", 
+      action : <Button onClick={() => {router.push(`/inventory/summary/${item.id}`)}}color='blue'>View</Button>
+    }
+  })
+  const tableHeaders = ["id", "Name", "Code", "Action"]
 
   return (
     data && 
@@ -78,20 +89,7 @@ export default function home({ post, pmr } : any) {
                 </div>
               </div>
               <div className='tw-w-full tw-p-16 tw-h-full'>
-                <Grid>
-                  <Grid.Row columns={4}>
-                    <Grid.Column>
-                        <ICard Icon={<User fill='white' width={35}/>} name={'Main'} link={`/inventory/summary/main`}/>
-                    </Grid.Column>
-                    {pmr.map((item : any) => {
-                        return (
-                            <Grid.Column>
-                                <ICard Icon={<User fill='white' width={35}/>} name={item.firstName + " " +item.lastName} link={`/inventory/summary/${item.id}`}/>
-                            </Grid.Column>
-                        )
-                    })}
-                  </Grid.Row>
-                </Grid>
+                  <IFlextable data={tableData} headerTitles={tableHeaders}/>
               </div>
         </div>
       </div>

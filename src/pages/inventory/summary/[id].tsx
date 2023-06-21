@@ -8,29 +8,98 @@ import { getSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react'
 import { Button, Dropdown, Form, Header, Input, Table } from 'semantic-ui-react';
+import { PrismaClient } from '@prisma/client'     
+
+
 
 import { v4 as uuidv4 } from 'uuid';
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
     const { id } = context.query;
+    const prisma = new PrismaClient()
+
+     
 
     const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
     
     const info = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item/stocks/${id}`)
 
     const pmr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/pmr/${id}`)
+
+    const Info = info.data.data.sort((a : any, b : any) => {
+      const nameA = a.itemInfo.itemName.toLowerCase();
+      const nameB = b.itemInfo.itemName.toLowerCase();
+
+      if (nameA < nameB) {
+        return -1;
+      }
+      if (nameA > nameB) {
+        return 1;
+      }
+      return 0;
+    });
+
+    const checkStocks = async () => {
+      const pmrData : Array<any>=  info.data.data
+      const itemNum = await prisma.itemInfo.count();
+      if(itemNum !== pmrData.length){
+        if(pmrData.length === 0){
+          const items = await prisma.itemInfo.findMany({select : {id : true}});
+          const itemIds = items.map((item) => item.id.toString())
+          for(let i = 0; i < itemNum; i++){
+            await prisma.stocks.create({
+              data : {
+                capsule : 0,
+                bottle : 0,
+                box : 0,
+                tablet : 0,
+                pmrEmployeeId : pmr.data.data.id,
+                itemInfoId : itemIds[i],
+              } 
+            })
+          }
+        }else{
+          const items = await prisma.itemInfo.findMany({select : {id : true}});
+          const itemIds = items.map((item) => item.id.toString())
+          for (let i = 0; i < itemNum; i++) {
+            const existingStock = await prisma.stocks.findFirst({
+              where: {
+                itemInfoId: itemIds[i],
+                pmrEmployeeId: pmr.data.data.id,
+              },
+            });
+      
+            if (!existingStock) {
+              await prisma.stocks.create({
+                data: {
+                  capsule: 0,
+                  bottle: 0,
+                  box: 0,
+                  tablet: 0,
+                  pmrEmployeeId: pmr.data.data.id,
+                  itemInfoId: itemIds[i],
+                },
+              });
+            }
+          }
+      }
+    }
+  }
+
+  checkStocks();
     return {
-      props : { post : res.data.data, info : info.data, pmr : pmr.data.data }
+      props : { post : res.data.data, info : Info, pmr : pmr.data.data }
     }
     
 }
 
-const headerTitles = ["id","Item Name", "Batch No.", "Man. Date", "Exp. Date", "Remaining Vial/s",  "Remaining Bottle/s", "Remaining Box/es", "Remaining Capsule/s", "Remaining Tablet/s", "Summary"]
+const headerTitles = ["id","Item Name", "Batch No.", "Man. Date", "Exp. Date", "Vial/s",  "Bottle/s", "Box/es", "Capsule/s", "Tablet/s", "Status"]
 
 export default function index({ post, info, pmr }  : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
-  console.log(pmr)
+
+
   const router = useRouter()
   const [itemOptions, setItemOptions] = useState<any>()
   const [batchOptions, setBatchOptions] = useState<any>()
@@ -47,12 +116,20 @@ export default function index({ post, info, pmr }  : InferGetServerSidePropsType
     quantity : 0,
     unit :'',
     remarks : '',
-    cleint : pmr.id,
+    client : pmr.id,
     dateIssued : getDate() + 'T00:00:00Z'
   })
+
+  const checkStatus = (item : any) => {
+    if(item.vial || item.bottle || item.box || item.capsule || item.tablet){
+      return true
+    }else{
+      return false
+    }
+  }
  
 
-  const [tableData, setTableData] = useState<Array<any>>(info.data.map((item : any) => {
+  const [tableData, setTableData] = useState<Array<any>>(info.map((item : any) => {
     const { itemInfo } = item 
     return {
         id : item.id,
@@ -65,11 +142,11 @@ export default function index({ post, info, pmr }  : InferGetServerSidePropsType
         remainingBox : item.box,
         remainingCapsule : item.capsule,
         remainingTablet : item.tablet,
-        
+        status : checkStatus(item) ? <Header as={'h5'} color='green'>In Stock</Header> : <Header as={'h5'} color='red'>Out of Stock</Header>
     }
 }))
 
-const [data, setData] = useState<Array<any>>(info.data.map((item : any) => {
+const [data, setData] = useState<Array<any>>(info.map((item : any) => {
   const { itemInfo } = item 
   return {
       id : item.id,
@@ -99,7 +176,6 @@ const [data, setData] = useState<Array<any>>(info.data.map((item : any) => {
        setDisabled(false)
        const batch = findMany("itemName", data, itemNameValue)
        setBatchOptions(makeOptions(batch, 'batchId', ['batchNumber'],'itemInfoId'))
-       console.log(batch)
     }else{
       return
     }

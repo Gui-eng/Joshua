@@ -217,14 +217,14 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
       return
     }
 
-
+    try{
       const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/addDR`, deliveryReciptData)
       router.reload()
-    if(!res.status){
-      console.log(res.statusText)
+    }catch(e : any){
+      if(e.response.status === 403){
+        alert("There is already an existing Delivery Receipt Number!")
+      }
     }
-
-    console.log(deliveryReciptData)
 
 }
 
