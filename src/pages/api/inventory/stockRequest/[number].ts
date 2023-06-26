@@ -39,6 +39,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                 }
             }
             break;
+        case 'DELETE':
+            {
+                try {
+                    const del = await prisma.stockRequest.deleteMany({
+                        where: { stockRequestNumber: req.query.number?.toString() },
+                    });
+
+                    res.status(200).json({ success: true, data: req.query.number });
+                } catch (error) {
+                    res.status(403).json({ success: false, data: null });
+                }
+            }
+            break;
         default:
             res.status(403).json({ success: false, data: null });
             break;

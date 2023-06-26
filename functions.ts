@@ -132,32 +132,54 @@ export function showAvailableUnits(
             case 'bottle':
                 if (value === '0') {
                     newArr = deleteFromArrayOptions(newArr, 'BOTTLES');
+                } else {
+                    newArr = newArr.map((item) =>
+                        item.key === UNITS.BOTTLES ? { ...item, text: item.text + ' |₱' + value } : item,
+                    );
                 }
                 break;
             case 'vial':
                 if (value === '0') {
                     newArr = deleteFromArrayOptions(newArr, 'VIALS');
+                } else {
+                    newArr = newArr.map((item) =>
+                        item.key === 'VIALS' ? { ...item, text: item.text + ' |₱' + value } : item,
+                    );
                 }
                 break;
             case 'capsule':
                 if (value === '0') {
                     newArr = deleteFromArrayOptions(newArr, 'CAPSULES');
+                } else {
+                    newArr = newArr.map((item) =>
+                        item.key === 'CAPSULES' ? { ...item, text: item.text + ' |₱' + value } : item,
+                    );
                 }
                 break;
             case 'tablet':
                 if (value === '0') {
                     newArr = deleteFromArrayOptions(newArr, 'TABLETS');
+                } else {
+                    newArr = newArr.map((item) =>
+                        item.key === 'TABLETS' ? { ...item, text: item.text + ' |₱' + value } : item,
+                    );
                 }
                 break;
             case 'box':
                 if (value === '0') {
                     newArr = deleteFromArrayOptions(newArr, 'BOX');
+                } else {
+                    newArr = newArr.map((item) =>
+                        item.key === UNITS.BOX ? { ...item, text: item.text + ' |₱' + value } : item,
+                    );
                 }
                 break;
             default:
                 break;
         }
     });
+
+    console.log(newArr);
 
     setAvailableQuantityOption(newArr);
 }

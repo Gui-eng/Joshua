@@ -17,13 +17,33 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
 
     const info = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item/stocks/main`)
+    const Info = info.data.data.sort((a : any, b : any) => {
+      const nameA = a.itemInfo.itemName.toLowerCase();
+      const nameB = b.itemInfo.itemName.toLowerCase();
+
+      if (nameA < nameB) {
+        return -1;
+      }
+      if (nameA > nameB) {
+        return 1;
+      }
+      return 0;
+    });
     return {
-      props : { post : res.data.data, info : info.data.data }
+      props : { post : res.data.data, info : Info }
     }
     
 }
 
-const headerTitles = ["id","Item Name", "Batch No.", "Man. Date", "Exp. Date", "Remaining Vial/s",  "Remaining Bottle/s", "Remaining Box/es", "Remaining Capsule/s", "Remaining Tablet/s", "Summary"]
+const checkStatus = (item : any) => {
+  if(item.Vial || item.Bottle || item.Box || item.Capsule || item.Tablet){
+    return true
+  }else{
+    return false
+  }
+}
+
+const headerTitles = ["id","Item Name", "Batch No.", "Man. Date", "Exp. Date", "Vial/s",  "Bottle/s", "Box/es", "Capsule/s", "Tablet/s", "Status"]
 
 export default function index({ post, info, pmr }  : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
@@ -48,6 +68,7 @@ export default function index({ post, info, pmr }  : InferGetServerSidePropsType
   })
  
 
+
   const [tableData, setTableData] = useState<Array<any>>(info.map((item : any) => {
     const { itemInfo } = item 
     return {
@@ -61,6 +82,7 @@ export default function index({ post, info, pmr }  : InferGetServerSidePropsType
         remainingBox : item.Box,
         remainingCapsule : item.Capsule,
         remainingTablet : item.Tablet,
+        status : checkStatus(item) ? <Header as={'h5'} color='green'>In Stock</Header> : <Header as={'h5'} color='red'>Out of Stock</Header>
         
     }
 }))

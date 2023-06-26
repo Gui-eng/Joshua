@@ -1,4 +1,4 @@
-import React, { SVGProps, useEffect } from 'react'
+import React, { SVGProps, useEffect, useState } from 'react'
 import { useSession, signOut, getSession} from 'next-auth/react'
 import { Button, Grid, Label } from 'semantic-ui-react';
 import { useRouter } from 'next/router';
@@ -61,16 +61,40 @@ export default function home({ post, pmr } : any) {
   //   }
   // },[])
 
-  console.log(pmr)
+  const [tableData, setTableData] = useState<any>([])
 
-  const tableData = pmr.map((item : any) => {
-    return {
-      id : item.id,
-      name : item.firstName + " " + item.lastName,
-      code : item.code !== ""? item.code: "-", 
-      action : <Button onClick={() => {router.push(`/inventory/summary/${item.id}`)}}color='blue'>View</Button>
-    }
-  })
+  useEffect(() => {
+   const mainData = [
+      {
+        id : 'Main',
+        name : "Unipharma Main",
+        code : "MAIN",
+        action : <Button onClick={() => {router.push(`/inventory/summary/main`)}}color='blue'>View</Button>
+      }
+    ]
+
+    const pmrData = pmr.map((item : any) => {
+      return {
+        id : item.id,
+        name : item.firstName + " " + item.lastName,
+        code : item.code !== ""? item.code: "-", 
+        action : <Button onClick={() => {router.push(`/inventory/summary/${item.id}`)}}color='blue'>View</Button>
+      }
+    })
+
+    const combinedData = [...mainData, ...pmrData]
+
+    setTableData(combinedData)
+  }, [pmr])
+
+
+
+
+  
+
+  
+
+
   const tableHeaders = ["id", "Name", "Code", "Action"]
 
   return (

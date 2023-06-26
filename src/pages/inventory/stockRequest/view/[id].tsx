@@ -7,9 +7,9 @@ import { getSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import PizZip from 'pizzip';
 import React, { useEffect, useState } from 'react'
-import { Button, Form, FormField, Input } from 'semantic-ui-react';
+import { Button, Form, FormField, Header, Input } from 'semantic-ui-react';
 import { Item } from 'types';
-import template from './../../../../../public/stockTemplate.docx'
+
 
 const headerTitle = ["id", "Quantity Requested", "Quantity Issued", "Prodcut Name", "MFG. Date", "EXP Date" , "Batch Number"]
 
@@ -93,9 +93,9 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
 
     
     const router = useRouter()
-    console.log(info)
 
     const [isPrinting, setIsPrinting] = useState(false)
+    const [del, setDel] = useState(false);
     const [extra, setExtra] = useState({
       checked_by : "",
       prepared_by : "",
@@ -189,13 +189,21 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
       }
     }
 
+    async function handleDeleteDocument(){
+      try {
+        const deletePOD = await axios.delete(`http://${HOSTADDRESS}:${PORT}/api/inventory/stockRequest/${info[0].stockRequestNumber}`)
+        router.push('/inventory/stockRequest')
+      } catch (error) {
+        console.log(error)
+      }
+    }
   return (
     <div>{
     <>
          <div className='tw-w-full tw-flex tw-justify-center'>
             <div className='tw-w-[90%] tw-pt-8 tw-bg-sky-600 tw-bg-opacity-30 tw-rounded-tl-lg tw-rounded-tr-lg tw-mt-4 tw-flex tw-flex-col tw-items-center'>
                 <div className='tw-flex tw-w-[90%] tw-pb-4'>
-                    <h1 className='tw-text-2xl tw-font-bold'>Proof Of Delivery Summary</h1>
+                    <h1 className='tw-text-2xl tw-font-bold'>Stock Request Summary</h1>
                 </div>
                 <div className='tw-w-[90%] tw-pb-4 tw-flex tw tw-justify-center tw-items-center tw-text-lg'>
                     <div className='tw-flex tw-gap-1 tw-w-full tw-justify-start'><h1>SR# : </h1><h1 className='tw-font-bold'>{info[0].stockRequestNumber}</h1></div>
@@ -222,9 +230,23 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
                       <label>Checked By:</label>
                       <Input size='mini' value={extra.checked_by} type='text' onChange={(e) => {setExtra({...extra, checked_by : e.target.value})}} />
                     </FormField>
-                    <Button color='blue' onClick={(e) => {hasEmptyFields(extra) ? alert("There are empty Fields") : generateDocument(templateData, template)}}>Save</Button>
+                    <Button color='blue' onClick={(e) => {hasEmptyFields(extra) ? alert("There are empty Fields") : generateDocument(templateData, '/stockTemplate.docx')}}>Save</Button>
                   </Form>
                 : null}
+                <div className='tw-w-full tw-flex tw-justify-end tw-pt-4'>
+                    
+                    {!del ?  <Button className='' color='red' inverted onClick={() => { setDel(true)}}>Delete</Button> : null}
+                    
+                    {del ? <div className='tw-flex-col tw-justify-end'>
+                            <Header as='h5' className='tw-pr-2'>Are you sure to delete?</Header>
+                            <div className='tw-flex'>
+                                <Button className='' color='red' inverted onClick={() => { handleDeleteDocument()}}>Yes</Button> 
+                                <Button className='' color='blue' inverted onClick={() => { setDel(false)}}>No</Button>
+                            </div>
+                </div>: null}
+
+        </div>
+                  
            </div>
         </div>
     </>

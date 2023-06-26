@@ -5,12 +5,12 @@ import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
 import React, { useEffect, useState } from 'react'
 import { saveAs } from 'file-saver';
-import template from './../../../../../../public/pulloutTemplate.docx';
+import dynamic from 'next/dynamic';
 
 import { Item } from 'types';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
-import { Button } from 'semantic-ui-react';
+import { Button, Header } from 'semantic-ui-react';
 import { isArrayBuffer, isBuffer } from 'lodash';
 import printJS from 'print-js';
 import { useRouter } from 'next/router';
@@ -124,6 +124,7 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 export default function ID( {post, info} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
     const router = useRouter();
+    const [del, setDel] = useState(false);
 
     // !info ? null
     const [templateData, setTemplateData] = useState(data);
@@ -168,6 +169,9 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
         }))
       
     }, [info])
+
+      
+  
 
     
     async function generateDocument(resume : any, templatePath : any) {
@@ -222,6 +226,15 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
         }
     })
     
+    async function handleDeleteDocument(){
+      try {
+        const deletePOD = await axios.delete(`http://${HOSTADDRESS}:${PORT}/api/pullOut/${info[0].pullOutNumber}`)
+        router.push('/inventory/pullOut')
+      } catch (error) {
+        console.log(error)
+      }
+  }
+
     
   return (
     <div>{
@@ -246,12 +259,26 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
                
             </div>
         </div>
+
+       
         
         <div className='tw-w-full tw-flex tw-justify-center'>
            <div className='tw-w-[90%]'>
                 <Itable color='blue' data={tableData} headerTitles={headerTitle}/>
-                <Button color='blue' onClick={() => {info.length <= 7 ? (generateDocument(templateData, template)) : alert('Item cannot be more than 7 please edir the file')}}>Print</Button>
-                
+                <Button color='blue' onClick={() => {info.length <= 7 ? (generateDocument(templateData, '/pulloutTemplate.docx')) : alert('Item cannot be more than 7 please edir the file')}}>Print</Button>
+                <div className='tw-w-full tw-flex tw-justify-end tw-pt-4'>
+                    
+                    {!del ?  <Button className='' color='red' inverted onClick={() => { setDel(true)}}>Delete</Button> : null}
+                    
+                    {del ? <div className='tw-flex-col tw-justify-end'>
+                            <Header as='h5' className='tw-pr-2'>Are you sure to delete?</Header>
+                            <div className='tw-flex'>
+                                <Button className='' color='red' inverted onClick={() => { handleDeleteDocument()}}>Yes</Button> 
+                                <Button className='' color='blue' inverted onClick={() => { setDel(false)}}>No</Button>
+                            </div>
+                    </div>: null}
+
+                 </div>
            </div>
                 
         </div>
