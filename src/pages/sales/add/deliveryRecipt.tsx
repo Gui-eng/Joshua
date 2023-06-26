@@ -1,15 +1,15 @@
 import axios from 'axios'
 import _, { floor, uniqueId } from 'lodash'
 import { v4 as uuidv4 } from 'uuid';
-import ITable from '../../../../components/IFlexTable'
+import IFlexTable from '../../../../components/InvoiceTable'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
-import { Button, Checkbox, Dropdown, Form, FormField, Header, Input, Label, Message, Table, TextArea } from 'semantic-ui-react'
-import { Client, ClientInfo, EmployeeInfo, Item, ItemInfo, ItemPrice, ItemSalesDetails, Option, DeliveryReciptData, UNITS } from '../../../../types'
+import { Button, Checkbox, Dropdown, Form, FormField, Header, Input, Label, Message, TextArea } from 'semantic-ui-react'
+import { Client, ClientInfo, EmployeeInfo, Item, ItemInfo, ItemPrice, ItemSalesDetails, Option, SalesInvoiceData, UNITS } from '../../../../types'
 
-import { getPrice, showAvailableUnits, handleUndefined, removeDuplicates ,find, getDate, makeOptions, handleOnChange, handleOptionsChange, handleDateChange, findMany, emptyOptions, emptyDeliveryRecipt, emptySalesItemData, quantityOptions, hasEmptyFields, emptyItemData, getTotal, HOSTADDRESS, PORT, formatCurrency } from '../../../../functions'
+import { getPrice, showAvailableUnits, handleUndefined, removeDuplicates ,find, getDate, makeOptions, handleOnChange, handleOptionsChange, handleDateChange, findMany, emptyOptions, emptySalesInvoiceData, emptySalesItemData, quantityOptions, hasEmptyFields, emptyItemData, getTotal, HOSTADDRESS, PORT, formatCurrency, emptyDeliveryRecipt } from '../../../../functions'
 
 const tableHeaders = ["id","Quanity", "Unit", "Articles","Batch No.", "Vatable", "U-Price", "Discount", "Amount"]
 
@@ -21,7 +21,7 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     const pmr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/pmr`)
     const item = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item`)
     const preparedBy = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
-    
+
 
     return {
       props : { preparedBy: preparedBy.data.data, itemInfo : item.data.data, clientInfo : client.data.data, pmrInfo : pmr.data.data}
@@ -65,111 +65,94 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
   const [emptyFieldsError, setEmptyFieldError] = useState(false)
   const [isBypass, setIsBypass] = useState(false);
 
+  //Option Change
+  const [itemNameValue, setItemNameValue] = useState<string>('');
+  const [batchNumberValue, setBatchNumberValue] = useState<string>('');
+  const [companyNameValue, setCompanyNameValue] = useState<string>('');
 
 
-  function handleDiscount(e : React.ChangeEvent<HTMLInputElement>){
-    const discount = parseFloat(e.target.value) / 100
-    setItemData({...itemData, discount : discount, itemSalesDetails : {...itemData.itemSalesDetails, discount : discount} })
-  }
+  useEffect(() => {
+    const fetchData = async () => {
+      const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/client/${companyNameValue}`)
+      const companyInfoData = res.data.data.length === undefined ? res.data.data : { id : '', pmrId : ''}
 
-  function handleQuantity(e : React.ChangeEvent<HTMLInputElement>){
-    setItemData({...itemData, quantity : parseFloat(e.target.value)})
-  }
+      setDeliveryReciptData({...deliveryReciptData, pmrEmployeeId : companyInfoData.pmrId, client : companyInfoData, clientId : companyInfoData.id, preparedById : preparedBy.employeeInfo.id})
+    }
+
+    fetchData()
+  }, [companyNameValue])
+  
+  //Item Name and Batch Options
+  useEffect(() => {
+    const fetchData = async () => {
+      const batchItemArray = await findMany("itemName", itemInfo, itemNameValue);
+      setFilteredItemList(batchItemArray);
+      setItemData(emptySalesItemData)
+    };
+  
+    fetchData();
+    setDisabled(true);
+  }, [itemNameValue]);
   
   useEffect(() => {
-    setEmptyFieldError(false)
-  }, [deliveryReciptData])
+    const batchOption = makeOptions(filteredItemList || [], 'id', ['batchNumber']);
+    setBatchOption(batchOption);
+  }, [filteredItemList]);
+
+ 
+  useEffect(() => {
+    const getItemData = async () => {
+      const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/item/getItem/${batchNumberValue}`)
+      const resData = res.data.data
+      const newId = uuidv4()
+
+      setItemData(prevItemData => ({
+        ...prevItemData,
+        id : newId,
+        itemInfoId: batchNumberValue,
+        ItemInfo: {
+          id : resData.id,
+          batchNumber: resData.batchNumber,
+          expirationDate: resData.expirationDate,
+          manufacturingDate: resData.manufacturingDate,
+          itemName: resData.itemName,
+          VAT: resData.VAT,
+          ItemPrice: resData.ItemPrice
+        },
+        unitPrice : !isBypass ? getPrice(resData.ItemPrice, itemData.unit) || 0 : 0,
+        vatable : resData.VAT
+        
+      }));
+
+      showAvailableUnits(resData.ItemPrice, setAvailableQuantityOption)
+    }
+    
+    if(batchNumberValue !== ''){
+     getItemData()
+     setDisabled(false);
+    }
+  }, [batchNumberValue])
 
   useEffect(() => {
     setDeliveryReciptData({...deliveryReciptData, isRemote : isRemote})
   }, [isRemote])
 
+  //Setting Table Data and Items in the Sales invoice Data
   useEffect(() => {
-    setBatchOption(makeOptions(filteredItemList !== undefined ? filteredItemList : [], 'id', ['batchNumber']))
-    if(selectedItemId !== ''){
-      setDisabled(true)
-    }
-  }, [filteredItemList])
-
-  useEffect(() => {
-    setDeliveryReciptData({...deliveryReciptData, stockIn : stockIn})
-  }, [stockIn])
-
-  useEffect(() => {
-    setSelectedItemData(find(selectedItemId, itemInfo))
-    if(selectedItemId !== ''){
-      setDisabled(false)
-    }
-    setItemData({...itemData, discount : 0, quantity : 0, unit : ""})
-  },[selectedItemId])
-
-  useEffect(() => {
-    if(deliveryReciptData.clientId !== ''){
-
-      const client : ClientInfo = find(handleUndefined(deliveryReciptData.clientId), clientInfo)
-    
-      setDeliveryReciptData({...deliveryReciptData, client : find(handleUndefined(deliveryReciptData.clientId), clientInfo), preparedById : preparedBy.employeeInfoId, pmrEmployeeId : client.pmrId})
-    }
-  }, [deliveryReciptData.clientId])
-
-  useEffect(() => {
-    if (selectedItemData) {
-      setItemData({
-        ...itemData,
-        ItemInfo: selectedItemData,
-        itemInfoId: selectedItemData.id,
-        vatable: handleUndefined(selectedItemData.VAT)
-      });
-      showAvailableUnits(handleUndefined(selectedItemData.ItemPrice), setAvailableQuantityOption);
-    }
-  }, [selectedItemData]);
-
-  useEffect(() => {
-
-
-    setItemData({
-      ...itemData,
-      
-      unitPrice: handleUndefined(getPrice(handleUndefined(selectedItemData?.ItemPrice), itemData.unit))
-    });
-    
-  }, [itemData.quantity, itemData.unit, itemData.discount]);
-  
-
- 
-
-  useEffect(() => {
-    const totalAmount = itemData.unitPrice * itemData.quantity
-    const netTotalAmount = totalAmount - (totalAmount * handleUndefined(itemData.discount))
-
-    setItemData({...itemData, totalAmount : !isBypass ? netTotalAmount : 0, itemSalesDetails : { ...itemData.itemSalesDetails,
-      grossAmount : !isBypass ? itemData.unitPrice * itemData.quantity : 0,
-      itemId : handleUndefined(itemData.id),
-      netAmount : !isBypass ? netTotalAmount : 0,
-      vatable : itemData.vatable,
-      VATAmount : !isBypass ? netTotalAmount - ((netTotalAmount / 1.12) * 0.12) : 0
-    }})
-  }, [itemData.unitPrice, itemData.quantity, itemData.discount, isBypass])
-
-
-
-  //temp
-  useEffect(() => {
-
     const tableDataSales = itemArray.map((item : Item) => {
-      const VATAmountWithDiscount = Math.round(((item.itemSalesDetails.netAmount - (item.itemSalesDetails.netAmount * handleUndefined(item.discount))) * 0.12) * 100) / 100
-
-      const VATAmountWithoutDiscount = Math.round((item.itemSalesDetails.netAmount  * 0.12) * 100) / 100
+      const discount = handleUndefined(item.discount) / 100
+      const grossAmount = !isBypass ? item.totalAmount : 0
+      const netAmount = !isBypass ? grossAmount - (grossAmount * discount) : 0
+      const VATAmount = !isBypass ? netAmount / 1.12 * 0.12 : 0
 
       const data = {
-        itemId : !isBypass ? handleUndefined(item.id) : 0,
-        grossAmount : !isBypass ? Math.round(item.itemSalesDetails.netAmount  * 100) / 100 : 0,
-        discount : !isBypass ? handleUndefined(item.discount) : 0,
-        netAmount : !isBypass ? (item.itemSalesDetails.netAmount  - (item.itemSalesDetails.netAmount  * handleUndefined(item.discount))) : 0,
-        VATAmount : !isBypass ? item.vatable ? handleUndefined(item.discount) !== 0 ?  VATAmountWithDiscount : VATAmountWithoutDiscount  : 0 : 0,
+        itemId :  handleUndefined(item.id),
+        grossAmount :  !isBypass ? Math.round(grossAmount  * 100) / 100 : 0,
+        discount : !isBypass ? discount || 0 : 0,
+        netAmount : !isBypass ? Math.round(netAmount * 100) / 100 : 0,
+        VATAmount : !isBypass ? item.vatable ? Math.round(VATAmount * 100) / 100 : 0 : 0, 
         vatable : item.vatable,
       }
-
 
       return data
     })
@@ -177,6 +160,11 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
     setSales(tableDataSales)
 
     const tableDataItems = itemArray.map((item : Item) => {
+      const discount = handleUndefined(item.discount) / 100
+      const grossAmount = item.totalAmount 
+      const netAmount = grossAmount - (grossAmount * discount)
+
+
       return {
         id : item.id,
         quantity : item.quantity,
@@ -185,84 +173,79 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
         batchNumber : item.ItemInfo?.batchNumber,
         VAT : item.vatable ? <Header color='green' as='h5'>Yes</Header> : <Header color='red' as='h5'>No</Header>,
         unitPrice : item.unitPrice.toLocaleString(),
-        discount : handleUndefined(item.discount) * 100 + "%",
-        totalAmount : formatCurrency(item.totalAmount.toString()),
+        discount : handleUndefined(item.discount) + "%",
+        totalAmount : formatCurrency(netAmount.toString()),
       }
     })
 
     setTableData(tableDataItems)
+    setDeliveryReciptData({...deliveryReciptData, item : itemArray})
+  }, [itemArray])
 
-    const total = {
-      totalAmount : !isBypass ? _.sum(itemArray.map((item : any) => item.itemSalesDetails.netAmount)) : 0,
-      VAT : !isBypass ? _.sum(itemArray.map((item : any) => item.itemSalesDetails.VATAmount)) : 0,
-    }
+  console.log(itemData)
 
-
-    setDeliveryReciptData({...deliveryReciptData, item : itemArray, totalAmount : total.totalAmount, VAT : total.VAT })
-
- 
-    
-  },[itemArray])
-  
-
+  //Getting the Unit Price
   useEffect(() => {
-    setDeliveryReciptData({...deliveryReciptData, total : getTotal(sales)})
-  }, [sales])
+    const getUnitPrice = getPrice(handleUndefined(itemData.ItemInfo?.ItemPrice), itemData.unit) || 0 
+    const getTotalGrossAmount = !isBypass ? getUnitPrice * itemData.quantity : 0
 
-  console.log(deliveryReciptData.item)
+    setItemData({...itemData, unitPrice : getUnitPrice, totalAmount : getTotalGrossAmount})
+
+
+  }, [itemData.unit, itemData.quantity, isBypass])
+
   //Data Handling
 
   async function handleAddItem(){
-    if(hasEmptyFields(itemData, ['discount']) && !isBypass){
+    if(hasEmptyFields(itemData, ['discount',]) && !isBypass){
+      alert('There are empty Fields')
       setEmptyFieldError(true)
       return
     }
-
+  
     const newId = uuidv4()
-
     setItemData({...itemData, id: newId})
 
     setItemArray(prevItemArray => [...prevItemArray, itemData])
   }
 
+
   async function handleOnClick(){
-    if(hasEmptyFields(deliveryReciptData, ['remarks', 'nonVATSales', 'VATableSales', 'VAT', 'total', 'totalAmount'])){
-      console.log(deliveryReciptData)
+    if(hasEmptyFields(deliveryReciptData, ['remarks', 'nonVATSales', 'VATableSales', 'VAT', 'totalAmount'])){
       setEmptyFieldError(true)
       alert('There are Empty Fields')
       return
     }
 
-
-    const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/addDR`, deliveryReciptData)
-    
-    if(!res.status){
-      console.log(res.statusText)
+    try{
+      const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/addDR`, deliveryReciptData)
+      router.reload()
+    }catch(e : any){
+      if(e.response.status === 403){
+        alert("There is already an existing Delivery Receipt Number!")
+      }
     }
 
-    router.reload()
-  }
+}
 
+ function handleDelete(data : any){
+  const target = itemArray.find((item : any) => {
+    return item.id === data.id
+ })
 
-  function handleDelete(data : any){
-    const target = itemArray.find((item : any) => {
-      return item.id === data.id
-   })
-  
-    setItemArray((prevItem)=> {return prevItem.filter((value) => {return value.id !== target.id} )})
-     
-   }
+  setItemArray((prevItem)=> {return prevItem.filter((value) => {return value.id !== target.id} )})
+   
+ }
 
     
   return (
     <div className='tw-h-screen tw-w-full'>
       <div className='tw-w-screen tw-flex tw-justify-center'>
-        <div className='tw-w-[90%] tw-rounded-tl-lg tw-rounded-tr-lg tw-bg-sky-600 tw-bg-opacity-30 tw-mt-4 tw-py-8'>
-        <div className='tw-w-[100%] tw-flex tw-h-full tw-pl-4'>
-             <div className='tw-w-[50%] '>
-             <Form>
+        <div className='tw-w-[90%] tw-flex tw-justify-center tw-bg-sky-600 tw-bg-opacity-30 tw-mt-4 tw-py-8'>
+            <div className='tw-w-[50%] tw-h-full tw-pl-4 tw-rounded-tl-lg tw-rounded-tr-lg'>
+            <Form>
               <Form.Field>
-                <h1 className='tw-font-bold tw-text-2xl'>Delivery Recipt</h1>
+                <h1 className='tw-font-bold tw-text-2xl'>Delivery Receipt</h1>
               </Form.Field>
               <Form.Group>
                   <Form.Field required error={(emptyFieldsError && deliveryReciptData.deliveryReciptNumber === '')}>
@@ -273,25 +256,21 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                       <label htmlFor="dateIssued">Date Issued</label>
                       <Input size='mini' type='date' max={getDate()} id="dateIssued" onChange={(e) =>  {handleDateChange(e, deliveryReciptData, setDeliveryReciptData)}}/>
                   </Form.Field>
-                  <Form.Field width={6}>
-                      <label htmlFor="remarks">Remarks</label>
-                      <Input size='mini' id="remarks" placeholder="Remarks" onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} />
-                  </Form.Field>
               </Form.Group>
-              <Form.Group>
-                  <Form.Field required error={(emptyFieldsError && deliveryReciptData.clientId === '')} >
+              <Form.Group >
+                <Form.Field width={10} required error={(emptyFieldsError && deliveryReciptData.clientId === '')} >
                       <label htmlFor="companyName">Company Name</label>
                       <Dropdown
                           placeholder='--Company Name--'
                           search
                           selection
                           options={clientOptions}
-                          onChange={(e, item) => {handleOptionsChange(e, item, deliveryReciptData, setDeliveryReciptData)}}
+                          onChange={(e, item) => { setCompanyNameValue(item.value?.toString() || '')}}
                       />
                   </Form.Field>
                   <Form.Field>
                       <label htmlFor="TIN">TIN</label>
-                      <Input id="TIN" value={handleUndefined(deliveryReciptData.client?.TIN)} readOnly/>
+                      <Input  id="TIN" value={handleUndefined(deliveryReciptData.client?.TIN)} readOnly/>
                   </Form.Field>
               </Form.Group>
               <Form.Group>
@@ -299,13 +278,13 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                       <label htmlFor="address" >Address</label>
                       <TextArea id="address" value={handleUndefined(deliveryReciptData.client?.address)} readOnly/>
                   </Form.Field>
-                  <Form.Field required error={(emptyFieldsError && deliveryReciptData.term === 0)}>
+                  <Form.Field width={4} required error={(emptyFieldsError && deliveryReciptData.term === 0)}>
                     <label htmlFor="term">Terms</label>
-                    <Input id="term"  onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} type='number' min="0" label={{content : "Days", color : "blue"}} labelPosition='right'/>
+                    <Input  id="term"  onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} type='number' min="0" label={{content : "Days", color : "blue"}} labelPosition='right'/>
                   </Form.Field>
               </Form.Group>
               <Form.Group>
-                  <Form.Field width={8}  required error={(emptyFieldsError && deliveryReciptData.pmrEmployeeId === '')}>
+                <Form.Field width={8} required error={(emptyFieldsError && deliveryReciptData.pmrEmployeeId === '')}>
                       <label htmlFor="PMR">PMR</label>
                       <Dropdown
                         id = "PMR"
@@ -318,22 +297,22 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                         onChange={(e, item) => {handleOptionsChange(e, item, deliveryReciptData, setDeliveryReciptData)}}
                       />
                   </Form.Field>
-                  
-                  <Form.Field className={`tw-items-center tw-flex tw-flex-col ${!isRemote ? 'tw-py-4' : 'tw-py-8'}`}>
-                    {!isRemote ? <p><small><small className='tw-flex'><p className='tw-text-red-600'>*</p>NOTE: Stocks will be deducted from the main inventory</small></small></p> : null}
+                  <Form.Field>
+                      <label htmlFor="remarks">Remarks</label>
+                      <Input id="remarks" placeholder="Remarks" onChange={(e) => {handleOnChange(e, deliveryReciptData, setDeliveryReciptData)}} />
+                  </Form.Field>
+              </Form.Group>
+              <Form.Group>
+                  <Form.Field className={`tw-items-center tw-flex tw-flex-col ${!isRemote ? 'tw-py-2' : 'tw-py-4'}`}>
                     <Checkbox
-                  
                   label = {<label>{isRemote? <Header color='grey'>Remote Inventory</Header> : <Header>Main Inventory</Header>}</label>}
                   onChange={() => {setIsRemote(isRemote ? false : true)}}
                   toggle/>
                   </Form.Field>
-                  
               </Form.Group>
-              
-              </Form>
-              </div>
-              
-              <div className='tw-w-[50%] tw-pl-4 tw-h-full'>
+            </Form>
+            </div>
+            <div className='tw-w-[50%] tw-pl-4 tw-h-full'>
                 <Form>
                     <Form.Field>
                         <h3 className='tw-font-bold tw-text-xl'>Add Item</h3>
@@ -346,68 +325,70 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
                             search
                             selection
                             options={itemOptions}
-                            onChange={(e, item) => {setFilteredItemList(findMany(e.currentTarget.id, itemInfo, item.value !== undefined ? item.value.toString() : ''))}}
+                            onChange={(e, item) => { setItemNameValue(item.value?.toString() || '')}}
                             />
                         </Form.Field>
                         <Form.Field required error={(emptyFieldsError && itemData.ItemInfo?.batchNumber === '')}>
                             <label htmlFor="BatchNumner">Batch Number</label>
                             <Dropdown
                             id="batchNumber"
-                            disabled={filteredItemList !== undefined ? filteredItemList[0].itemName === '' : true}
+                            disabled={itemNameValue === ''}
                             search
                             selection
                             options={batchOption}
-                            onChange={(e, item) => {setSelectedItemId(handleUndefined(item.value))}}
+                            onChange={(e, item) => { setBatchNumberValue(item.value?.toString() || '')}}
                             />
                         </Form.Field>
                       </Form.Group>
                       <Form.Group>
                         <Form.Field disabled={disabled}>
                               <label htmlFor="manufacturingDate">Manufacturing Date</label>
-                              <Input id="manufacturingDate" type='date' value={selectedItemId !== '' ? (disabled ? "" : selectedItemData?.manufacturingDate.toString().substring(10, 0)) : ''} readOnly/>
+                              <Input id="manufacturingDate" type='date' value={itemData.ItemInfo?.manufacturingDate.toString().substring(10,0) || ''} readOnly/>
                           </Form.Field>
                           <Form.Field disabled={disabled}>
                               <label htmlFor="ExpirationDate">Expiration Date</label>
-                              <Input id="ExpirationDate" type='date' value={selectedItemId !== '' ? (disabled ? "" : selectedItemData?.expirationDate.toString().substring(10, 0)): ''} readOnly/>
+                              <Input id="ExpirationDate" type='date' value={itemData.ItemInfo?.expirationDate.toString().substring(10,0) || ''} readOnly/>
                           </Form.Field>  
                       </Form.Group>
                       <Form.Group>
                         <Form.Field disabled={disabled}>
                               <label htmlFor="quantity">VAT?</label>
-                              <Input value={deliveryReciptData.id != '' ? (disabled ? "" : (selectedItemData?.VAT ? "Yes" : "No")) : ""} readOnly/>
+                              <Input value={itemData.ItemInfo?.VAT ? 'Yes' : 'No' || ''} readOnly/>
                           </Form.Field>
                           <Form.Field disabled={disabled} required error={(emptyFieldsError && itemData.quantity === 0)}>
                               <label htmlFor="quantity">Quantity</label>
-                              <Input value={handleUndefined(itemData.quantity)} id='quantity' onChange={(e) => {handleQuantity(e)}} min="0" type="number" label={{content : <Dropdown color='blue' value={itemData.unit} options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, itemData, setItemData)}}/>, color : "blue"}} labelPosition='right'/>
+                              <Input min={1} value={handleUndefined(itemData.quantity)} id='quantity' onChange={(e) => { handleOnChange(e, itemData, setItemData)}} type="number" label={{content : <Dropdown color='blue' value={itemData.unit} options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, itemData, setItemData)}}/>, color : "blue"}} labelPosition='right'/>
                           </Form.Field>
                       </Form.Group>
                       <Form.Group>
-                        <Form.Field>
-                          <label htmlFor="byPassAmount">Bypass Amount</label>
-                          <Checkbox id="byPassAmount" toggle onChange={() => {setIsBypass(isBypass ? false : true)}}/>
-                        </Form.Field>
                         <Form.Field disabled={disabled}>
                             <label htmlFor="discount">Discount</label>
-                            <Input onChange={(e) => { handleDiscount(e) }}  max='100.00' id="discount" min="00.00" step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
+                            <Input  value={itemData.discount} onChange={(e) => {handleOnChange(e, itemData, setItemData)}}  max={100.00} id="discount" min={0.00} step=".01" type='number' label={{icon: "percent", color : "blue"}} labelPosition='right'/>
+                        </Form.Field>
+                        <Form.Field disabled={disabled}>
+                          <label htmlFor="byPassAmount">Bypass Amount</label>
+                          <Checkbox id="byPassAmount" toggle onChange={() => {setIsBypass(isBypass ? false : true)}}/>
                         </Form.Field>
                         <Button color='blue' onClick={handleAddItem}>Add Item</Button>
                       </Form.Group>
                     </Form>
             </div>
-          </div>
         </div>
       </div>
       <div className='tw-w-screen tw-flex tw-flex-col tw-pb-52 tw-items-center'>
           <div className='tw-w-[90%] '>
-            <ITable color='blue' data={tableData} updateItem={handleDelete} allowDelete={true} headerTitles={tableHeaders} hasFooter={true} extraData={deliveryReciptData.totalAmount}/>
-            
+            <IFlexTable color='blue' data={tableData} updateItem={handleDelete} headerTitles={tableHeaders} extraData={sales} allowDelete={true} otherDiscount={0}/>
           </div>
           <div className='tw-w-full tw-flex tw-justify-center tw-pt-4'>
             <div className='tw-w-[90%]'>
-              {tableData.length > 0 ? <Button onClick={handleOnClick} color='blue'>Create Delivery Recipt</Button> : null}  
+              {tableData.length > 0 ? <Button onClick={handleOnClick} color='blue'>Create Delivery Receipt</Button> : null}  
           </div>
         </div>
       </div>
     </div>
   )
+
+  
 }
+
+

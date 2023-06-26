@@ -63,10 +63,10 @@ export default function index({ post , deliveryReciptData } : InferGetServerSide
     <div>
       <Inav/>
       <div className='tw-w-full  tw-flex tw-flex-col'>
-            <h1 className='tw-text-[3rem] tw-font-extrabold tw-mt-20 tw-ml-20 tw-mb-10'>Delivery Recipt List</h1>
+            <h1 className='tw-text-[3rem] tw-font-extrabold tw-mt-20 tw-ml-20 tw-mb-10'>Delivery Receipt List</h1>
             <div className='tw-w-full tw-ml-20 tw-flex tw-flex-col tw-justify-center'>
               <div className='tw-ml-4 tw-mb-4'>
-                <Button onClick={() => {router.push('/sales/add/deliveryRecipt')}}color='blue'>Add Delivery Recipt</Button>
+                <Button onClick={() => {router.push('/sales/add/deliveryRecipt')}}color='blue'>Add Delivery Receipt</Button>
                 <Input onChange={(e) => {filterData(e.target.value, deliveryReciptData)}} type='text' placeholder='Search...' icon={'search'}/>
               </div>
               <div className='tw-w-[90%]'>

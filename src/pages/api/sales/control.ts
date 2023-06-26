@@ -1,13 +1,11 @@
 import { ItemSalesDetails, PrismaClient } from '@prisma/client';
 import { handleUndefined, handleUnits } from 'functions';
-import _, { create } from 'lodash';
+import { create, uniqueId } from 'lodash';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import NextCors from 'nextjs-cors';
 import { Item } from 'types';
-import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
-console.log('TEST');
 
 enum UNITS {
     BOX = 'BOXES',
@@ -36,7 +34,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         origin: '*',
         optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
     });
-
     const { method } = req;
     switch (method) {
         case 'GET': {
@@ -56,99 +53,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     dateIssued,
                     deliveryReciptNumber,
                     term,
+                    totalAmount,
                     pmrEmployeeId,
                     clientId,
+                    VAT,
                     remarks,
                     item,
                     isRemote,
                     client,
+                    stockIn,
                     preparedById,
+                    total,
                 } = req.body;
 
-                const record = await prisma.deliveryRecipt.findFirst({
-                    where: {
+                const { grossAmount, netAmount, vatExempt, VATAmount, netVATAmount, VATableSales, nonVATSales } = total;
+
+                const deliveryRecipt = await prisma.deliveryRecipt.create({
+                    data: {
+                        dateIssued: dateIssued,
                         deliveryReciptNumber: deliveryReciptNumber,
+                        term: term,
+                        totalAmount: totalAmount,
+                        remarks: remarks,
+                        VAT: VAT,
+                        isRemote: !isRemote,
+                        stockIn: stockIn,
+                        payables: totalAmount,
                     },
                 });
 
-                if (record) {
-                    res.status(403).json({ success: false, data: ['There is already existing Number'] });
-                    return;
-                }
-
-                const totalSalesAmount = _.sumBy(
-                    item,
-                    (item: any) => item.totalAmount - (item.totalAmount * handleUndefined(item.discount)) / 100,
-                );
-
-                const VAT = (totalSalesAmount / 1.12) * 0.12;
-
-                const newID = uuidv4();
-                let DRInfo: any = {
-                    id: newID,
-                    dateIssued: dateIssued,
-                    deliveryReciptNumber: deliveryReciptNumber,
-                    term: term,
-                    totalAmount: totalSalesAmount,
-                    remarks: remarks,
-                    VAT: VAT,
-                    isRemote: !isRemote,
-                    payables: totalSalesAmount,
-                };
-
-                const itemData = item.map((item: any) => {
-                    const { id, quantity, vatable, discount, totalAmount, itemInfoId, unit } = item;
-
-                    const disc = handleUndefined(discount) / 100;
-                    const grossAmount = totalAmount;
-                    const netAmount = totalAmount - grossAmount * disc;
-                    const VATAmount = vatable ? (netAmount / 1.12) * 0.12 : 0;
-
-                    return {
-                        id: id,
-                        quantity: quantity,
-                        totalAmount: netAmount,
-                        unit: handleUnits(unit),
-                        vatable: vatable,
-                        discount: disc,
-                        itemInfoId: handleUndefined(itemInfoId),
-                        dRId: DRInfo.id,
-                    };
-                });
-
-                const itemSalesData = item.map((item: any) => {
-                    const { id, quantity, vatable, discount, totalAmount, itemInfoId, unit } = item;
-
-                    const disc = handleUndefined(discount) / 100;
-                    const grossAmount = totalAmount;
-                    const netAmount = totalAmount - grossAmount * disc;
-                    const VATAmount = vatable ? (netAmount / 1.12) * 0.12 : 0;
-
-                    return {
-                        discount: disc,
+                const totalDetails = await prisma.totalDetails.create({
+                    data: {
                         grossAmount: grossAmount,
                         netAmount: netAmount,
-                        netVATAmount: netAmount - netAmount * 0.12,
+                        vatable: vatExempt,
                         VATAmount: VATAmount,
-                        vatExempt: !vatable,
-                        itemId: id,
-                    };
-                });
-
-                const deliveryReceipt = await prisma.deliveryRecipt.create({
-                    data: DRInfo,
+                        discount: 0,
+                        deliveryReciptId: deliveryRecipt.id,
+                    },
                 });
 
                 const preparedBy = await prisma.employee.create({
                     data: {
-                        DeliveryReciptId: deliveryReceipt.id,
+                        DeliveryReciptId: deliveryRecipt.id,
                         employeeInfoId: preparedById,
                     },
                 });
 
                 const pmr = await prisma.employee.create({
                     data: {
-                        DeliveryReciptId: deliveryReceipt.id,
+                        DeliveryReciptId: deliveryRecipt.id,
                         employeeInfoId: pmrEmployeeId,
                     },
                 });
@@ -156,16 +110,60 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                 const clientCreation = await prisma.client.create({
                     data: {
                         clientInfoId: clientId,
-                        delveryReciptId: deliveryReceipt.id,
+                        delveryReciptId: deliveryRecipt.id,
                     },
                 });
 
+                const itemDetails: Array<any> = item.map((obj: any) => {
+                    const {
+                        itemSalesDetails,
+                        id,
+                        quantity,
+                        totalAmount,
+                        unit,
+                        unitPrice,
+                        vatable,
+                        ItemInfo,
+                        discount,
+                        itemInfoId,
+                    } = obj;
+
+                    return {
+                        id: id,
+                        quantity: quantity,
+                        totalAmount: totalAmount,
+                        unit: handleUnits(unit),
+                        vatable: vatable,
+                        discount: discount,
+                        itemInfoId: handleUndefined(itemInfoId),
+                        dRId: deliveryRecipt.id,
+                    };
+                });
+
+                const salesDetails = item.map((obj: any) => {
+                    const { itemSalesDetails } = obj;
+
+                    const { VATAmount, grossAmount, itemId, netAmount } = itemSalesDetails;
+
+                    const sales = {
+                        discount: handleUndefined(itemSalesDetails.discount),
+                        grossAmount: grossAmount,
+                        netAmount: netAmount,
+                        netVATAmount: netAmount - netAmount * 0.12,
+                        VATAmount: VATAmount,
+                        vatExempt: !itemSalesDetails.vatable,
+                        itemId: itemId,
+                    };
+
+                    return sales;
+                });
+
                 const handleItems = await prisma.item.createMany({
-                    data: itemData,
+                    data: itemDetails,
                 });
 
                 const handleSales = await prisma.itemSalesDetails.createMany({
-                    data: itemSalesData,
+                    data: salesDetails,
                 });
 
                 const updateDeliveryRecipt = await prisma.deliveryRecipt.update({
@@ -176,7 +174,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         clientId: clientCreation.id,
                     },
                 });
-
                 try {
                     res.status(200).json({ success: true, data: [] });
                 } catch (error) {

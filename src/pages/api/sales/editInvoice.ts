@@ -89,23 +89,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         },
                     });
 
-                    const updateDetails = await prisma.$transaction([
-                        prisma.totalDetails.delete({
-                            where: { salesInvoiceId: id },
-                        }),
-
-                        prisma.totalDetails.create({
-                            data: {
-                                grossAmount: grossAmount,
-                                netAmount: netAmount,
-                                vatable: vatExempt,
-                                VATAmount: VATAmount,
-                                discount: 0,
-                                salesInvoiceId: salesInvoice.id,
-                            },
-                        }),
-                    ]);
-
                     const updateEmps = await prisma.$transaction([
                         prisma.employee.deleteMany({
                             where: { SalesInvoiceId: id.toString() },

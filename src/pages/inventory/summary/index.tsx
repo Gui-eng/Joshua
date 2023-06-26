@@ -1,4 +1,4 @@
-import React, { SVGProps, useEffect } from 'react'
+import React, { SVGProps, useEffect, useState } from 'react'
 import { useSession, signOut, getSession} from 'next-auth/react'
 import { Button, Grid, Label } from 'semantic-ui-react';
 import { useRouter } from 'next/router';
@@ -10,6 +10,7 @@ import IFooter from 'components/IFooter';
 import ISideCard from 'components/ISideCard'
 import ISidePanel from 'components/ISidePanel';
 import { HOSTADDRESS, PORT } from 'functions';
+import IFlextable from 'components/IFlexTable';
 
 const Chart = (props : SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" {...props}>
@@ -60,14 +61,48 @@ export default function home({ post, pmr } : any) {
   //   }
   // },[])
 
+  const [tableData, setTableData] = useState<any>([])
 
+  useEffect(() => {
+   const mainData = [
+      {
+        id : 'Main',
+        name : "Unipharma Main",
+        code : "MAIN",
+        action : <Button onClick={() => {router.push(`/inventory/summary/main`)}}color='blue'>View</Button>
+      }
+    ]
+
+    const pmrData = pmr.map((item : any) => {
+      return {
+        id : item.id,
+        name : item.firstName + " " + item.lastName,
+        code : item.code !== ""? item.code: "-", 
+        action : <Button onClick={() => {router.push(`/inventory/summary/${item.id}`)}}color='blue'>View</Button>
+      }
+    })
+
+    const combinedData = [...mainData, ...pmrData]
+
+    setTableData(combinedData)
+  }, [pmr])
+
+
+
+
+  
+
+  
+
+
+  const tableHeaders = ["id", "Name", "Code", "Action"]
 
   return (
     data && 
     <>
       <div className='tw-w-full tw-h-full'>
         <Inav/>
-        <div className='tw-w-full tw-flex tw-h-[80vh]'>
+        <div className='tw-w-full tw-flex'>
               <div className='tw-w-[300px] tw-items-center tw-h-full tw-flex'>
                 <div className=' tw-w-full tw-h-[98%] tw-border-x-2 tw-border-slate-300'>
                   <div className='tw-w-full tw-pl-4 tw-h-full  tw-flex tw-flex-col tw-items-start tw-py-20 '>
@@ -78,20 +113,7 @@ export default function home({ post, pmr } : any) {
                 </div>
               </div>
               <div className='tw-w-full tw-p-16 tw-h-full'>
-                <Grid>
-                  <Grid.Row columns={4}>
-                    <Grid.Column>
-                        <ICard Icon={<User fill='white' width={35}/>} name={'Main'} link={`/inventory/summary/main`}/>
-                    </Grid.Column>
-                    {pmr.map((item : any) => {
-                        return (
-                            <Grid.Column>
-                                <ICard Icon={<User fill='white' width={35}/>} name={item.firstName + " " +item.lastName} link={`/inventory/summary/${item.id}`}/>
-                            </Grid.Column>
-                        )
-                    })}
-                  </Grid.Row>
-                </Grid>
+                  <IFlextable data={tableData} headerTitles={tableHeaders}/>
               </div>
         </div>
       </div>

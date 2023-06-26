@@ -174,6 +174,15 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
                                 const accountingFormat = '₱ #,##0.00';
 
+                                const grossAmount =
+                                    item.totalAmount > 0
+                                        ? limit(getPrice(item.ItemInfo.ItemPrice[0], item.unit)?.toString()) *
+                                          item.quantity
+                                        : 0;
+                                const netAmount = grossAmount - grossAmount * item.discount;
+                                const vatSales = netAmount / 1.12;
+                                const VATAmount = netAmount - vatSales;
+
                                 const row = worksheet.addRow([
                                     sales.salesInvoiceNumber !== undefined
                                         ? sales.salesInvoiceNumber
@@ -183,11 +192,11 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                                     item.ItemInfo?.itemName,
                                     item.quantity,
                                     limit(getPrice(item.ItemInfo.ItemPrice[0], item.unit)?.toString()),
-                                    limit(item.ItemSalesDetails[0].netAmount),
-                                    item.vatable ? limit(item.ItemSalesDetails[0].netAmount) : '-',
+                                    netAmount,
+                                    item.vatable ? vatSales : '-',
                                     !item.vatable ? limit(item.ItemSalesDetails[0].netAmount) : '-',
-                                    item.vatable ? Number(handleUndefined(item.ItemSalesDetails[0].VATAmount)) : '-',
-                                    limit(item.ItemSalesDetails[0].grossAmount),
+                                    item.vatable ? VATAmount : '-',
+                                    grossAmount,
                                     limit(handleUndefined(item.discount)),
                                     sales.pmr?.employeeInfo.code,
                                     sales.client?.clientInfo.TIN,

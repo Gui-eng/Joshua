@@ -5,7 +5,7 @@ import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react'
-import { Button } from 'semantic-ui-react';
+import { Button, Header } from 'semantic-ui-react';
 import { Item } from 'types';
 import template from './../../../../public/newsiTemplate.docx'
 import PizZip from 'pizzip';
@@ -116,13 +116,12 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
 export default function ID( {post, info} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
-    console.log(info)
    
     // !info ? null
     const router = useRouter()
 
     const [templateData, setTemplateData] = useState(data)
-
+    const [del, setDel] = useState(false);
 
     useEffect(() => {
 
@@ -228,13 +227,13 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
             }
 
             allvat = {
-                adue : allvat.adue  === 0 ? "" : formatCurrency(nonvat.adue.toString()),
-                disc : allvat.disc  === 0 ? "" : formatCurrency(nonvat.disc.toString()),
-                avat : allvat.avat  === 0 ? "" : formatCurrency(nonvat.avat.toString()),
-                lvat : allvat.lvat  === 0 ? "" : formatCurrency(nonvat.lvat.toString()),
-                nvat : allvat.nvat  === 0 ? "" : formatCurrency(nonvat.nvat.toString()),
-                tdue : allvat.tdue  === 0 ? "" : formatCurrency(nonvat.tdue.toString()),
-                tsales : allvat.tsales  === 0 ? "" : formatCurrency(nonvat.tsales.toString()),
+                adue : allvat.adue  === 0 ? "" : formatCurrency(allvat.adue.toString()),
+                disc : allvat.disc  === 0 ? "" : formatCurrency(allvat.disc.toString()),
+                avat : allvat.avat  === 0 ? "" : formatCurrency(allvat.avat.toString()),
+                lvat : allvat.lvat  === 0 ? "" : formatCurrency(allvat.lvat.toString()),
+                nvat : allvat.nvat  === 0 ? "" : formatCurrency(allvat.nvat.toString()),
+                tdue : allvat.tdue  === 0 ? "" : formatCurrency(allvat.tdue.toString()),
+                tsales : allvat.tsales  === 0 ? "" : formatCurrency(allvat.tsales.toString()),
      
             }
 
@@ -298,6 +297,15 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
         }
     }
 
+    async function handleDeleteDocument() {
+        try {
+            const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/deleteSI`, info)
+            router.push(`/sales/info/salesInvoice`)
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
     const tableData = info.items.map((item : any) => {
 
         const getThePrice = getPrice(handleUndefined(item.ItemInfo?.ItemPrice[0]), item.unit)
@@ -348,6 +356,19 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
                     <Button onClick={() => {handlePrint(true)}}color='blue'>Print SI &#40;New&#41;</Button>
                     <Button onClick={() => {generateDocument(templateData, template)}}color='blue'>Print SI &#40;Old&#41;</Button>
                     <Button onClick={() => {router.push(`/sales/add/editSI/${info.id}`)}}color='blue'>Edit</Button>
+                </div>
+                <div className='tw-full tw-flex tw-justify-end'>
+                    
+                    {!del ?  <Button className='' color='red' inverted onClick={() => { setDel(true)}}>Delete</Button> : null}
+                    
+                    {del ? <div className='tw-flex-col tw-justify-end'>
+                            <Header as='h5' className='tw-pr-2'>Are you sure to delete?</Header>
+                            <div className='tw-flex'>
+                                <Button className='' color='red' inverted onClick={() => { handleDeleteDocument()}}>Yes</Button> 
+                                <Button className='' color='blue' inverted onClick={() => { setDel(false)}}>No</Button>
+                            </div>
+                    </div>: null}
+
                 </div>
            </div>
         </div>

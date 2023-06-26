@@ -82,7 +82,7 @@ useEffect(() => {
 
 
 
-      const filteredData = documentData.filter((item :any) => item.client.clientInfo.id === pullOutData.client).map((item: any)=> {
+      const filteredData = documentData.filter((item :any) => item.client ? item.client.clientInfo.id === pullOutData.client : null).map((item: any)=> {
         return {...item, number : item.salesInvoiceNumber === undefined ? item.deliveryReciptNumber : item.salesInvoiceNumber}
         })
       setDocumentNumberOptions(makeOptions(filteredData, 'number', ['number']))
@@ -90,7 +90,8 @@ useEffect(() => {
 
   }
   else if(pullOutData.client !== ''){
-      const filteredData = documentData.filter((item :any) => item.client.clientInfo.id === pullOutData.client).map((item: any)=> {
+
+      const filteredData = documentData.filter((item :any) => item.client ? item.client.clientInfo.id === pullOutData.client : null).map((item: any)=> {
         return {...item, number : item.salesInvoiceNumber === undefined ? item.deliveryReciptNumber : item.salesInvoiceNumber}
     })
       setDocumentNumberOptions(makeOptions(filteredData, 'number', ['number']))

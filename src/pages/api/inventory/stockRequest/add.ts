@@ -77,7 +77,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                     await prisma.mainStocks.update({
                                         where: { id: mainStocks?.id.toString() },
                                         data: {
-                                            Vial: handleUndefined(mainStocks?.Vial) - item.quantityIssued,
+                                            Vial:
+                                                handleUndefined(mainStocks?.Vial) > 0
+                                                    ? handleUndefined(mainStocks?.Vial) - item.quantityIssued
+                                                    : 0,
                                         },
                                     });
                                 }
@@ -87,7 +90,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                     await prisma.mainStocks.update({
                                         where: { id: mainStocks?.id.toString() },
                                         data: {
-                                            Box: handleUndefined(mainStocks?.Box) - item.quantityIssued,
+                                            Box:
+                                                handleUndefined(mainStocks?.Box) > 0
+                                                    ? handleUndefined(mainStocks?.Box) - item.quantityIssued
+                                                    : 0,
                                         },
                                     });
                                 }
@@ -97,7 +103,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                     await prisma.mainStocks.update({
                                         where: { id: mainStocks?.id.toString() },
                                         data: {
-                                            Bottle: handleUndefined(mainStocks?.Bottle) - item.quantityIssued,
+                                            Bottle:
+                                                handleUndefined(mainStocks?.Bottle) > 0
+                                                    ? handleUndefined(mainStocks?.Bottle) - item.quantityIssued
+                                                    : 0,
                                         },
                                     });
                                 }
@@ -107,7 +116,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                     await prisma.mainStocks.update({
                                         where: { id: mainStocks?.id.toString() },
                                         data: {
-                                            Capsule: handleUndefined(mainStocks?.Capsule) - item.quantityIssued,
+                                            Capsule:
+                                                handleUndefined(mainStocks?.Capsule) > 0
+                                                    ? handleUndefined(mainStocks?.Capsule) - item.quantityIssued
+                                                    : 0,
                                         },
                                     });
                                 }
@@ -117,7 +129,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                     await prisma.mainStocks.update({
                                         where: { id: mainStocks?.id.toString() },
                                         data: {
-                                            Tablet: handleUndefined(mainStocks?.Tablet) - item.quantityIssued,
+                                            Tablet:
+                                                handleUndefined(mainStocks?.Tablet) > 0
+                                                    ? handleUndefined(mainStocks?.Tablet) - item.quantityIssued
+                                                    : 0,
                                         },
                                     });
                                 }

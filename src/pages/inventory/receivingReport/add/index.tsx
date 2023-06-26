@@ -30,6 +30,7 @@ export default function item({ preparedBy} : InferGetServerSidePropsType<typeof 
 
   const [emptyFieldsError, setEmptyFieldError] = useState(false)
   const [itemArray, setItemArray] = useState<any>([])
+  const router = useRouter()
   const [rawData, setRawData] = useState<any>({
     receivingReportNumber : "",
     supplier : "",
@@ -104,13 +105,13 @@ export default function item({ preparedBy} : InferGetServerSidePropsType<typeof 
     if(hasEmptyFields(rawData, ['remarks', 'items'])){
       setEmptyFieldError(true);
       alert("There are empty Fields")
-      console.log(rawData)
+  
       return;
     }
 
     try{
       await axios.post(`http://${HOSTADDRESS}:${PORT}/api/inventory/receivingReport/add`, rawData)
-      
+      router.reload()
     }catch(error){
       console.log(error)
     }
@@ -224,7 +225,7 @@ export default function item({ preparedBy} : InferGetServerSidePropsType<typeof 
           </div>
           <div className='tw-w-full tw-flex tw-justify-center tw-pt-4'>
             <div className='tw-w-[90%]'>
-              {tableData.length > 0 ? <Button onClick={handleOnClick} color='blue'>Create Sales Invoice</Button> : null}  
+              {tableData.length > 0 ? <Button onClick={handleOnClick} color='blue'>Create Receiving Report</Button> : null}  
           </div>
         </div>
       </div>

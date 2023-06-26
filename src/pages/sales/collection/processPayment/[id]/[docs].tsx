@@ -80,7 +80,7 @@ export default function add({ user, documentData, clients, paymentData} : InferG
             return {
                 id : check.id,
                 modeOfPayment : check.modeOfPayment,
-                checkNumber : check.modeOfPayment === 'CASH' ? "-" : check.checkNumber !== '' ? check.checkNumber : '-',
+                checkNumber : check.checkNumber || '-',
                 ARCRNo : check.CRARNo ? check.CRARNo : '-',
                 [`${number}`]: check.salesInvoice ? check.salesInvoice.salesInvoiceNumber : check.deliveryRecipt.deliveryReciptNumber,
                 dateIssued : check.dateIssued.substring(10, 0),
@@ -128,7 +128,7 @@ export default function add({ user, documentData, clients, paymentData} : InferG
 
         console.log(rawData)
         if(modeOfPayment === PAYMENT.CASH){
-            if( rawData.dateOfDeposit === ''){
+            if(  rawData.dateOfDeposit === ''){
                 alert('There are empty fields')
                 return
             }
@@ -146,7 +146,7 @@ export default function add({ user, documentData, clients, paymentData} : InferG
 
         const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/collection`, rawData)
     
-        // router.reload()
+        router.reload()
     }
 
     

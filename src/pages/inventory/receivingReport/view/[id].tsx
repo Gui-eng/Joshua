@@ -3,7 +3,9 @@ import Itable from 'components/Itable';
 import { HOSTADDRESS, PORT, formatCurrency, formatDateString, getPrice, handleUndefined } from 'functions';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
-import React from 'react'
+import { useRouter } from 'next/router';
+import React, { useState } from 'react'
+import { Button, Header } from 'semantic-ui-react';
 import { Item } from 'types';
 
 const headerTitle = ["id", "Quantity", "Item Name", "Manufacturing Date", "Expiration Date", "Batch Number"]
@@ -39,6 +41,8 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
 export default function ID( {post, info} : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
+    const [del, setDel] = useState(false);
+    const router = useRouter()
     
 
     const tableData = info.items.map((item : any) => {
@@ -53,6 +57,16 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
         }
     })
 
+   
+
+    async function handleDeleteDocument(){
+        try {
+          const deletePOD = await axios.delete(`http://${HOSTADDRESS}:${PORT}/api/inventory/receivingReport/${info.id}`)
+          router.push('/inventory/receivingReport')
+        } catch (error) {
+          console.log(error)
+        }
+      }
     
   return (
     <div>{
@@ -80,6 +94,19 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
         <div className='tw-w-full tw-flex tw-justify-center'>
            <div className='tw-w-[90%]'>
                 <Itable color='blue' data={tableData} headerTitles={headerTitle}/>
+                <div className='tw-w-full tw-flex tw-justify-end tw-pt-4'>
+                    
+                    {!del ?  <Button className='' color='red' inverted onClick={() => { setDel(true)}}>Delete</Button> : null}
+                    
+                    {del ? <div className='tw-flex-col tw-justify-end'>
+                            <Header as='h5' className='tw-pr-2'>Are you sure to delete?</Header>
+                            <div className='tw-flex'>
+                                <Button className='' color='red' inverted onClick={() => { handleDeleteDocument()}}>Yes</Button> 
+                                <Button className='' color='blue' inverted onClick={() => { setDel(false)}}>No</Button>
+                            </div>
+                </div>: null}
+
+        </div>
            </div>
         </div>
     </>

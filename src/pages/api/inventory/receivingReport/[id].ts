@@ -37,6 +37,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                 }
             }
             break;
+        case 'DELETE':
+            {
+                try {
+                    const record = await prisma.receivingReport.findUnique({
+                        where: { id: req.query.id?.toString() },
+                    });
+
+                    const delItems = await prisma.receivingReportItems.deleteMany({
+                        where: { receivingReportId: req.query.id?.toString() },
+                    });
+
+                    const deleteRecord = await prisma.receivingReport.delete({
+                        where: { id: req.query.id?.toString() },
+                    });
+
+                    res.status(200).json({ success: true, data: req.query.id });
+                } catch (error) {
+                    res.status(403).json({ success: false, data: null });
+                }
+            }
+            break;
         default:
             res.status(403).json({ success: false, data: null });
             break;
