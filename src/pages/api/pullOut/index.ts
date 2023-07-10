@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { handleUndefined } from 'functions';
+import { handleUndefined, quantityOptions } from 'functions';
 import { includes } from 'lodash';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import NextCors from 'nextjs-cors';
@@ -52,6 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     });
 
                     data.map(async (item: any) => {
+                        const { quantity } = item;
                         if (item.isSI) {
                             const bal = await prisma.salesInvoice.findUnique({
                                 where: { salesInvoiceNumber: item.documentNumber },
@@ -92,6 +93,67 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                             : handleUndefined(bal?.totalAmount) - item.amount,
                                 },
                             });
+                        }
+
+                        const mainStocks = await prisma.mainStocks.create({
+                            data: {
+                                itemInfoId: item.id,
+                            },
+                        });
+
+                        switch (item.unit) {
+                            case 'VIALS':
+                                {
+                                    await prisma.mainStocks.update({
+                                        where: { id: mainStocks?.id.toString() },
+                                        data: {
+                                            Vial: handleUndefined(mainStocks?.Vial) + quantity,
+                                        },
+                                    });
+                                }
+                                break;
+                            case 'BOX':
+                                {
+                                    await prisma.mainStocks.update({
+                                        where: { id: mainStocks?.id.toString() },
+                                        data: {
+                                            Box: handleUndefined(mainStocks?.Box) + quantity,
+                                        },
+                                    });
+                                }
+                                break;
+                            case 'BOTTLES':
+                                {
+                                    await prisma.mainStocks.update({
+                                        where: { id: mainStocks?.id.toString() },
+                                        data: {
+                                            Bottle: handleUndefined(mainStocks?.Bottle) + quantity,
+                                        },
+                                    });
+                                }
+                                break;
+                            case 'CAPSULES':
+                                {
+                                    await prisma.mainStocks.update({
+                                        where: { id: mainStocks?.id.toString() },
+                                        data: {
+                                            Capsule: handleUndefined(mainStocks?.Capsule) + quantity,
+                                        },
+                                    });
+                                }
+                                break;
+                            case 'TABLETS':
+                                {
+                                    await prisma.mainStocks.update({
+                                        where: { id: mainStocks?.id.toString() },
+                                        data: {
+                                            Tablet: handleUndefined(mainStocks?.Tablet) + quantity,
+                                        },
+                                    });
+                                }
+                                break;
+                            default:
+                                break;
                         }
                     });
 
