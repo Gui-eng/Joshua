@@ -52,7 +52,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         price: { bottle, box, capsule, vial, tablet, itemInfoId },
                     } = req.body;
 
-                    console.log();
                     const addItem = await prisma.itemInfo.create({
                         data: {
                             batchNumber: batchNumber,

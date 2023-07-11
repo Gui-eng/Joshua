@@ -105,6 +105,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         const mainStocks = await prisma.mainStocks.create({
                             data: {
                                 itemInfoId: addItem.id,
+                                
                             },
                         });
 

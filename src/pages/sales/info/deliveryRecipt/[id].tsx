@@ -195,6 +195,8 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
             
             await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/dr/convertToPdf`, {file : generatedDoc})
             await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/dr/savepdf`)
+            await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/printDR`)
+
             
             
         
