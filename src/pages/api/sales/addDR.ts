@@ -65,17 +65,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     preparedById,
                 } = req.body;
 
-                const record = await prisma.deliveryRecipt.findFirst({
-                    where: {
-                        deliveryReciptNumber: deliveryReciptNumber,
-                    },
-                });
-
-                if (record) {
-                    res.status(403).json({ success: false, data: ['There is already existing Number'] });
-                    return;
-                }
-
                 const totalSalesAmount = _.sumBy(
                     item,
                     (item: any) => item.totalAmount - (item.totalAmount * handleUndefined(item.discount)) / 100,

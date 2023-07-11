@@ -88,13 +88,7 @@ export default function home({ post, pmr } : any) {
   }, [pmr])
 
 
-  const checkStatus = (item : any) => {
-    if(item.vial || item.bottle || item.box || item.capsule || item.tablet){
-      return true
-    }else{
-      return false
-    }
-  }
+
 
   
 

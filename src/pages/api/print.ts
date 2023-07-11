@@ -18,12 +18,15 @@ const tableHeaders = [
     'S-Price',
     'Net Discount',
     'Vatable Sales',
-    'Non-VAT Sales',
     'VATAmount',
     'Gross Sales',
-    'Discount',
+    'Disc Rate',
+    'Disc Amount',
+
+  
     'PMR Code',
     'TIN',
+    'Remarks',
 ];
 
 function setupTitle(worksheet: ExcelJS.Worksheet, title: string, row: number, size: number) {
@@ -32,7 +35,7 @@ function setupTitle(worksheet: ExcelJS.Worksheet, title: string, row: number, si
 
     worksheet.mergeCells(`A${row}:N${row + 1}`);
 
-    const titleCell = worksheet.getCell(`A${row}:N${row + 1}`);
+    const titleCell = worksheet.getCell(`A${row}:O${row + 1}`);
 
     worksheet.getRow(row).eachCell((cell) => {
         titleCell.style = {
@@ -194,22 +197,23 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                                     limit(getPrice(item.ItemInfo.ItemPrice[0], item.unit)?.toString()),
                                     netAmount,
                                     item.vatable ? vatSales : '-',
-                                    !item.vatable ? limit(item.ItemSalesDetails[0].netAmount) : '-',
                                     item.vatable ? VATAmount : '-',
                                     grossAmount,
                                     limit(handleUndefined(item.discount)),
+                              grossAmount * item.discount,
                                     sales.pmr?.employeeInfo.code,
                                     sales.client?.clientInfo.TIN,
+				    sales.remarks
                                 ]);
                                 startingRow++;
 
                                 row.eachCell((cell, colNumber) => {
-                                    if (colNumber > 5 && colNumber < 12) {
+                                    if (colNumber > 5 && colNumber < 13) {
                                         cell.numFmt = accountingFormat;
                                     }
 
-                                    if (colNumber >= 12) {
-                                        cell.numFmt = '% 0';
+                                    if (colNumber === 11) {
+                                        cell.numFmt = ' 0% ';
                                     }
 
                                     const color = '00008B';
@@ -274,24 +278,11 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                         };
                         totalVatableCell.numFmt = '₱#,##0.00';
 
-                        const totalNonVatableCell = worksheet.getCell(`I${startingRow + 1}`);
-                        totalNonVatableCell.value = {
-                            formula: `SUM(I${start}:I${startingRow - 1})`,
-                            result: 0,
-                            date1904: true,
-                        };
-                        totalNonVatableCell.style = {
-                            font: {
-                                color: { argb: 'FF0000' },
-                                bold: true,
-                                underline: true,
-                            },
-                        };
-                        totalNonVatableCell.numFmt = '₱#,##0.00';
+ 
 
-                        const totalVATAmountCell = worksheet.getCell(`J${startingRow + 1}`);
+                        const totalVATAmountCell = worksheet.getCell(`I${startingRow + 1}`);
                         totalVATAmountCell.value = {
-                            formula: `SUM(J${start}:J${startingRow - 1})`,
+                            formula: `SUM(I${start}:I${startingRow - 1})`,
                             result: 0,
                             date1904: true,
                         };
@@ -304,9 +295,9 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                         };
                         totalVATAmountCell.numFmt = '₱#,##0.00';
 
-                        const totalGrossSalesCell = worksheet.getCell(`K${startingRow + 1}`);
+                        const totalGrossSalesCell = worksheet.getCell(`J${startingRow + 1}`);
                         totalGrossSalesCell.value = {
-                            formula: `SUM(K${start}:K${startingRow - 1})`,
+                            formula: `SUM(J${start}:J${startingRow - 1})`,
                             result: 0,
                             date1904: true,
                         };
@@ -318,6 +309,21 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
                             },
                         };
                         totalGrossSalesCell.numFmt = '₱#,##0.00';
+
+			const totalDiscAmount = worksheet.getCell(`L${startingRow + 1}`);
+                        totalDiscAmount.value = {
+                            formula: `SUM(L${start}:L${startingRow - 1})`,
+                            result: 0,
+                            date1904: true,
+                        };
+                        totalDiscAmount.style = {
+                            font: {
+                                color: { argb: 'FF0000' },
+                                bold: true,
+                                underline: true,
+                            },
+                        };
+                        totalDiscAmount.numFmt = '₱#,##0.00';
 
                         for (let index = 7; index <= worksheet.rowCount; index++) {
                             worksheet.getRow(index).alignment = { horizontal: 'left' };

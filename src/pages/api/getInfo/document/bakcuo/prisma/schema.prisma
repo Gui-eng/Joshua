@@ -1,0 +1,519 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String  @id @default(uuid())
+  username String  @unique
+  password String
+  email    String  @unique
+  role     ROLES   @default(ACCOUNTING)
+  isAdmin  Boolean @default(false)
+  isActive Boolean @default(true)
+
+  employeeInfo   EmployeeInfo? @relation(fields: [employeeInfoId], references: [id])
+  employeeInfoId String?       @unique
+}
+
+model EmployeeInfo {
+  id         String     @id @default(uuid())
+  firstName  String
+  middleName String
+  lastName   String
+  code       String?
+  address    String
+  dateHired  DateTime
+  department DEPARTMENT
+  contactNo  String
+
+  Employee           Employee[]
+  proofOfDeliveryPmr proofOfDelivery[] @relation(name: "pmr")
+  Stocks             Stocks[]          @relation(name: "pmrEmployee")
+  User               User?
+  ClientInfo         ClientInfo[]
+  stockRequest       stockRequest[]
+}
+
+model Employee {
+  id               String          @id @default(uuid())
+  employeeInfo     EmployeeInfo    @relation(fields: [employeeInfoId], references: [id])
+  employeeInfoId   String
+  SalesInvoice     SalesInvoice?   @relation(fields: [SalesInvoiceId], references: [id])
+  SalesInvoiceId   String?
+  DeliveryRecipt   DeliveryRecipt? @relation(fields: [DeliveryReciptId], references: [id])
+  DeliveryReciptId String?
+
+  SIPmr        SalesInvoice[]   @relation(name: "pmrEmployee")
+  DRPmr        DeliveryRecipt[] @relation(name: "DRpmrEmployee")
+  SIPreparedBy SalesInvoice[]   @relation(name: "preparedByEmployee")
+  DRPreparedBy DeliveryRecipt[] @relation(name: "preparedByEmployee")
+}
+
+model ClientInfo {
+  id          String @id @default(uuid())
+  companyName String @unique
+  address     String
+  TIN         String
+
+  pmr   EmployeeInfo? @relation(fields: [pmrId], references: [id])
+  pmrId String?
+
+  Client            Client[]
+  SOA               SOA[]
+  monthlyCollection MonthlyCollection[]
+  CheckInfo         PaymentInfo[]
+  PullOut           PullOut[]
+
+  proofOfDeliveryClient proofOfDelivery[] @relation(name: "deliveredClient")
+}
+
+model Client {
+  id String @id @default(uuid())
+
+  clientInfo      ClientInfo?     @relation(fields: [clientInfoId], references: [id])
+  clientInfoId    String
+  salesInvoice    SalesInvoice?   @relation(fields: [salesInvoiceId], references: [id])
+  salesInvoiceId  String?
+  deliveryRecipt  DeliveryRecipt? @relation(fields: [delveryReciptId], references: [id])
+  delveryReciptId String?
+
+  client      SalesInvoice[]   @relation(name: "Client")
+  DRclient    DeliveryRecipt[] @relation(name: "Client")
+  WeeklySales WeeklySales[]
+}
+
+model ItemInfo {
+  id                String   @id @default(uuid())
+  itemName          String
+  batchNumber       String
+  manufacturingDate DateTime
+  expirationDate    DateTime
+  VAT               Boolean
+
+  isActive Boolean @default(true)
+
+  items           Item[]
+  ItemSummary     ItemSummary[]
+  Stocks          Stocks[]
+  pullOutItem     PullOutItem[]
+  mainStocks      mainStocks[]
+  ItemPrice       ItemPrice[]
+  proofOfDelivery proofOfDelivery[]
+  stockRequest    stockRequest[]
+}
+
+model ItemPrice {
+  id String @id @default(uuid())
+
+  bottle  Decimal @default(0)
+  vial    Decimal @default(0)
+  capsule Decimal @default(0)
+  tablet  Decimal @default(0)
+  box     Decimal @default(0)
+
+  itemInfo   ItemInfo @relation(fields: [itemInfoId], references: [id])
+  itemInfoId String   @unique
+}
+
+model Item {
+  // This is used for SI mostly
+  id          String  @id @default(uuid())
+  quantity    Int
+  unit        UNITS
+  discount    Float?
+  totalAmount Decimal
+
+  vatable   Boolean
+  isPullout Boolean @default(false)
+
+  //Handles Relationships 
+  SI               SalesInvoice?      @relation(fields: [sIId], references: [id])
+  sIId             String?
+  DR               DeliveryRecipt?    @relation(fields: [dRId], references: [id])
+  dRId             String?
+  ItemInfo         ItemInfo           @relation(fields: [itemInfoId], references: [id])
+  itemInfoId       String
+  ItemSalesDetails ItemSalesDetails[] @relation(name: "itemRef")
+}
+
+model ItemSalesDetails {
+  id           String  @id @default(uuid())
+  netAmount    Decimal
+  vatExempt    Boolean
+  VATAmount    Decimal
+  netVATAmount Decimal
+  discount     Decimal
+  //Before Discount / Original Price
+  grossAmount  Decimal
+
+  item   Item   @relation(name: "itemRef", fields: [itemId], references: [id])
+  itemId String
+}
+
+model TotalDetails {
+  id String @id @default(uuid())
+
+  grossAmount Decimal
+  discount    Decimal
+  netAmount   Decimal
+  VATAmount   Decimal
+  vatable     Boolean
+
+  salesInvoice     SalesInvoice?   @relation(fields: [salesInvoiceId], references: [id])
+  salesInvoiceId   String?         @unique
+  deliveryRecipt   DeliveryRecipt? @relation(fields: [deliveryReciptId], references: [id])
+  deliveryReciptId String?
+}
+
+model SalesInvoice {
+  id                 String  @id @default(uuid())
+  salesInvoiceNumber String  @unique
+  dateIssued         String
+  totalAmount        Decimal
+  term               Int
+  discount           Float?
+  VAT                Decimal
+  remarks            String? @db.VarChar(500)
+
+  balance    Decimal @default(0)
+  payables   Decimal @default(0)
+  amountPaid Decimal @default(0)
+
+  stockIn   Boolean @default(false)
+  isPullout Boolean @default(false)
+  isPaid    Boolean @default(false)
+  isRemote  Boolean @default(true)
+
+  pmr                Employee?        @relation(name: "pmrEmployee", fields: [pmrEmployeeId], references: [id])
+  pmrEmployeeId      String?
+  preparedBy         Employee?        @relation(name: "preparedByEmployee", fields: [preparedById], references: [id])
+  preparedById       String?
+  client             Client?          @relation(name: "Client", fields: [clientId], references: [id])
+  clientId           String?
+  salesItemSummary   ItemSummary?     @relation(fields: [salesItemSummaryId], references: [id])
+  salesItemSummaryId String?
+  proofOfDelivery    proofOfDelivery? @relation(fields: [proofOfDeliveryId], references: [id])
+  proofOfDeliveryId  String?
+
+  Employee     Employee[]
+  items        Item[]
+  Client       Client[]
+  monthlySales monthlySales[]
+  PullOutItem  PullOutItem[]
+  ItemSummary  ItemSummary[]  @relation(name: "salesInvoice")
+  TotalDetails TotalDetails?
+  PaymentInfo  PaymentInfo[]
+}
+
+model DeliveryRecipt {
+  id                   String  @id @default(uuid())
+  deliveryReciptNumber String  @unique
+  dateIssued           String
+  totalAmount          Decimal
+  term                 Int
+  discount             Float?
+  VAT                  Decimal
+  remarks              String? @db.VarChar(500)
+
+  balance    Decimal @default(0)
+  payables   Decimal @default(0)
+  amountPaid Decimal @default(0)
+
+  pmr                Employee?        @relation(name: "DRpmrEmployee", fields: [pmrEmployeeId], references: [id])
+  pmrEmployeeId      String?
+  preparedBy         Employee?        @relation(name: "preparedByEmployee", fields: [preparedById], references: [id])
+  preparedById       String?
+  client             Client?          @relation(name: "Client", fields: [clientId], references: [id])
+  clientId           String?
+  salesItemSummary   ItemSummary?     @relation(fields: [salesItemSummaryId], references: [id])
+  salesItemSummaryId String?
+  proofOfDelivery    proofOfDelivery? @relation(fields: [proofOfDeliveryId], references: [id])
+  proofOfDeliveryId  String?
+
+  stockIn   Boolean @default(false)
+  isRemote  Boolean @default(false)
+  isPullout Boolean @default(false)
+  isPaid    Boolean @default(false)
+  isBypass  Boolean @default(false)
+
+  items        Item[]
+  Client       Client[]
+  Employee     Employee[]
+  ItemSummary  ItemSummary[]  @relation(name: "deliveryRecipt")
+  monthlySales monthlySales[]
+  PullOutItem  PullOutItem[]
+  PaymentInfo  PaymentInfo[]
+  TotalDetails TotalDetails[]
+}
+
+model WeeklySales {
+  id          String   @id @default(uuid())
+  dateIssued  DateTime
+  client      Client   @relation(fields: [clientId], references: [id])
+  clientId    String
+  totalOrders Int
+  discount    Decimal
+  VAT         Decimal
+  total       Decimal
+}
+
+model ItemSummary {
+  id        String  @id @default(uuid())
+  stocksIn  Int     @default(0)
+  stocksOut Int     @default(0)
+  remaining Int     @default(0)
+  remakes   String?
+  status    STATUS
+
+  salesInvoice     SalesInvoice?   @relation(name: "salesInvoice", fields: [salesInvoiceId], references: [id])
+  salesInvoiceId   String?
+  deliveryRecipt   DeliveryRecipt? @relation(name: "deliveryRecipt", fields: [deliveryReciptId], references: [id])
+  deliveryReciptId String?
+  itemInfo         ItemInfo?       @relation(fields: [itemInfoId], references: [id])
+  itemInfoId       String?
+
+  SalesInvoice   SalesInvoice[]
+  DeliveryRecipt DeliveryRecipt[]
+}
+
+model Stocks {
+  id      String @id @default(uuid())
+  vial    Int    @default(0)
+  bottle  Int    @default(0)
+  box     Int    @default(0)
+  capsule Int    @default(0)
+  tablet  Int    @default(0)
+
+  pmr           EmployeeInfo? @relation(name: "pmrEmployee", fields: [pmrEmployeeId], references: [id])
+  pmrEmployeeId String?
+  itemInfo      ItemInfo?     @relation(fields: [itemInfoId], references: [id])
+  itemInfoId    String?
+}
+
+model mainStocks {
+  id      String @id @default(uuid())
+  Vial    Int    @default(0)
+  Bottle  Int    @default(0)
+  Box     Int    @default(0)
+  Capsule Int    @default(0)
+  Tablet  Int    @default(0)
+
+  itemInfo   ItemInfo? @relation(fields: [itemInfoId], references: [id])
+  itemInfoId String?
+}
+
+model SOA {
+  id         String   @id @default(uuid())
+  dateIssued DateTime
+
+  client       ClientInfo @relation(fields: [clientInfoId], references: [id])
+  clientInfoId String
+}
+
+model monthlySales {
+  id         String   @id @default(uuid())
+  dateIssued DateTime
+
+  salesInvoice     SalesInvoice?   @relation(fields: [salesInvoiceId], references: [id])
+  salesInvoiceId   String?
+  deliveryRecipt   DeliveryRecipt? @relation(fields: [deliveryReciptId], references: [id])
+  deliveryReciptId String?
+}
+
+model PaymentInfo {
+  id String @id @default(uuid())
+
+  modeOfPayment      PAYMENT
+  CRARNo             String?        @unique
+  checkNumber        String?        @unique
+  checkDate          DateTime?
+  dateIssued         DateTime
+  amount             Decimal
+  fromBalance        Decimal        @default(0)
+  depositDateAndTime DateTime
+  remarks            String?
+  status             PAYMENT_STATUS
+
+  client           ClientInfo      @relation(fields: [clientInfoId], references: [id])
+  clientInfoId     String
+  salesInvoice     SalesInvoice?   @relation(fields: [salesInvoiceId], references: [id])
+  salesInvoiceId   String?
+  deliveryRecipt   DeliveryRecipt? @relation(fields: [deliveryReciptId], references: [id])
+  deliveryReciptId String?
+}
+
+model PullOutItem {
+  id             String @id @default(uuid())
+  quantity       Int
+  unit           UNITS
+  quantityIssued Int
+
+  //Handles Relationships 
+  SI         SalesInvoice?   @relation(fields: [sIId], references: [id])
+  sIId       String?
+  DR         DeliveryRecipt? @relation(fields: [dRId], references: [id])
+  dRId       String?
+  ItemInfo   ItemInfo        @relation(fields: [itemInfoId], references: [id])
+  itemInfoId String
+}
+
+model PullOut {
+  id String @id @default(uuid())
+
+  pullOutNumber String   @unique
+  dateIssued    DateTime
+
+  documentNumber    String
+  quantity          Int
+  itemName          String
+  manufacturingDate DateTime
+  expirationData    DateTime
+  batchNumber       String
+  amount            Decimal
+  totalAmount       Decimal
+  remarks           String?
+
+  unit   UNITS
+  status String
+
+  client       ClientInfo @relation(fields: [clientInfoId], references: [id])
+  clientInfoId String
+}
+
+model MonthlyCollection {
+  id String @id @default(uuid())
+
+  modeOfPayment PAYMENT
+  remarks       String
+
+  client       ClientInfo @relation(fields: [clientInfoId], references: [id])
+  clientInfoId String
+}
+
+model proofOfDelivery {
+  id String @id @default(uuid())
+
+  proofOfDeliveryNumber String
+
+  quantity      Int
+  remarks       String?
+  dateRequested DateTime
+  unit          String
+
+  itemInfo          ItemInfo     @relation(fields: [itemInfoId], references: [id])
+  itemInfoId        String
+  deliveredClient   ClientInfo   @relation(name: "deliveredClient", fields: [deliveredClientId], references: [id])
+  deliveredClientId String
+  pmr               EmployeeInfo @relation(name: "pmr", fields: [pmrId], references: [id])
+  pmrId             String
+
+  salesInvoice   SalesInvoice[]
+  deliveryRecipt DeliveryRecipt[]
+}
+
+model receivingReport {
+  id String @id @default(uuid())
+
+  supplier              String
+  address               String
+  TIN                   String   @unique
+  remarks               String?
+  term                  Int
+  dateIssued            DateTime
+  receivingReportNumber String   @unique
+
+  items receivingReportItems[]
+}
+
+model receivingReportItems {
+  id String @id @default(uuid())
+
+  itemName          String
+  batchNumber       String
+  quantity          Int
+  unit              String
+  manufacturingDate DateTime
+  expirationDate    DateTime
+  VAT               Boolean
+
+  receivingReport   receivingReport? @relation(fields: [receivingReportId], references: [id])
+  receivingReportId String?
+}
+
+model stockRequest {
+  id String @id @default(uuid())
+
+  stockRequestNumber String
+
+  quantityRequested Int
+  quantityIssued    Int
+  remarks           String?
+  deliveredAddress  String
+  dateRequested     DateTime
+  unit              String
+
+  itemInfo      ItemInfo     @relation(fields: [itemInfoId], references: [id])
+  itemInfoId    String
+  requestedBy   EmployeeInfo @relation(fields: [requestedById], references: [id])
+  requestedById String
+}
+
+enum UNITS {
+  BOX
+  VIALS
+  BOTTLES
+  CAPSULES
+  TABLETS
+}
+
+enum ROLES {
+  ADMIN
+  SALES
+  INVENTORY
+  ACCOUNTING
+  IT
+}
+
+enum DEPARTMENT {
+  SALES
+  PMR
+  INVENTORY
+  ACCOUNTING
+  IT
+  GENERAL_MANAGER              @map("GENERAL MANAGER")
+  DISTRICT_MANAGER             @map("DISTRICT MANAGER")
+  BUSINESS_DEVELOPMENT_MANAGER @map("BUSINESS DEVELOPMENT MANAGER")
+  ADMIN
+}
+
+enum STATUS {
+  DELIVERED
+  UN_DELIVERED    @map("UN DELIVRED")
+  CANCELLED
+  FOR_REPLACEMENT @map("FOR REPLACEMENT")
+}
+
+enum PAYMENT_STATUS {
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum PAYMENT {
+  CHECK
+  CASH
+}
+
+enum PULLOUTSTATUS {
+  FOR_REPLACEMENT @map("FOR REPLACEMENT")
+  EXPIRED
+  NEAR_EXPIRY     @map("NEAR EXPIRY")
+}

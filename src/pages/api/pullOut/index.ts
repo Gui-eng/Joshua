@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { handleUndefined, quantityOptions } from 'functions';
+import { handleUndefined } from 'functions';
 import { includes } from 'lodash';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import NextCors from 'nextjs-cors';
@@ -52,7 +52,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     });
 
                     data.map(async (item: any) => {
-                        const { quantity } = item;
                         if (item.isSI) {
                             const bal = await prisma.salesInvoice.findUnique({
                                 where: { salesInvoiceNumber: item.documentNumber },
@@ -62,15 +61,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                 where: { salesInvoiceNumber: item.documentNumber },
                                 data: {
                                     isPullout: true,
-                                    balance: bal?.balance + item.amount,
                                     payables:
                                         handleUndefined(bal?.payables) - item.amount <= 0
                                             ? 0
                                             : handleUndefined(bal?.payables) - item.amount,
-                                    totalAmount:
-                                        handleUndefined(bal?.totalAmount) - item.amount <= 0
-                                            ? 0
-                                            : handleUndefined(bal?.totalAmount) - item.amount,
+
                                 },
                             });
                         } else {
@@ -82,20 +77,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                 where: { deliveryReciptNumber: item.documentNumber },
                                 data: {
                                     isPullout: true,
-                                    balance: bal?.balance + item.amount,
                                     payables:
                                         handleUndefined(bal?.payables) - item.amount <= 0
                                             ? 0
                                             : handleUndefined(bal?.payables) - item.amount,
-                                    totalAmount:
-                                        handleUndefined(bal?.totalAmount) - item.amount <= 0
-                                            ? 0
-                                            : handleUndefined(bal?.totalAmount) - item.amount,
                                 },
                             });
                         }
 
-                        const mainStocks = await prisma.mainStocks.create({
+			const mainStocks = await prisma.mainStocks.create({
                             data: {
                                 itemInfoId: item.id,
                             },

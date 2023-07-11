@@ -7,7 +7,8 @@ import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react'
 import { Button, Header } from 'semantic-ui-react';
 import { Item } from 'types';
-import template from './../../../../public/newsiTemplate.docx'
+import templateNew from './../../../../public/newsiTemplate.docx'
+import templateOld from './../../../../public/oldsiTemplate.docx'
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 
@@ -26,6 +27,7 @@ enum UNITS {
 
   const data = {
     client : "",
+    TIN : "",
     term: "",
     address : "",
     date : "",
@@ -41,6 +43,7 @@ enum UNITS {
     avat : "",
     tdue : "",
     prepared_by : "",
+
 
     unit1 : "",
     qty1 : "",
@@ -93,7 +96,7 @@ enum UNITS {
 
 export const getServerSideProps : GetServerSideProps = async (context) => {
     const session = await getSession(context);
-    const res = await axios.get(`http://localhost:3000/api/${session?.user?.email}`)
+    const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/${session?.user?.email}`)
 
     try{
         const info = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/salesInvoice/${context.query.id}`)
@@ -165,7 +168,7 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
                     nonvat = {
                         ...nonvat,
                         tdue : nonvat.tdue + Number(item.ItemSalesDetails[0].netAmount),
-                        vatS : nonvat.vatS + Number(item.ItemSalesDetails[0].netAmount),
+                        vatS : nonvat.vatS + Number(item.ItemSalesDetails[0].netAmount) / 1.12,
                         vamount : nonvat.vamount + Number(item.ItemSalesDetails[0].VATAmount),
                         adue : nonvat.adue + Number(item.ItemSalesDetails[0].netAmount),
 
@@ -210,6 +213,7 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
             ...prevTemplateData,
             client : info.client.clientInfo.companyName,
             term: info.term,
+	    TIN : info.client.clientInfo.TIN,
             address :  info.client.clientInfo.address,
             date : formatDateString(info.dateIssued.toString()),
             prepared_by : info.preparedBy.employeeInfo.firstName + " " + info.preparedBy.employeeInfo.lastName,
@@ -277,9 +281,7 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
             
             
             await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/convertToPdf`, {file : generatedDoc})
-            await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/savepdf`)
             await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/printSI`)
-            
             
         
             router.reload()
@@ -354,8 +356,8 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
            <div className='tw-w-[90%]'>
                 <Itable color='blue' data={tableData} headerTitles={headerTitle}/>
                 <div className='tw-mt-4'>
-                    <Button onClick={() => {handlePrint(true)}}color='blue'>Print SI &#40;New&#41;</Button>
-                    <Button onClick={() => {generateDocument(templateData, template)}}color='blue'>Print SI &#40;Old&#41;</Button>
+                    <Button onClick={() => {generateDocument(templateData, templateNew)}}color='blue'>Print SI &#40;New&#41;</Button>
+                    <Button onClick={() => {generateDocument(templateData, templateOld)}}color='blue'>Print SI &#40;Old&#41;</Button>
                     <Button onClick={() => {router.push(`/sales/add/editSI/${info.id}`)}}color='blue'>Edit</Button>
                 </div>
                 <div className='tw-full tw-flex tw-justify-end'>

@@ -121,14 +121,13 @@ export default function add({ user, documentData, clients, paymentData} : InferG
         }
     }, [modeOfPayment])
 
-    console.log(paymentData)
+
 
     async function handleOnClick(e : React.MouseEvent<HTMLButtonElement, MouseEvent>){
         e.preventDefault()
 
-        console.log(rawData)
         if(modeOfPayment === PAYMENT.CASH){
-            if(  rawData.dateOfDeposit === ''){
+            if( rawData.dateOfDeposit === ''){
                 alert('There are empty fields')
                 return
             }
@@ -224,7 +223,7 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                             <Input id='checkDate' type='time' onChange={(e) => {setRawData({...rawData, depositTime : `${rawData.dateOfDeposit.substring(10,0)}T${e.target.value}:00Z`})}}/>
                         </Form.Field>
                         <Form.Field>
-                            <label htmlFor="dateIssued">Date Issued</label>
+                            <label htmlFor="dateIssued">AR/CR Issued</label>
                             <Input id='dateIssued' max={getDate()} type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
                         </Form.Field>
                     </Form.Group>

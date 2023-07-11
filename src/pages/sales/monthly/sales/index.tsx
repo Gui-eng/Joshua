@@ -33,7 +33,7 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
 
 
-const headerTitles = ["id", "SI No.", "Date", "Total Amount", "Actions" ]
+const headerTitles = ["id", "SI/DR No.", "Date", "Total Amount", "Actions" ]
 
 export default function home({ post } :  InferGetServerSidePropsType<typeof getServerSideProps>) {
   const router = useRouter()
@@ -61,7 +61,7 @@ export default function home({ post } :  InferGetServerSidePropsType<typeof getS
     try {
       const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/print`, rawData)
       alert('File created Successfully!')
-      router.reload()
+     // router.reload()
     } catch (error) {
       console.log(error)
     }
@@ -75,6 +75,7 @@ export default function home({ post } :  InferGetServerSidePropsType<typeof getS
         const filterData = async () => {
           const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/document/report`, salesIndexData)
           const data = res.data.data
+	  
 
           setRawData({...rawData,data : data, from : salesIndexData.from, to : salesIndexData.to, currentDate : getDate()})
 

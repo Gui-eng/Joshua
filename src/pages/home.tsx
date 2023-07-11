@@ -68,7 +68,7 @@ export default function home({ post } : any) {
                     {post.role === "SALES" || post.role === "ACCOUNTING" || post.isAdmin ? <Grid.Column>
                       <ICard Icon={<Chart fill='white' width={35}/>} name='Sales' link='sales'/>
                     </Grid.Column> : null}
-                    {post.role === "INVENTORY" || post.isAdmin ? <Grid.Column>
+                    {post.role === "INVENTORY" || post.isAdmin || post.role === "SALES" || post.role === "ACCOUNTING" ? <Grid.Column>
                       <ICard Icon={<Chart fill='white' width={35}/>} name='Inventory' link='inventory'/>
                     </Grid.Column> : null}
                     {post.role === "SALES" || post.isAdmin ? <Grid.Column>

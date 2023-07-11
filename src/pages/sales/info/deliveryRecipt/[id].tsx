@@ -90,15 +90,27 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     d4 :"",
     price4 : "",
 
+    unit5 : "",
+    qty5 : "",
+    name5: "",
+    mg5: "",
+    exp5: "",
+    batch5: "",
+    amount5 : "", 
+    d5 :"",
+    price5 : "",
+
     n1 : "",
     n2 : "",
     n3 : "",
     n4 : "",
+    n5 : "",
 
     r1 : "",
     r2 : "",
     r3 : "",
     r4 : "",
+    r5 : "",
 
 
    
@@ -194,10 +206,7 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
             
             
             await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/dr/convertToPdf`, {file : generatedDoc})
-            await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/dr/savepdf`)
             await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/printDR`)
-
-            
             
         
             router.reload()

@@ -26,7 +26,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     });
 
                     const info = {...data, ItemPrice : data?.ItemPrice[0] || {}}
-                    
 
                     res.status(200).json({ success: true, data: info });
                 } catch (error) {

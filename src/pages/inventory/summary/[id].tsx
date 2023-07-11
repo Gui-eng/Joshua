@@ -27,18 +27,19 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
     const pmr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/pmr/${id}`)
 
-    const Info = info.data.data.sort((a : any, b : any) => {
-      const nameA = a.itemInfo.itemName.toLowerCase();
-      const nameB = b.itemInfo.itemName.toLowerCase();
+     const Info = info.data.data.sort((a : any, b : any) => {
+
+     const nameA = a.itemInfo.itemName.toLowerCase();
+     const nameB = b.itemInfo.itemName.toLowerCase();
 
       if (nameA < nameB) {
         return -1;
       }
-      if (nameA > nameB) {
+     if (nameA > nameB) {
         return 1;
       }
       return 0;
-    });
+   });
 
     const checkStocks = async () => {
       const pmrData : Array<any>=  info.data.data
@@ -89,7 +90,7 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
   checkStocks();
     return {
-      props : { post : res.data.data, info : Info, pmr : pmr.data.data }
+      props : { post : res.data.data, info : info.data.data, pmr : pmr.data.data }
     }
     
 }
@@ -225,47 +226,6 @@ const [data, setData] = useState<Array<any>>(info.map((item : any) => {
                 </div>
             </div>
             <div className='tw-w-full tw-flex tw-flex-col tw-items-center '>
-                <div className='tw-w-[95%] tw-pb-4'>
-                    <Form>
-                      <Form.Group>
-                        <Form.Field>
-                          <label htmlFor="ite">Item Name</label>
-                          <Dropdown
-                            search
-                            selection
-                            wrapSelection
-                            id = "itemName"
-                            placeholder='--Item Name--'
-                            options={itemOptions}
-                            onChange={(e, item) => {setItemNameValue(item.value?.toString() || '')}}
-                          />
-                        </Form.Field>
-                        <Form.Field disabled={disabled}>
-                          <label htmlFor="ite">Batch Number</label>
-                          <Dropdown
-                            search
-                            selection
-                            wrapSelection
-                            id = "batchNumber"
-                            placeholder='--Batch Number--'
-                            options={batchOptions}
-                            onChange={(e, item) => {setBatchNumberValue(item.value?.toString() || '')}}
-                          />
-                        </Form.Field>
-                        <Form.Field disabled={disabled}>
-                              <label htmlFor="quantity">Quantity</label>
-                              <Input min={1} value={rawData.quantity} id='quantity' onChange={(e) => { handleOnChange(e, rawData, setRawData)}} type="number" label={{content : <Dropdown color='blue' value={rawData.unit} options={availableQuantityOptions} onChange={(e, item) => {handleOptionsChange(e, item, rawData, setRawData)}}/>, color : "blue"}} labelPosition='right'/>
-                        </Form.Field>
-                        <Form.Field>
-                              <label htmlFor="remarks">Remarks</label>
-                              <Input value={rawData.remarks} id="remarks" placeholder="Remarks" onChange={(e) => {handleOnChange(e, rawData, setRawData)}} />
-                        </Form.Field>
-                      </Form.Group>
-                      <Form.Field disabled={disabled}>
-                              <Button onClick={(e) => {handleOnClick(e)}} color='blue'>Change Stock</Button>
-                        </Form.Field>
-                    </Form>
-                </div>
                 <div className='tw-w-[95%]'>
                     <Itable headerTitles={headerTitles} data={tableData} />
                 </div>

@@ -18,7 +18,7 @@ import { PAYMENT_STATUS } from '@prisma/client';
 import axios from 'axios';
 import _ from 'lodash';
 
-export const HOSTADDRESS = '192.168.1.194';
+export const HOSTADDRESS = '192.168.1.8';
 export const PORT = '3000';
 
 export const emptyOptions: Option = {
@@ -532,7 +532,7 @@ export const salesRecord = (item: any, router: NextRouter) => {
             ? createElement(Button, {
                   onClick: () => {
                       router.push(
-                          `http://localhost:3000/sales/collection/processPayment/${item.id}/${
+                          `http://${HOSTADDRESS}:${PORT}/sales/collection/processPayment/${item.id}/${
                               item.salesInvoiceNumber !== undefined ? 'SI' : 'DR'
                           }`,
                       );
@@ -543,7 +543,7 @@ export const salesRecord = (item: any, router: NextRouter) => {
             : createElement(Button, {
                   onClick: () => {
                       router.push(
-                          `http://localhost:3000/sales/collection/processPayment/${item.id}/${
+                          `http://${HOSTADDRESS}:${PORT}/sales/collection/processPayment/${item.id}/${
                               item.salesInvoiceNumber !== undefined ? 'SI' : 'DR'
                           }`,
                       );
@@ -558,7 +558,7 @@ export const documentRecord = async (items: any, router: NextRouter) => {
     const getPaymentInfo = async (item: any) => {
         const dueDate = calculateDueDate(item);
 
-        const paymentInfo = await axios.get(`http://localhost:3000/api/collection/documents/${item.id}`);
+        const paymentInfo = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/collection/documents/${item.id}`);
 
         const checkNumbers = paymentInfo.data.data
             .map((check: any) => {
@@ -713,7 +713,7 @@ export function renderPaymentStatus(status: PAYMENT_STATUS): JSX.Element {
  * @returns a Promise containing the balance of the client as a number
  */
 export async function fetchBalance(clientId: string): Promise<number> {
-    const res = await axios.get(`http://localhost:3000/api/collection/client/${clientId}`);
+    const res = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/collection/client/${clientId}`);
 
     return parseFloat(res.data.data);
 }

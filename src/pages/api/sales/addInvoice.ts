@@ -1,6 +1,5 @@
 import { ItemSalesDetails, PrismaClient } from '@prisma/client';
-import axios from 'axios';
-import { HOSTADDRESS, PORT, handleUndefined, handleUnits } from 'functions';
+import { handleUndefined, handleUnits } from 'functions';
 import _, { create } from 'lodash';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import NextCors from 'nextjs-cors';
@@ -64,19 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     isRemote,
                     client,
                     preparedById,
-                    deductFromInventory,
                 } = req.body;
-
-                const record = await prisma.salesInvoice.findFirst({
-                    where: {
-                        salesInvoiceNumber: salesInvoiceNumber,
-                    },
-                });
-
-                if (record) {
-                    res.status(403).json({ success: false, data: ['There is already existing Number'] });
-                    return;
-                }
 
                 const totalSalesAmount = _.sumBy(
                     item,
@@ -125,27 +112,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     const grossAmount = totalAmount;
                     const netAmount = totalAmount - grossAmount * disc;
                     const VATAmount = vatable ? (netAmount / 1.12) * 0.12 : 0;
-
-                    if (!deductFromInventory) {
-                        const datas = {
-                            dateIssued: dateIssued,
-                            quantity: -quantity,
-                            unit: unit,
-                            itemInfoId: itemInfoId,
-                            client: pmrEmployeeId,
-                        };
-
-                        const deduct = async () => {
-                            const res = await axios.post(
-                                `http://${HOSTADDRESS}:${PORT}/api/inventory/addStocksMain/salespmr`,
-                                datas,
-                            );
-                        };
-
-                        deduct();
-                    } else {
-                        console.log('Nay');
-                    }
 
                     return {
                         discount: disc,

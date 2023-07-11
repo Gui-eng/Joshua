@@ -20,7 +20,7 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
     const documentData = [...salesInvoiceData.data.data, ...deliveryReciptData.data.data]
 
     selectedDocument = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/deliveryRecipt/${context.query.id}`).catch( async () => {
-      return selectedDocument = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/salesInvoice/${context.query.id}`)
+     return await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/salesInvoice/${context.query.id}`)
     })
   
     
@@ -47,7 +47,7 @@ export default function add({ user, clients, salesInvoiceData, selectedDocument}
 
     const router = useRouter()
 
-    console.log(salesInvoiceData)
+
 
     const [salesInvoiceNumberOptions, setSalesInvoiceNumberOptions] = useState<any>([])
     const [totalBalance, setTotalBalance] = useState(0)

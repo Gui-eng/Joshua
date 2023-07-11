@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `paymentinfo` ADD COLUMN `CRARNo` VARCHAR(191) NULL;

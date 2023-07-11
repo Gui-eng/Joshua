@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios'
 import Itable from 'components/Itable'
+import _ from 'lodash'
 import IFlexTable from 'components/IFlexTable'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { getSession, useSession } from 'next-auth/react'
@@ -34,17 +35,20 @@ export const getServerSideProps : GetServerSideProps = async () => {
 
     const pmr = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/employee/pmr`)
 
-    const clients = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/client`)
-
+    const clients = await axios.get(`http://${HOSTADDRESS}:${PORT}/api/getInfo/client`) 
+    let clientsData = clients.data.data
+    
 
     return {
-      props : { clients : clients.data.data, pmr : pmr.data.data}
+      props : { clients : clientsData, pmr : pmr.data.data}
     }
 }
 
 export default function item({ clients, pmr } : InferGetServerSidePropsType<typeof getServerSideProps>) {
 
   const router = useRouter()
+
+  clients = _.sortBy(clients, o => o.companyName)
 
 
   const pmrList : Option[] = pmr.map((item : EmployeeInfo) => {

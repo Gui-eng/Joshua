@@ -164,7 +164,7 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
       const grossAmount = item.totalAmount 
       const netAmount = grossAmount - (grossAmount * discount)
 
-
+      console.log()
       return {
         id : item.id,
         quantity : item.quantity,
@@ -217,14 +217,14 @@ export default function item({ itemInfo, preparedBy, clientInfo, pmrInfo } : Inf
       return
     }
 
-    try{
+
       const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/addDR`, deliveryReciptData)
       router.reload()
-    }catch(e : any){
-      if(e.response.status === 403){
-        alert("There is already an existing Delivery Receipt Number!")
-      }
+    if(!res.status){
+      console.log(res.statusText)
     }
+
+    console.log(deliveryReciptData)
 
 }
 

@@ -21,13 +21,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         case 'POST':
             {
                 try {
-                    const { from, to } = req.body;
-
+                    let { from, to } = req.body;
+		    let fromDate = new Date(from);
+		   // const FromDate = fromDate.getDate() - 1;
+		    const toDate = new Date(to);
+ 		    const day = toDate.getDate() + 1;
+		    toDate.setDate(day);
                     const salesInvoice = await prisma.salesInvoice.findMany({
                         where: {
                             dateIssued: {
                                 gte: new Date(from).toISOString(),
-                                lte: new Date(to).toISOString(),
+                                lte: toDate.toISOString(),
                             },
                         },
                         include: {
@@ -63,8 +67,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         },
                     });
 
+			salesInvoice.sort((a, b) => {return new Date(a.dateIssued) - new Date(b.dateIssued)})
+			deliveryRecipt.sort((a, b) => {return new Date(a.dateIssued) - new Date(b.dateIssued)})
+
                     const info = [...salesInvoice, ...deliveryRecipt];
-                    
+
                     res.status(200).json({ success: true, data: info });
                 } catch (error) {
                     console.log(error);
