@@ -254,13 +254,20 @@ export interface ItemSalesDetails {
 }
 
 export interface RawDataOfProcessPayment {
+    id: string;
     checkNumber: string;
     checkDate: string;
+    ARCR: string;
     depositTime: string;
     amount: number;
+    ewt: number;
     dateOfDeposit: string;
     modeOfPayment: string;
     documentData: SalesInvoiceData | DeliveryReciptData;
     dateIssued: string;
     deductFromBalance: boolean;
+    remarks?: string;
+    balance?: number;
+    prevAmount?: number;
+    prevBal?: number;
 }

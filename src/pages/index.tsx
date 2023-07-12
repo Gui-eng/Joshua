@@ -33,7 +33,9 @@ export const getServerSideProps : GetServerSideProps = async (context) => {
 
 export default function Home({ data } : InferGetServerSidePropsType<typeof getServerSideProps>) {
   
-  signIn()
+  useEffect(() => {
+    signIn()
+  }, [])
   return (
     null
     

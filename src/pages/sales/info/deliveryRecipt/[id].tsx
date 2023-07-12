@@ -5,9 +5,6 @@ import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
 import React, { useEffect, useState } from 'react'
 import { Button, Header } from 'semantic-ui-react';
-import { Item } from 'types';
-import template from './../../../../../public/olddrTemplate.docx'
-import template1 from './../../../../../public/newdrTemplate.docx'
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { useRouter } from 'next/router';
@@ -185,7 +182,8 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
     async function generateDocument(resume : any, templatePath : any) {
         // load the document template into docxtemplater
         try {
-            let response = await fetch(templatePath);
+            const filePath = `/_next/static/files/${templatePath}`;
+            let response = await fetch(filePath);
             let data = await response.arrayBuffer();
     
             let zip = new PizZip(data);
@@ -245,9 +243,9 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
     
     async function handlePrint(newDR : Boolean){
         if(!newDR){
-            await generateDocument(templateData, template)
+            await generateDocument(templateData, "olddrTemplate.docx")
         }else{
-            await generateDocument(templateData, template1)
+            await generateDocument(templateData,  "newdrTemplate.docx")
         }
     }
 

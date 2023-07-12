@@ -130,6 +130,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     amount,
                     dateOfDeposit,
                     checkDepositDate,
+                    ewt,
                     checkDate,
                     depositTime,
                     modeOfPayment,
@@ -141,6 +142,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                 } = req.body;
                 try {
                     let collectionData: PaymentInfo;
+                    let dateStr = depositTime;
+                    dateStr = dateStr.replace(':00Z', '.000Z');
+
                     if (modeOfPayment === PAYMENT.CHECK) {
                         collectionData = await prisma.paymentInfo.create({
                             data: {
@@ -148,9 +152,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                 CRARNo: ARCR,
                                 amount: amount,
                                 checkDate: checkDate,
-                                depositDateAndTime: depositTime,
+                                depositDateAndTime: dateStr,
                                 modeOfPayment: modeOfPayment,
                                 dateIssued: dateIssued,
+                                ewt: ewt,
                                 salesInvoiceId:
                                     documentData !== undefined
                                         ? documentData.salesInvoiceNumber !== undefined
@@ -197,7 +202,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     }
 
                     if (documentData.salesInvoiceNumber !== undefined) {
-                        let remainingAmount: number = amount;
+                        let remainingAmount: number = amount + Number(ewt);
                         let deductFromBalanceValue: number = 0;
 
                         const getPayables = await prisma.salesInvoice.findUnique({
@@ -259,7 +264,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                             },
                         });
                     } else {
-                        let remainingAmount: number = amount;
+                        let remainingAmount: number = amount + Number(ewt);
 
                         const getPayables = await prisma.deliveryRecipt.findUnique({
                             where: { deliveryReciptNumber: documentData.deliveryReciptNumber },

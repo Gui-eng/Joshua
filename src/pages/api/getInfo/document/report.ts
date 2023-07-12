@@ -22,11 +22,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             {
                 try {
                     let { from, to } = req.body;
-		    let fromDate = new Date(from);
-		   // const FromDate = fromDate.getDate() - 1;
-		    const toDate = new Date(to);
- 		    const day = toDate.getDate() + 1;
-		    toDate.setDate(day);
+                    let fromDate = new Date(from);
+                    // const FromDate = fromDate.getDate() - 1;
+                    const toDate = new Date(to);
+                    const day = toDate.getDate() + 1;
+                    toDate.setDate(day);
                     const salesInvoice = await prisma.salesInvoice.findMany({
                         where: {
                             dateIssued: {
@@ -34,6 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                 lte: toDate.toISOString(),
                             },
                         },
+
                         include: {
                             pmr: { include: { employeeInfo: true } },
                             preparedBy: { include: { employeeInfo: true } },
@@ -67,8 +68,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                         },
                     });
 
-			salesInvoice.sort((a, b) => {return new Date(a.dateIssued) - new Date(b.dateIssued)})
-			deliveryRecipt.sort((a, b) => {return new Date(a.dateIssued) - new Date(b.dateIssued)})
+                    salesInvoice.sort((a, b) => {
+                        return new Date(a.dateIssued).getTime() - new Date(b.dateIssued).getTime();
+                    });
+
+                    deliveryRecipt.sort((a, b) => {
+                        return new Date(a.dateIssued).getTime() - new Date(b.dateIssued).getTime();
+                    });
 
                     const info = [...salesInvoice, ...deliveryRecipt];
 

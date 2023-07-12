@@ -6,12 +6,11 @@ import { getSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react'
 import { Button, Header } from 'semantic-ui-react';
-import { Item } from 'types';
-import templateNew from './../../../../public/newsiTemplate.docx'
-import templateOld from './../../../../public/oldsiTemplate.docx'
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
+import fs from 'fs';
 
+import path from 'path';
 
 const headerTitle = ["id", "Quantity", "Unit", "Item Name" , "Vatable", "Price", "Batch Number" , "Man. Date", "Exp. Date", "Net Amount"]
 
@@ -122,6 +121,7 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
    
     // !info ? null
     const router = useRouter()
+    
 
     const [templateData, setTemplateData] = useState(data)
     const [del, setDel] = useState(false);
@@ -259,8 +259,11 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
 
     async function generateDocument(resume : any, templatePath : any) {
         // load the document template into docxtemplater
+      
         try {
-            let response = await fetch(templatePath);
+          
+            const filePath = `/_next/static/files/${templatePath}`;
+            let response = await fetch(filePath);
             let data = await response.arrayBuffer();
     
             let zip = new PizZip(data);
@@ -290,15 +293,9 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
             console.log('Error: ' + error);
         }
       }
+    
 
 
-    async function handlePrint(newSI : Boolean){
-        if(newSI){
-            await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/document/salesInvoice/new/print`, info)
-        }else{
-            await axios.post(`http://${HOSTADDRESS}:${PORT}/api/getInfo/document/salesInvoice/old/print`, info)
-        }
-    }
 
     async function handleDeleteDocument() {
         try {
@@ -356,8 +353,8 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
            <div className='tw-w-[90%]'>
                 <Itable color='blue' data={tableData} headerTitles={headerTitle}/>
                 <div className='tw-mt-4'>
-                    <Button onClick={() => {generateDocument(templateData, templateNew)}}color='blue'>Print SI &#40;New&#41;</Button>
-                    <Button onClick={() => {generateDocument(templateData, templateOld)}}color='blue'>Print SI &#40;Old&#41;</Button>
+                    <Button onClick={() => {generateDocument(templateData, "newsiTemplate.docx")}}color='blue'>Print SI &#40;New&#41;</Button>
+                    <Button onClick={() => {generateDocument(templateData, "oldsiTemplate.docx")}}color='blue'>Print SI &#40;Old&#41;</Button>
                     <Button onClick={() => {router.push(`/sales/add/editSI/${info.id}`)}}color='blue'>Edit</Button>
                 </div>
                 <div className='tw-full tw-flex tw-justify-end'>

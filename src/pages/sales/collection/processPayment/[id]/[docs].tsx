@@ -6,9 +6,10 @@ import axios from 'axios'
 import { getSession } from 'next-auth/react'
 import { faChessBishop } from '@fortawesome/free-solid-svg-icons'
 import { CollectionData, ClientInfo, Option, CheckInfo, RawDataOfProcessPayment } from 'types'
-import { HOSTADDRESS, PORT, calculateDueDate, fetchBalance, formatCurrency, getDate, handleDateChange, handleOnChange, hasEmptyFields, renderPaymentStatus } from 'functions'
+import { HOSTADDRESS, PORT, calculateDueDate, fetchBalance, formatCurrency, getDate, handleDateChange, handleOnChange, hasEmptyFields, renderPaymentStatus, find } from 'functions'
 import { PAYMENT, PAYMENT_STATUS } from '@prisma/client'
 import { useRouter } from 'next/router'
+
 
 
 
@@ -39,7 +40,7 @@ const modeOfPayementOptions : Option[] = [
  
 ]
 
-const headerTitles = ["id","Method","Check No.", "CR/AR No.", "SI/DR No.", "Date Issued","Check Date", "Date of Deposit", "Deposit Time", "Amount", "Status", "From Balance", "Remarks"]
+const headerTitles = ["id","Method","Check No.", "CR/AR No.", "SI/DR No.","Check Date", "Date of Deposit", "Deposit Time", "Amount", "EWT", "Status", "From Balance", "Remarks", " Actions "]
 
 
 
@@ -52,18 +53,27 @@ export default function add({ user, documentData, clients, paymentData} : InferG
     const [tableData, setTableData] = useState([])
     const [deductFromBalance, setdeductFromBalance] = useState(false)
     const [balance, setBalance] = useState(0)
+    const [isEditing, setIsEditing] = useState(false)
+    const [del, setDel] = useState(false)
 
     const [rawData, setRawData] = useState<RawDataOfProcessPayment>(
         {
+            id : '',
             checkNumber : '',
             checkDate : '',
+            ARCR : '',
             depositTime : '',
             amount : 0.00,
+            ewt : 0.00,
+            balance : 0.00,
             dateOfDeposit : '',
             modeOfPayment : modeOfPayment,
             documentData : documentData,
             dateIssued : '',
-            deductFromBalance : false
+            deductFromBalance : false,
+            remarks : '',
+            prevAmount : 0.00,
+            prevBal : 0.00,
         }
     )
 
@@ -83,14 +93,14 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                 checkNumber : check.checkNumber || '-',
                 ARCRNo : check.CRARNo ? check.CRARNo : '-',
                 [`${number}`]: check.salesInvoice ? check.salesInvoice.salesInvoiceNumber : check.deliveryRecipt.deliveryReciptNumber,
-                dateIssued : check.dateIssued.substring(10, 0),
                 checkDate : check.checkDate ? check.checkDate.substring(10, 0): '-',
                 depositDate : check.depositDateAndTime  === "-" ? "-" : check.depositDateAndTime.substring(10, 0),
                 depositTime : check.modeOfPayment === PAYMENT.CASH ? '-' : check.depositDateAndTime === "-" ? "-" : new Date(check.depositDateAndTime).toLocaleTimeString(),
-                amount : (Math.round(parseFloat(check.amount) * 100) / 100).toLocaleString(),
+                amount : formatCurrency((Math.round(parseFloat(check.amount) * 100) / 100).toString()),
+                ewt : formatCurrency((Math.round(parseFloat(check.ewt) * 100) / 100).toString()),
                 status : renderPaymentStatus(check.status),
                 fromBalance : formatCurrency(check.fromBalance),
-                remarks : check.remarks
+                remarks : check.remarks,
             }
 
          }))
@@ -132,7 +142,7 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                 return
             }
         }else{
-            if(hasEmptyFields(rawData, ['amount'])){
+            if(hasEmptyFields(rawData, ['id', 'amount', 'ewt', 'prevAmount', 'prevBal','balance', 'remarks'])){
                 alert('There are empty fields')
                 return
             }
@@ -143,11 +153,80 @@ export default function add({ user, documentData, clients, paymentData} : InferG
             }
         }
 
-        const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/collection`, rawData)
-    
-        router.reload()
+        try {
+            const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/collection`, rawData)
+            
+            router.reload()
+        } catch (error) {
+            console.log(error)
+        }
     }
 
+    async function handleSaveChanges(e : React.MouseEvent<HTMLButtonElement, MouseEvent>){
+        e.preventDefault()
+
+        if(modeOfPayment === PAYMENT.CASH){
+            if( rawData.dateOfDeposit === ''){
+                alert('There are empty fields')
+                return
+            }
+        }else{
+            if(hasEmptyFields(rawData, ['id', 'amount', 'ewt', 'prevAmount', 'prevBal','balance', 'remarks'])){
+                
+                alert('There are empty fields')
+                return
+            }
+
+            if(rawData.amount <= 0 && !rawData.deductFromBalance){
+                alert('There are empty fields')
+                return
+            }
+        }
+
+        try {
+            const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/collection/save`, rawData)
+            
+            router.reload()
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    function updateItem(data : any) {
+        setIsEditing(true)
+        const paymentInfo = find(data.id, paymentData)
+        const { id, CRARNo, amount, checkDate, checkNumber, dateIssued, depositDateAndTime, ewt, modeOfPayment, remarks, fromBalance} = paymentInfo
+        setRawData({
+            id : id,
+            amount : Number(amount),
+            ARCR : CRARNo,
+            checkDate : checkDate ? checkDate.substring(10, 0) : "",
+            checkNumber : checkNumber,
+            dateIssued : dateIssued.substring(10, 0),
+            dateOfDeposit : depositDateAndTime.substring(10, 0),
+            depositTime : depositDateAndTime,
+            deductFromBalance : Number(fromBalance) > 0 ? true : false,
+            ewt : Number(ewt),
+            balance : Number(fromBalance),
+            remarks : remarks,
+            modeOfPayment : modeOfPayment,
+            documentData : documentData,
+            prevAmount : Number(amount) + Number(ewt),
+            prevBal : Number(fromBalance)
+        })
+    }
+
+    async function handleDelete(e : React.MouseEvent<HTMLButtonElement, MouseEvent>){
+        e.preventDefault()
+
+        try {
+            const res = await axios.post(`http://${HOSTADDRESS}:${PORT}/api/collection/delete`, rawData)
+        } catch (error) {
+            console.log(error)
+        }
+        
+        router.reload()
+    }
     
 
     
@@ -194,40 +273,57 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                 <Form.Group>
                     <Form.Field width={2}>
                         <label htmlFor="ARCR">AR/CR No.</label>
-                        <Input id='ARCR' type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
+                        <Input id='ARCR' type='text' value={rawData.ARCR} onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
+                    </Form.Field>
+                    <Form.Field>
+                            <label htmlFor="dateIssued">AR/CR Date</label>
+                            <Input id='dateIssued' value={rawData.dateIssued.substring(10, 0) || ""} max={getDate()} type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
                     </Form.Field>
                     <Form.Field width={2}>
                         <label htmlFor="checkNumber">Check No.</label>
-                        <Input id='checkNumber' type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
+                        <Input id='checkNumber' value={rawData.checkNumber} type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
                     </Form.Field>
-                    <Form.Field width={2}>
-                        <label htmlFor="amount">Amount</label>
-                        <Input id='amount'  onChange={(e) => {handleOnChange(e, rawData, setRawData)}} type='number' label={{content : "₱", color : 'blue'}}/>
-                    </Form.Field>
-                    <Form.Field >
-                        <label htmlFor="remarks">Remarks</label>
-                        <Input id='remarks' type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
-                    </Form.Field>
-                </Form.Group>
-                <Form.Group>
-                        <Form.Field>
+                    <Form.Field>
                             <label htmlFor="checkDate">Check Date</label>
-                            <Input id='checkDate' type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
+                            <Input id='checkDate' value={rawData.checkDate.substring(10, 0) || ""} type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
                         </Form.Field>
+                </Form.Group>
+                <Form.Group>        
                         <Form.Field>
                             <label htmlFor="dateOfDeposit">Deposit Date</label>
-                            <Input id='dateOfDeposit' type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
+                            <Input id='dateOfDeposit' value={rawData.dateOfDeposit.substring(10, 0) || ""} type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
                         </Form.Field>
                         <Form.Field>
                             <label htmlFor="checkDate">Deposit Time</label>
-                            <Input id='checkDate' type='time' onChange={(e) => {setRawData({...rawData, depositTime : `${rawData.dateOfDeposit.substring(10,0)}T${e.target.value}:00Z`})}}/>
+                            <Input id='checkDate' value={rawData.depositTime.substring(11, 19) || ""} type='time' step='1' onChange={(e) => {
+                                setRawData({...rawData, depositTime : `${rawData.dateOfDeposit.substring(10,0)}T${e.target.value}:00Z`})}}/>
                         </Form.Field>
-                        <Form.Field>
-                            <label htmlFor="dateIssued">AR/CR Issued</label>
-                            <Input id='dateIssued' max={getDate()} type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
+                        <Form.Field width={2}>
+                            <label htmlFor="amount">Amount</label>
+                            <Input id='amount' value={rawData.amount} onChange={(e) => {handleOnChange(e, rawData, setRawData)}} type='number' label={{content : "₱", color : 'blue'}}/>
                         </Form.Field>
+                        <Form.Field width={2}>
+                            <label htmlFor="ewt">EWT</label>
+                            <Input id='ewt' value={rawData.ewt} onChange={(e) => {handleOnChange(e, rawData, setRawData)}} type='number' label={{content : "₱", color : 'blue'}}/>
+                        </Form.Field>
+                        <Form.Field >
+                            <label htmlFor="remarks">Remarks</label>
+                            <Input id='remarks' value={rawData.remarks || ""} type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
+                        </Form.Field>   
                     </Form.Group>
-                <Button color='blue'  onClick={(e) => {handleOnClick(e)}}>Add Payment</Button>
+                    {!isEditing ? <Button onClick={(e) => {handleOnClick(e)}} color='blue'>Add Payment</Button>  : <div className='tw-flex tw-gap-4'><Button onClick={(e) => {handleSaveChanges(e)}} color='blue'>Save Changes</Button><Button onClick={(e) => {setIsEditing(false)}} color='google plus'>+ Add Payment</Button>
+                    {!del ?  <Button className='' color='red' inverted onClick={() => { setDel(true)}}>Delete</Button> : null}
+                    
+                    {del ? <div className='tw-flex-col tw-justify-end'>
+                            <Header as='h5' className='tw-pr-2'>Are you sure to delete?</Header>
+                            <div className='tw-flex'>
+                                <Button className='' color='red' inverted onClick={(e) => { handleDelete(e)}}>Yes</Button> 
+                                <Button className='' color='blue' inverted onClick={() => { setDel(false)}}>No</Button>
+                            </div>
+                    </div>: null}
+                    
+                    </div>} 
+
                 </>
                 : 
                     modeOfPayment === PAYMENT.CASH ?
@@ -237,28 +333,44 @@ export default function add({ user, documentData, clients, paymentData} : InferG
                                 <Form.Group>
                                     <Form.Field >
                                         <label htmlFor="checkNumber">Recipt No.</label>
-                                        <Input id='checkNumber' type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
+                                        <Input id='checkNumber' value={rawData.checkNumber} type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
                                     </Form.Field>
                                     <Form.Field>
                                         <label htmlFor="dateOfDeposit">Deposit Date</label>
-                                        <Input id='dateOfDeposit' type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
+                                        <Input id='dateOfDeposit' value={rawData.dateOfDeposit.substring(10, 0) || ""} type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
                                     </Form.Field>
                                     <Form.Field>
                                         <label htmlFor="dateIssued">Date Issued</label>
-                                        <Input id='dateIssued' max={getDate()} type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
+                                        <Input id='dateIssued' value={rawData.dateIssued.substring(10, 0) || ""} max={getDate()} type='date' onChange={(e) => {handleDateChange(e, rawData, setRawData)}}/>
                                     </Form.Field>
                                     <Form.Field>
                                         <label htmlFor="amount">Amount</label>
-                                        <Input id='amount'  min='0' onChange={(e) => {handleOnChange(e, rawData, setRawData)}} type='number' label={{content : "₱", color : 'blue'}}/>
+                                        <Input id='amount' value={rawData.amount} min='0' onChange={(e) => {handleOnChange(e, rawData, setRawData)}} type='number' label={{content : "₱", color : 'blue'}}/>
+                                    </Form.Field>
+                                    <Form.Field >
+                                        <label htmlFor="ewt">EWT</label>
+                                        <Input id='ewt' value={rawData.ewt} onChange={(e) => {handleOnChange(e, rawData, setRawData)}} type='number' label={{content : "₱", color : 'blue'}}/>
                                     </Form.Field>
                                     <Form.Field >
                                         <label htmlFor="remarks">Remarks</label>
-                                        <Input id='remarks' type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
+                                        <Input id='remarks' value={rawData.remarks || ""} type='text' onChange={(e) => {handleOnChange(e, rawData, setRawData)}}/>
                                     </Form.Field>
                             </Form.Group>
                         </div>
 
-                        <Button onClick={(e) => {handleOnClick(e)}} color='blue'>Add Payment</Button>   
+                        {!isEditing ? <Button onClick={(e) => {handleOnClick(e)}} color='blue'>Add Payment</Button>  : <div className='tw-flex tw-gap-4'><Button onClick={(e) => {handleSaveChanges(e)}} color='blue'>Save Changes</Button><Button onClick={(e) => {setIsEditing(false)}} color='google plus'>+ Add Payment</Button>
+                            {!del ?  <Button className='' color='red' inverted onClick={() => { setDel(true)}}>Delete</Button> : null}
+                        
+                            {del ? <div className='tw-flex-col tw-justify-end'>
+                                    <Header as='h5' className='tw-pr-2'>Are you sure to delete?</Header>
+                                    <div className='tw-flex'>
+                                        <Button className='' color='red' inverted onClick={(e) => { handleDelete(e)}}>Yes</Button> 
+                                        <Button className='' color='blue' inverted onClick={() => { setDel(false)}}>No</Button>
+                                    </div>
+                            </div>: null}
+                        </div>} 
+                        
+
                     </>
                     : null
                 }
@@ -278,7 +390,7 @@ export default function add({ user, documentData, clients, paymentData} : InferG
       </div>
       <div className='tw-w-screen tw-flex tw-justify-center'>
           <div className='tw-w-[90%]'>
-            <Itable data={tableData} headerTitles={headerTitles} allowDelete={false} />
+            <Itable data={tableData} allowEditing={true}  updateItem={updateItem} headerTitles={headerTitles} allowDelete={false} />
           </div>
         </div>
         <div className='tw-w-full tw-flex tw-justify-center tw-pt-4'>

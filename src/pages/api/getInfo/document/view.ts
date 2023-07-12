@@ -48,8 +48,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                             client: { include: { clientInfo: true } },
                         },
                     });
-		    salesInvoice.sort((a, b) => {return new Date(a.dateIssued) - new Date(b.dateIssued)})
-		    deliveryRecipt.sort((a, b) => {return new Date(a.dateIssued) - new Date(b.dateIssued)})
+                    salesInvoice.sort((a, b) => {
+                        return new Date(a.dateIssued).getTime() - new Date(b.dateIssued).getTime();
+                    });
+
+                    deliveryRecipt.sort((a, b) => {
+                        return new Date(a.dateIssued).getTime() - new Date(b.dateIssued).getTime();
+                    });
                     const info = [...salesInvoice, deliveryRecipt];
 
                     res.status(200).json({ success: true, data: info });

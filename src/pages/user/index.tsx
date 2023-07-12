@@ -46,7 +46,7 @@ export default function index({ post, info }  : InferGetServerSidePropsType<type
   return (
     <>
     <div className='tw-w-full tw-h-full'>
-      <Inav firstName={post.username}/>
+      <Inav/>
       <div className='tw-w-full tw-flex tw-flex-col tw-h-[80vh]'>
            <div className='tw-w-full tw-flex tw-justify-center tw-my-8'>
                 <div className='tw-w-[90%]'>

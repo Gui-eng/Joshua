@@ -52,6 +52,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                     });
 
                     data.map(async (item: any) => {
+                        const { quantity } = item;
+
                         if (item.isSI) {
                             const bal = await prisma.salesInvoice.findUnique({
                                 where: { salesInvoiceNumber: item.documentNumber },
@@ -65,7 +67,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                                         handleUndefined(bal?.payables) - item.amount <= 0
                                             ? 0
                                             : handleUndefined(bal?.payables) - item.amount,
-
                                 },
                             });
                         } else {
@@ -85,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                             });
                         }
 
-			const mainStocks = await prisma.mainStocks.create({
+                        const mainStocks = await prisma.mainStocks.create({
                             data: {
                                 itemInfoId: item.id,
                             },

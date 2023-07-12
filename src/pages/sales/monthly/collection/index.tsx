@@ -117,7 +117,7 @@ export default function home({ post, paymentInfo} :  InferGetServerSidePropsType
     data && 
     <>
       <div className='tw-w-full tw-h-full'>
-        <Inav firstName={post.employeeInfoId !== null ?post.employeeInfo.firstName : ""}/>
+        <Inav/>
         <div className='tw-w-full tw-flex tw-items-center tw-flex-col tw-pb-96'>
               <div className='tw-w-[95%] tw-p-4 tw-flex tw-justify-between tw-h-full tw-items-center' >
                 <h1 className='tw-text-xl tw-ml-2 tw-font-bold'>Collection Report</h1>

@@ -348,9 +348,10 @@ model PaymentInfo {
   id String @id @default(uuid())
 
   modeOfPayment      PAYMENT
-  CRARNo             String?        @unique
-  checkNumber        String?        @unique
+  CRARNo             String?
+  checkNumber        String?
   checkDate          DateTime?
+  ewt                Decimal        @default(0)
   dateIssued         DateTime
   amount             Decimal
   fromBalance        Decimal        @default(0)
