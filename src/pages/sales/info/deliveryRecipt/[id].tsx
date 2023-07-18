@@ -1,13 +1,17 @@
 import axios from 'axios';
-import Itable from 'components/Itable';
+import Itable from 'components/IFlexTable';
 import { HOSTADDRESS, PORT, formatCurrency, formatDateString, getPrice, handleUndefined } from 'functions';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
 import React, { useEffect, useState } from 'react'
-import { Button, Header } from 'semantic-ui-react';
+import { Button, Header, Loader } from 'semantic-ui-react';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { useRouter } from 'next/router';
+import newdr from '../../../../../public/newdrTemplate.docx'
+import olddr from '../../../../../public/olddrTemplate.docx'
+import { ItemSalesDetails } from 'types';
+import _ from 'lodash';
 
 const headerTitle = ["id", "Quantity", "Unit", "Item Name" , "Vatable", "Price", "Batch Number" , "Man. Date", "Exp. Date", "Total Amount"]
 
@@ -117,10 +121,12 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
 
     const [templateData, setTemplateData] = useState(data)
     const [del, setDel] = useState(false);
+    const [sales, setSales] = useState(0)
+    const [loading, setLoading] = useState(false)
 
     const router = useRouter()
 
-    console.log(info)
+
 
     useEffect(() => {
 
@@ -174,16 +180,13 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
             }
         })
 
-        
-  
-      
     }, [info])
 
     async function generateDocument(resume : any, templatePath : any) {
         // load the document template into docxtemplater
         try {
-            const filePath = `/_next/static/files/${templatePath}`;
-            let response = await fetch(filePath);
+            setLoading(true)
+            let response = await fetch(templatePath);
             let data = await response.arrayBuffer();
     
             let zip = new PizZip(data);
@@ -206,13 +209,51 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
             await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/dr/convertToPdf`, {file : generatedDoc})
             await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/printDR`)
             
-        
+            setLoading(false)
             router.reload()
             alert("Saved Succuessfully See Reports/forms")
         } catch (error) {
             console.log('Error: ' + error);
         }
       }
+
+      useEffect(() => {
+        const tableDataSales = info.items.map((items : any) => {
+            const item = items.ItemSalesDetails.map((sale : any) => {
+                return {
+                    discount : Number(sale.discount),
+                    totalAmount : Number(sale.grossAmount),
+                    vatable : !sale.vatExempt,
+                    id : sale.itemId
+                }
+            })[0]
+
+
+            const discount = handleUndefined(item.discount)
+            const grossAmount = item.totalAmount
+            const netAmount = grossAmount - (grossAmount * discount)
+            const VATAmount = netAmount / 1.12 * 0.12
+      
+            const data = {
+              itemId :  handleUndefined(item.id),
+              grossAmount :  Math.round(grossAmount  * 100) / 100 ,
+              discount : discount || 0,
+              netAmount : Math.round(netAmount * 100) / 100,
+              VATAmount : item.vatable ? Math.round(VATAmount * 100) / 100 : 0, 
+              vatable : item.vatable,
+            }
+      
+            return data
+          })
+          
+          const sum = _.sumBy(tableDataSales, (item: any) => item.netAmount)
+
+          setSales(sum)
+
+          
+    }, [])
+
+
 
     async function handleDeleteDocument() {
         try {
@@ -243,9 +284,9 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
     
     async function handlePrint(newDR : Boolean){
         if(!newDR){
-            await generateDocument(templateData, "olddrTemplate.docx")
+            await generateDocument(templateData, olddr)
         }else{
-            await generateDocument(templateData,  "newdrTemplate.docx")
+            await generateDocument(templateData,  newdr)
         }
     }
 
@@ -275,13 +316,14 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
         </div>
         <div className='tw-w-full tw-flex tw-justify-center'>
            <div className='tw-w-[90%]'>
-                <Itable color='blue' data={tableData} headerTitles={headerTitle}/>
-                <div className='tw-mt-4'>
+                
+                <Itable color='blue' data={tableData} headerTitles={headerTitle} extraData={sales} hasFooter/>                
+                {!loading ?   <div className='tw-mt-4'>
                     <Button onClick={() => {handlePrint(true)}}color='blue'>Print DR &#40;New&#41;</Button>
                     <Button onClick={() => {handlePrint(false)}}color='blue'>Print DR &#40;Old&#41;</Button>
                     <Button onClick={() => {router.push(`/sales/add/editDR/${info.id}`)}}color='blue'>Edit</Button>
 
-                </div>
+                </div> : <Loader active/>}
                 <div className='tw-full tw-flex tw-justify-end'>
                     
                     {!del ?  <Button className='' color='red' inverted onClick={() => { setDel(true)}}>Delete</Button> : null}

@@ -465,6 +465,7 @@ export function handlePaymentStatus(status: string): PAYMENT_STATUS {
 // - nonVATSales: the sum of the netAmount property of all non-VATable items in the input array, rounded to 2 decimal places
 
 export function getTotal(data: ItemSalesComputationData[]): TotalData {
+    console.log(data);
     const isVATExempt = data.some((item: ItemSalesComputationData) => {
         if (item['vatable'] === false) {
             return true;

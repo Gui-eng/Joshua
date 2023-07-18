@@ -36,6 +36,7 @@ export default function Home({ data } : InferGetServerSidePropsType<typeof getSe
   useEffect(() => {
     signIn()
   }, [])
+  
   return (
     null
     

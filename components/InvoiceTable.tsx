@@ -22,7 +22,7 @@ interface Action {
 }
 
 
-const dataRow = ( data : any, findItem: any, edit : any, allowEditing : boolean) => {
+const dataRow = ( data : any, findItem: any, edit : any, allowEditing : boolean, allowDelete : boolean) => {
   return data.map((item : any) => (
     <Table.Row key={item.id}>
       {Object.values(item).map((item : any, index) => {
@@ -35,7 +35,7 @@ const dataRow = ( data : any, findItem: any, edit : any, allowEditing : boolean)
         }
         
       })}
-      <TableCell key={item.id}><Button onClick={(e) => {findItem(item.id)}} color="red">Delete</Button>{allowEditing ?  <Button onClick={(e) => {edit(item.id)}} color="blue">Edit</Button> : null}</TableCell>
+      {allowDelete || allowEditing ? <TableCell key={item.id}>{allowDelete ? <Button onClick={(e) => {findItem(item.id)}} color="red">Delete</Button> : null}{allowEditing ?  <Button onClick={(e) => {edit(item.id)}} color="blue">Edit</Button> : null}</TableCell> : null}
     </Table.Row>
   ))
 }
@@ -156,7 +156,7 @@ export default function IFlextable({ data, headerTitles, color, allowEditing, ha
         </Table.Row>
       </Table.Header>
       <Table.Body>
-        {dataRow(propsData, findItem, edit, allowEditing === undefined ? false : allowEditing)}
+        {dataRow(propsData, findItem, edit, allowEditing === undefined ? false : allowEditing, allowDelete === undefined ? false :allowDelete)}
       </Table.Body>
       {
         data.length > 0 ? <Table.Footer>

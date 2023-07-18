@@ -1,14 +1,17 @@
 import axios from 'axios';
-import Itable from 'components/Itable';
-import { HOSTADDRESS, PORT, formatCurrency, formatDateString, getPrice, handleUndefined } from 'functions';
+import Itable from 'components/InvoiceTable';
+import { HOSTADDRESS, PORT, formatCurrency, formatDateString, getPrice, handleUndefined, salesRecord } from 'functions';
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import { getSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react'
-import { Button, Header } from 'semantic-ui-react';
+import { Button, Header, Loader } from 'semantic-ui-react';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import fs from 'fs';
+import newsi from '../../../../public/docs/newsiTemplate.docx'
+import oldsi from '../../../../public/docs/oldsiTemplate.docx'
+
 
 import path from 'path';
 
@@ -125,6 +128,9 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
 
     const [templateData, setTemplateData] = useState(data)
     const [del, setDel] = useState(false);
+    const [sales, setSales]  = useState();
+
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
 
@@ -168,7 +174,7 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
                     nonvat = {
                         ...nonvat,
                         tdue : nonvat.tdue + Number(item.ItemSalesDetails[0].netAmount),
-                        vatS : nonvat.vatS + Number(item.ItemSalesDetails[0].netAmount) / 1.12,
+                        vatS : nonvat.vatS + Number(item.ItemSalesDetails[0].netAmount),
                         vamount : nonvat.vamount + Number(item.ItemSalesDetails[0].VATAmount),
                         adue : nonvat.adue + Number(item.ItemSalesDetails[0].netAmount),
 
@@ -257,13 +263,49 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
       
     }, [info])
 
+  
+    useEffect(() => {
+        const tableDataSales = info.items.map((items : any) => {
+            const item = items.ItemSalesDetails.map((sale : any) => {
+                return {
+                    discount : Number(sale.discount),
+                    totalAmount : Number(sale.grossAmount),
+                    vatable : !sale.vatExempt,
+                    id : sale.itemId
+                }
+            })[0]
+
+
+            const discount = handleUndefined(item.discount)
+            const grossAmount = item.totalAmount
+            const netAmount = grossAmount - (grossAmount * discount)
+            const VATAmount = netAmount / 1.12 * 0.12
+      
+            const data = {
+              itemId :  handleUndefined(item.id),
+              grossAmount :  Math.round(grossAmount  * 100) / 100 ,
+              discount : discount || 0,
+              netAmount : Math.round(netAmount * 100) / 100,
+              VATAmount : item.vatable ? Math.round(VATAmount * 100) / 100 : 0, 
+              vatable : item.vatable,
+            }
+      
+            return data
+          })
+          
+
+          setSales(tableDataSales)
+
+          
+    }, [])
+
     async function generateDocument(resume : any, templatePath : any) {
         // load the document template into docxtemplater
       
         try {
+            setLoading(true)
           
-            const filePath = `/_next/static/files/${templatePath}`;
-            let response = await fetch(filePath);
+            let response = await fetch(templatePath);
             let data = await response.arrayBuffer();
     
             let zip = new PizZip(data);
@@ -285,12 +327,13 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
             
             await axios.post(`http://${HOSTADDRESS}:${PORT}/api/sales/convertToPdf`, {file : generatedDoc})
             await axios.get(`http://${HOSTADDRESS}:${PORT}/api/sales/printSI`)
-            
+            setLoading(false)
         
             router.reload()
             alert("Saved Succuessfully See Reports/forms")
         } catch (error) {
             console.log('Error: ' + error);
+            setLoading(false)
         }
       }
     
@@ -351,12 +394,12 @@ export default function ID( {post, info} : InferGetServerSidePropsType<typeof ge
         </div>
         <div className='tw-w-full tw-flex tw-justify-center'>
            <div className='tw-w-[90%]'>
-                <Itable color='blue' data={tableData} headerTitles={headerTitle}/>
-                <div className='tw-mt-4'>
-                    <Button onClick={() => {generateDocument(templateData, "newsiTemplate.docx")}}color='blue'>Print SI &#40;New&#41;</Button>
-                    <Button onClick={() => {generateDocument(templateData, "oldsiTemplate.docx")}}color='blue'>Print SI &#40;Old&#41;</Button>
+                {sales !== undefined ? <Itable color='blue' data={tableData} allowDelete={false} headerTitles={headerTitle} extraData={sales}/> : null}
+                {!loading ?  <div className='tw-mt-4'>
+                    <Button onClick={() => {generateDocument(templateData, newsi)}}color='blue'>Print SI &#40;New&#41;</Button>
+                    <Button onClick={() => {generateDocument(templateData, oldsi)}}color='blue'>Print SI &#40;Old&#41;</Button>
                     <Button onClick={() => {router.push(`/sales/add/editSI/${info.id}`)}}color='blue'>Edit</Button>
-                </div>
+                </div> : <Loader active/>}
                 <div className='tw-full tw-flex tw-justify-end'>
                     
                     {!del ?  <Button className='' color='red' inverted onClick={() => { setDel(true)}}>Delete</Button> : null}

@@ -147,7 +147,7 @@ export interface TableProps {
     color?: SemanticCOLORS;
     handleEditing?: any;
     allowEditing?: boolean;
-    allowDelete?: Boolean;
+    allowDelete?: boolean;
     updateItem?: any;
     extraData?: any;
     otherDiscount?: number;
